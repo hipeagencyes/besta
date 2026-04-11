@@ -64,11 +64,11 @@ main { position: relative; width: 100%; height: 100%; display: grid; place-items
 /* Contador */
 .count {
   font-family: 'Major Mono Display', monospace;
-  font-size: clamp(42px, 9vw, 108px);
-  letter-spacing: 0.08em;
-  padding: 10px 20px;
-  max-width: min(92vw, 820px);
-  background: rgba(5,5,8,0.45);
+  font-size: clamp(42px, 8vw, 96px);
+  letter-spacing: 0.06em;
+  padding: clamp(10px, 2vw, 16px) clamp(18px, 3vw, 28px);
+  max-width: min(96vw, 1100px);
+  background: #0d0b11;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   box-shadow:
@@ -77,6 +77,14 @@ main { position: relative; width: 100%; height: 100%; display: grid; place-items
     0 0 12px rgba(84, 147, 255, 0.24);
   position: relative;
   overflow: hidden;
+}
+.count.tick {
+  animation: tick 0.35s ease;
+}
+@keyframes tick {
+  0% { transform: translateY(-6px) scale(0.98); opacity: 0.7; }
+  60% { transform: translateY(1px) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 .count::after { /* scanline sweep */
   content: "";
@@ -117,6 +125,7 @@ main { position: relative; width: 100%; height: 100%; display: grid; place-items
 /* Canvas layers */
 .canvas-stack {
   position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  z-index: 1;
 }
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
@@ -130,6 +139,25 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   position: absolute; inset: -10%; pointer-events: none; z-index: 2;
   background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.5) 80%, rgba(0,0,0,0.8) 100%);
   mix-blend-mode: multiply;
+}
+
+/* Video de fondo */
+.video-bg {
+  position: absolute; inset: 0; overflow: hidden; z-index: 0;
+}
+.video-bg video {
+  width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(1.05) contrast(1.05) brightness(0.9);
+  opacity: 0.6;
+  transform: scale(1.02);
+  transition: opacity 0.8s ease;
+}
+.video-overlay {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.5) 55%, rgba(0,0,0,0.65) 100%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Subtle flicker on everything */
@@ -163,10 +191,10 @@ main:hover .count { box-shadow: 0 0 48px rgba(255, 39, 77, 0.32), 0 0 18px rgba(
     text-align: center;
   }
   .count {
-    font-size: clamp(28px, 15vw, 56px);
+    font-size: clamp(28px, 14vw, 52px);
     padding: 10px 12px;
-    letter-spacing: 0.035em;
-    max-width: 94vw;
+    letter-spacing: 0.03em;
+    max-width: 96vw;
   }
   .footer {
     gap: 8px;
@@ -187,6 +215,12 @@ main:hover .count { box-shadow: 0 0 48px rgba(255, 39, 77, 0.32), 0 0 18px rgba(
 </div>
 <div class="vignette"></div>
 
+<!-- Fondo de vídeo: coloca tu MP4 optimizado en assets/bg.mp4 y un poster en assets/bg.jpg -->
+<div class="video-bg">
+  <video id="bgvid" autoplay muted playsinline preload="metadata" poster="assets/bg.jpg"></video>
+  <div class="video-overlay"></div>
+</div>
+
 <main>
   <section class="hero flicker">
     <div class="band">/* Nombre de la banda */ BESTA</div>
@@ -194,17 +228,48 @@ main:hover .count { box-shadow: 0 0 48px rgba(255, 39, 77, 0.32), 0 0 18px rgba(
     <div id="countdown" class="count">00:00:00:00</div>
   </section>
   <div class="footer">
-    <a href="#" target="_blank" rel="noreferrer">follow the signal</a>
-    <a href="#" target="_blank" rel="noreferrer">instagram</a>
-    <a href="#" target="_blank" rel="noreferrer">spotify</a>
+    <a href="https://instagram.com/besta_oficial" target="_blank" rel="noreferrer">instagram</a>
+    <a href="https://open.spotify.com/artist/0nlIm3zhG83MzO6IjuoJyN" target="_blank" rel="noreferrer">spotify</a>
   </div>
 </main>
 
 <script>
 /* === Ajustes rápidos === */
-const LAUNCH_DATE = new Date("2026-07-12T20:00:00Z"); // cambia la fecha/hora del lanzamiento
+const LAUNCH_DATE = new Date("2026-06-06T20:00:00+02:00"); // hora oficial CEST (España)
 const bandNameEl = document.querySelector(".band"); // cambia el nombre en el HTML si prefieres
 /* ======================= */
+
+/* Fondo de vídeo: edita clips y rangos aquí */
+const videoBg = document.getElementById("bgvid");
+const clips = [
+  { src: "assets/guitarra.mp4", start: 0, end: 3.4 }, // ~3–4 s cada uno, total ~10 s
+  { src: "assets/micro.mp4",    start: 0, end: 3.3 },
+  { src: "assets/bateria.mp4",  start: 0, end: 3.3 }
+];
+let clipIndex = 0;
+
+function playClip(i) {
+  const clip = clips[i % clips.length];
+  videoBg.style.opacity = 0.2; // fade-out breve
+  videoBg.src = clip.src;
+  videoBg.load();
+  videoBg.onloadedmetadata = () => {
+    videoBg.currentTime = clip.start;
+    videoBg.play().catch(() => {/* autoplay fallback ignored */});
+    requestAnimationFrame(() => videoBg.style.opacity = 0.55); // fade-in
+  };
+  videoBg.ontimeupdate = () => {
+    if (videoBg.currentTime >= clip.end) {
+      nextClip();
+    }
+  };
+  videoBg.onended = () => nextClip();
+}
+function nextClip() {
+  clipIndex = (clipIndex + 1) % clips.length;
+  playClip(clipIndex);
+}
+playClip(0);
 
 /* Countdown */
 const countdownEl = document.getElementById("countdown");
@@ -217,6 +282,8 @@ function updateCountdown() {
   const m = Math.floor(diff / (1000 * 60)) % 60;
   const s = Math.floor(diff / 1000) % 60;
   countdownEl.textContent = `${String(d).padStart(2,"0")}:${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  countdownEl.classList.add('tick');
+  setTimeout(() => countdownEl.classList.remove('tick'), 180);
 }
 setInterval(updateCountdown, 1000);
 updateCountdown();
