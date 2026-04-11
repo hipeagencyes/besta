@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Teaser Pop-Rock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050508;
+  --fg: #f5f7ff;
+  --accent: #ff274d; /* cambia acento si quieres */
+  --glow: 0 0 18px rgba(255, 39, 77, 0.35);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: 'Space Grotesk', system-ui, sans-serif;
+  overflow: hidden; height: 100vh; display: grid; place-items: center;
+}
+main { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
+.hero {
+  text-align: center; z-index: 3; padding: clamp(16px, 3vw, 32px);
+  display: grid; gap: clamp(12px, 2vw, 22px); place-items: center;
+}
+.band {
+  font-size: clamp(18px, 3vw, 28px);
+  letter-spacing: 0.35em; text-transform: uppercase; opacity: 0.82;
+}
+/* Contador */
+.count {
+  font-family: 'Major Mono Display', monospace;
+  font-size: clamp(42px, 9vw, 108px);
+  letter-spacing: 0.08em;
+  padding: 10px 20px;
+  background: rgba(5,5,8,0.45);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 0 30px rgba(255,255,255,0.04),
+    0 0 38px rgba(255, 39, 77, 0.18),
+    0 0 12px rgba(84, 147, 255, 0.24);
+  position: relative;
+  overflow: hidden;
+}
+.count::after { /* scanline sweep */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.06) 50%,
+    rgba(255,255,255,0) 100%);
+  mix-blend-mode: screen;
+  animation: sweep 3.6s ease-in-out infinite;
+}
+@keyframes sweep {
+  0% { transform: translateY(-100%); }
+  50% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+.tagline {
+  font-size: clamp(14px, 2.2vw, 18px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(245,247,255,0.82);
+}
+.footer {
+  position: absolute; bottom: clamp(12px, 3vw, 28px); left: 0; right: 0;
+  display: flex; justify-content: center; gap: 14px; z-index: 3;
+}
+.footer a {
+  color: var(--fg); text-decoration: none; font-size: 13px; letter-spacing: 0.14em;
+  padding: 8px 14px; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px;
+  backdrop-filter: blur(6px); background: rgba(5,5,8,0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
+}
+.footer a:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--glow); }
+
+/* Canvas layers */
+.canvas-stack {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Grain overlay */
+.grain {
+  mix-blend-mode: soft-light; opacity: 0.28;
+}
+
+/* CRT vignette */
+.vignette {
+  position: absolute; inset: -10%; pointer-events: none; z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.5) 80%, rgba(0,0,0,0.8) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* Subtle flicker on everything */
+.flicker {
+  animation: flicker 5s steps(2, end) infinite;
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.97; }
+}
+
+/* Hover reactive glow */
+main:hover .count { box-shadow: 0 0 48px rgba(255, 39, 77, 0.32), 0 0 18px rgba(84,147,255,0.32); }
+
+/* Responsive center alignment ensured by grid */
+</style>
+</head>
+<body>
+<div class="canvas-stack">
+  <canvas id="noise" class="grain"></canvas>
+  <canvas id="glitch"></canvas>
+</div>
+<div class="vignette"></div>
+
+<main>
+  <section class="hero flicker">
+    <div class="band">/* Nombre de la banda */ SIGNAL STATIC</div>
+    <div class="tagline">algo está por llegar</div>
+    <div id="countdown" class="count">00:00:00:00</div>
+  </section>
+  <div class="footer">
+    <a href="#" target="_blank" rel="noreferrer">follow the signal</a>
+    <a href="#" target="_blank" rel="noreferrer">instagram</a>
+    <a href="#" target="_blank" rel="noreferrer">spotify</a>
+  </div>
+</main>
+
+<script>
+/* === Ajustes rápidos === */
+const LAUNCH_DATE = new Date("2026-07-12T20:00:00Z"); // cambia la fecha/hora del lanzamiento
+const bandNameEl = document.querySelector(".band"); // cambia el nombre en el HTML si prefieres
+/* ======================= */
+
+/* Countdown */
+const countdownEl = document.getElementById("countdown");
+function updateCountdown() {
+  const now = new Date();
+  const diff = LAUNCH_DATE - now;
+  if (diff <= 0) { countdownEl.textContent = "00:00:00:00"; return; }
+  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const h = Math.floor(diff / (1000 * 60 * 60)) % 24;
+  const m = Math.floor(diff / (1000 * 60)) % 60;
+  const s = Math.floor(diff / 1000) % 60;
+  countdownEl.textContent = `${String(d).padStart(2,"0")}:${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+/* Noise layer */
+const noiseCanvas = document.getElementById("noise");
+const glitchCanvas = document.getElementById("glitch");
+const nctx = noiseCanvas.getContext("2d");
+const gctx = glitchCanvas.getContext("2d");
+function resize() {
+  [noiseCanvas, glitchCanvas].forEach(c => { c.width = window.innerWidth; c.height = window.innerHeight; });
+}
+window.addEventListener("resize", resize);
+resize();
+
+function drawNoise() {
+  const w = noiseCanvas.width, h = noiseCanvas.height;
+  const imageData = nctx.createImageData(w, h);
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const v = Math.random() * 255;
+    imageData.data[i] = v;
+    imageData.data[i+1] = v;
+    imageData.data[i+2] = v;
+    imageData.data[i+3] = Math.random() * 70; // alpha
+  }
+  nctx.putImageData(imageData, 0, 0);
+}
+
+let glitchTimer = 0;
+function drawGlitch(t) {
+  gctx.clearRect(0,0,glitchCanvas.width,glitchCanvas.height);
+  if (t - glitchTimer > 900 + Math.random()*1500) {
+    glitchTimer = t;
+    const bars = 3 + Math.floor(Math.random()*3);
+    for (let i=0;i<bars;i++) {
+      const y = Math.random()*glitchCanvas.height;
+      const h = 8 + Math.random()*28;
+      gctx.fillStyle = `rgba(${120+Math.random()*80}, ${Math.random()*160}, ${255}, ${0.12+Math.random()*0.28})`;
+      gctx.fillRect(-20, y, glitchCanvas.width+40, h);
+      gctx.globalCompositeOperation = "screen";
+      gctx.fillStyle = `rgba(255, 39, 77, ${0.08+Math.random()*0.2})`;
+      gctx.fillRect(0, y + Math.random()*6 - 3, glitchCanvas.width, h/2);
+      gctx.globalCompositeOperation = "source-over";
+    }
+    // horizontal shift
+    const sliceH = 40 + Math.random()*120;
+    const sliceY = Math.random()*(glitchCanvas.height - sliceH);
+    const img = gctx.getImageData(0, sliceY, glitchCanvas.width, sliceH);
+    const offset = (Math.random()*60 - 30);
+    gctx.putImageData(img, offset, sliceY);
+  }
+  requestAnimationFrame(drawGlitch);
+}
+
+/* Mild flicker on countdown */
+function pulse() {
+  countdownEl.style.filter = `drop-shadow(0 0 ${6+Math.random()*10}px rgba(255,39,77,0.45))`;
+  countdownEl.style.opacity = 0.96 + Math.random()*0.04;
+  requestAnimationFrame(pulse);
+}
+
+/* Mouse parallax for subtle movement */
+document.addEventListener("pointermove", e => {
+  const x = (e.clientX / window.innerWidth - 0.5) * 8;
+  const y = (e.clientY / window.innerHeight - 0.5) * 6;
+  document.querySelector(".hero").style.transform = `translate(${x}px, ${y}px)`;
+});
+
+/* Animate */
+function loop() { drawNoise(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+requestAnimationFrame(drawGlitch);
+requestAnimationFrame(pulse);
+</script>
+</body>
+</html>
