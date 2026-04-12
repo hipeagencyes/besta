@@ -10,8 +10,8 @@
 <meta property="og:type" content="website" />
 <meta property="og:title" content="BESTA — Countdown al nuevo lanzamiento" />
 <meta property="og:description" content="La señal está viva. Sigue la cuenta atrás del debut de BESTA." />
-<meta property="og:image" content="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 630'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%2305020a' offset='0'/><stop stop-color='%2308122e' offset='0.45'/><stop stop-color='%23db7f4e' offset='1'/></linearGradient></defs><rect width='1200' height='630' fill='url(%23g)'/><rect width='1200' height='630' fill='url(%23g)' opacity='0.35'/><text x='50%' y='50%' fill='%23f5f7ff' font-family='Space Grotesk, system-ui' font-size='120' font-weight='700' letter-spacing='20' text-anchor='middle' dominant-baseline='middle'>BESTA</text><text x='50%' y='62%' fill='%23f5f7ff' font-family='Major Mono Display, monospace' font-size='38' text-anchor='middle'>LAUNCH COUNTDOWN</text></svg>" />
-<meta property="og:image:type" content="image/svg+xml" />
+<meta property="og:image" content="https://besta.live/assets/images/og-image.png" />
+<meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://besta.live" /> <!-- cambia la URL final de la landing -->
@@ -20,7 +20,7 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="BESTA — Countdown al nuevo lanzamiento" />
 <meta name="twitter:description" content="La señal está viva. Sigue la cuenta atrás del debut de BESTA." />
-<meta name="twitter:image" content="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 630'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%2305020a' offset='0'/><stop stop-color='%2308122e' offset='0.45'/><stop stop-color='%23db7f4e' offset='1'/></linearGradient></defs><rect width='1200' height='630' fill='url(%23g)'/><rect width='1200' height='630' fill='url(%23g)' opacity='0.35'/><text x='50%' y='50%' fill='%23f5f7ff' font-family='Space Grotesk, system-ui' font-size='120' font-weight='700' letter-spacing='20' text-anchor='middle' dominant-baseline='middle'>BESTA</text><text x='50%' y='62%' fill='%23f5f7ff' font-family='Major Mono Display, monospace' font-size='38' text-anchor='middle'>LAUNCH COUNTDOWN</text></svg>" />
+<meta name="twitter:image" content="https://besta.live/assets/images/og-image.png" />
 
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicons/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png">
@@ -65,10 +65,13 @@ main { position: relative; width: 100%; height: 100%; display: grid; place-items
 /* Contador */
 .count {
   font-family: 'Major Mono Display', monospace;
-  font-size: clamp(42px, 8vw, 96px);
-  letter-spacing: 0.06em;
+  font-size: clamp(40px, 6.6vw, 88px);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
   padding: clamp(10px, 2vw, 16px) clamp(18px, 3vw, 28px);
-  max-width: min(96vw, 1100px);
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  white-space: nowrap;
   background: #0d0b11;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
@@ -188,9 +191,9 @@ main:hover .count { box-shadow: 0 0 48px rgba(var(--accent-rgb), 0.32), 0 0 18px
     text-align: center;
   }
   .count {
-    font-size: clamp(28px, 14vw, 52px);
-    padding: 10px 12px;
-    letter-spacing: 0.03em;
+    font-size: clamp(24px, 7.2vw, 30px);
+    padding: 10px 8px;
+    letter-spacing: 0.02em;
     max-width: 96vw;
   }
   .footer {
@@ -212,9 +215,9 @@ main:hover .count { box-shadow: 0 0 48px rgba(var(--accent-rgb), 0.32), 0 0 18px
 </div>
 <div class="vignette"></div>
 
-<!-- Fondo de video: coloca tu MP4 optimizado en assets/videos/bg.mp4 y un poster en assets/bg.jpg -->
+<!-- Fondo de video -->
 <div class="video-bg">
-  <video id="bgvid" autoplay muted playsinline preload="metadata" poster="assets/bg.jpg"></video>
+  <video id="bgvid" autoplay muted playsinline preload="metadata" poster="assets/images/og-image.png"></video>
   <div class="video-overlay"></div>
 </div>
 
@@ -236,21 +239,39 @@ const LAUNCH_DATE = new Date("2026-06-06T20:00:00+02:00"); // hora oficial CEST 
 
 /* Fondo de vídeo: edita clips y rangos aquí */
 const videoBg = document.getElementById("bgvid");
-const clips = [
+videoBg.muted = true;
+videoBg.defaultMuted = true;
+videoBg.playsInline = true;
+videoBg.setAttribute("muted", "");
+videoBg.setAttribute("playsinline", "");
+videoBg.setAttribute("webkit-playsinline", "");
+const useMobileVideo = window.matchMedia("(max-width: 760px), (pointer: coarse)").matches;
+const clips = useMobileVideo ? [
+  { src: "assets/videos/guitarra-mobile.mp4", start: 0, end: 3.4 },
+  { src: "assets/videos/micro-mobile.mp4",    start: 0, end: 3.3 },
+  { src: "assets/videos/bateria-mobile.mp4",  start: 0, end: 3.3 }
+] : [
   { src: "assets/videos/guitarra.mp4", start: 0, end: 3.4 }, // ~3-4 s cada uno, total ~10 s
   { src: "assets/videos/micro.mp4",    start: 0, end: 3.3 },
   { src: "assets/videos/bateria.mp4",  start: 0, end: 3.3 }
 ];
 let clipIndex = 0;
 
+function tryPlayVideo() {
+  videoBg.play().catch(() => {
+    videoBg.style.opacity = 0.55;
+  });
+}
+
 function playClip(i) {
   const clip = clips[i % clips.length];
   videoBg.style.opacity = 0.2; // fade-out breve
   videoBg.src = clip.src;
+  videoBg.muted = true;
   videoBg.load();
   videoBg.onloadedmetadata = () => {
     videoBg.currentTime = clip.start;
-    videoBg.play().catch(() => {/* autoplay fallback ignored */});
+    tryPlayVideo();
     requestAnimationFrame(() => videoBg.style.opacity = 0.55); // fade-in
   };
   videoBg.ontimeupdate = () => {
@@ -265,6 +286,10 @@ function nextClip() {
   playClip(clipIndex);
 }
 playClip(0);
+
+["touchstart", "pointerdown", "click"].forEach(eventName => {
+  document.addEventListener(eventName, tryPlayVideo, { once: true, passive: true });
+});
 
 /* Countdown */
 const countdownEl = document.getElementById("countdown");
