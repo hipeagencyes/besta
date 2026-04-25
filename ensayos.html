@@ -929,6 +929,27 @@ body.role-guitar .section-notes-aside .note:not([data-role="guitar"]):not([data-
   transition: opacity 0.2s, transform 0.2s;
 }
 body.editing .autoscroll-control { display: none; }
+
+/* En modo edición, atenuamos el resto de la UI para que se vea
+   que estás "dentro" de un formulario y clicar fuera = aviso de descartar */
+body.editing .sidebar,
+body.editing .topbar .toggle-group,
+body.editing .topbar .settings-wrap {
+  opacity: 0.38;
+  transition: opacity 0.2s ease;
+}
+body.editing .sidebar:hover,
+body.editing .topbar:hover .toggle-group,
+body.editing .topbar:hover .settings-wrap {
+  opacity: 0.95;
+}
+body.editing .sidebar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.15));
+  pointer-events: none;
+}
 .autoscroll-control.idle { opacity: 0.65; }
 .autoscroll-control:hover { opacity: 1; }
 .autoscroll-toggle {
@@ -1723,6 +1744,7 @@ let searchQuery = "";
 let editMode = false;
 let editDraft = null;
 let editIsNew = false;
+let editDirty = false;
 let memberCount = 1;
 
 // Autoscroll
@@ -1976,6 +1998,22 @@ function extractChordsFromSection(sec) {
 /* =========================================================
    YouTube embed
    ========================================================= */
+function playYouTube(thumbEl) {
+  if (!thumbEl) return;
+  const id = thumbEl.dataset.id;
+  if (!id) return;
+  const wrap = document.createElement("div");
+  wrap.className = "video-iframe-wrap";
+  wrap.innerHTML = `<iframe
+      src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1"
+      title="vídeo"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      referrerpolicy="strict-origin-when-cross-origin"
+      allowfullscreen></iframe>`;
+  thumbEl.replaceWith(wrap);
+}
+window.playYouTube = playYouTube;
+
 function parseYouTubeId(url) {
   if (!url) return null;
   url = String(url).trim();
@@ -1992,15 +2030,13 @@ function renderVideoBlock(song) {
   if (id) {
     return `
       <div class="video-block">
-        <div class="video-iframe-wrap">
-          <iframe src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1"
-                  title="${escapeAttr(song.title || '')}"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  allowfullscreen></iframe>
+        <div class="video-thumb" data-id="${id}" onclick="playYouTube(this)" role="button" tabindex="0" aria-label="Reproducir vídeo">
+          <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${id}/0.jpg'">
+          <span class="video-thumb-title">▶ Referencia YouTube</span>
+          <button class="video-play-btn" type="button" aria-label="Reproducir">▶</button>
         </div>
         <div class="video-open">
-          <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noreferrer">Si no carga: abrir en YouTube ↗</a>
+          <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noreferrer">Abrir en YouTube ↗</a>
         </div>
       </div>
     `;
@@ -2082,14 +2118,27 @@ async function initApp() {
   // Wire account UI + logout
   refreshAccountUi();
   const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn) logoutBtn.addEventListener("click", logout);
+  if (logoutBtn) logoutBtn.addEventListener("click", () => {
+    confirmDiscardIfDirty(() => logout());
+  });
+
+  // Avisar al usuario si intenta cerrar pestaña con cambios sin guardar
+  window.addEventListener("beforeunload", (e) => {
+    if (editMode && editDirty) {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    }
+  });
 
   // Wire "Nueva canción" button
   const newBtn = document.getElementById("new-song-btn");
   if (newBtn) newBtn.addEventListener("click", () => {
-    document.getElementById("sidebar").classList.remove("open");
-    document.getElementById("sidebar-backdrop").classList.remove("open");
-    newSong();
+    confirmDiscardIfDirty(() => {
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("sidebar-backdrop").classList.remove("open");
+      newSong();
+    });
   });
 
   // Wire modal
@@ -2376,6 +2425,7 @@ function enterEdit(songId) {
   editDraft = deepClone(song);
   editMode = true;
   editIsNew = false;
+  editDirty = false;
   document.body.classList.add("editing");
   showAutoscrollControl(false);
   renderEditForm();
@@ -2386,6 +2436,7 @@ function newSong() {
   editDraft = { ...emptySong(), _position: songs.length };
   editMode = true;
   editIsNew = true;
+  editDirty = false;
   activeSongId = null;
   document.body.classList.add("editing");
   showAutoscrollControl(false);
@@ -2395,11 +2446,27 @@ function newSong() {
 window.newSong = newSong;
 
 function cancelEdit() {
+  if (editDirty) {
+    showConfirm({
+      title: "Descartar cambios",
+      body: "Tienes cambios sin guardar. ¿Descartarlos y salir?",
+      confirmLabel: "Descartar",
+      danger: true,
+      onConfirm: doCancelEdit
+    });
+  } else {
+    doCancelEdit();
+  }
+}
+window.cancelEdit = cancelEdit;
+
+function doCancelEdit() {
   const wasNew = editIsNew;
   const id = editDraft?.id;
   editMode = false;
   editDraft = null;
   editIsNew = false;
+  editDirty = false;
   document.body.classList.remove("editing");
   if (wasNew) {
     if (songs[0]) selectSong(songs[0].id);
@@ -2411,7 +2478,37 @@ function cancelEdit() {
     selectSong(id);
   }
 }
-window.cancelEdit = cancelEdit;
+
+/* Helper: si hay cambios sin guardar, pide confirmación antes de
+   ejecutar la acción de navegación. Si no hay cambios, ejecuta directo. */
+function confirmDiscardIfDirty(action) {
+  if (!editMode || !editDirty) {
+    if (editMode) {
+      // No hay cambios pero seguimos en modo edición — salir limpio
+      editMode = false;
+      editDraft = null;
+      editIsNew = false;
+      editDirty = false;
+      document.body.classList.remove("editing");
+    }
+    action();
+    return;
+  }
+  showConfirm({
+    title: "Cambios sin guardar",
+    body: "Tienes cambios sin guardar en esta canción. Si sigues, los perderás.",
+    confirmLabel: "Descartar y salir",
+    danger: true,
+    onConfirm: () => {
+      editMode = false;
+      editDraft = null;
+      editIsNew = false;
+      editDirty = false;
+      document.body.classList.remove("editing");
+      action();
+    }
+  });
+}
 
 async function saveEdit() {
   if (!editDraft) return;
@@ -2458,6 +2555,7 @@ async function saveEdit() {
     editMode = false;
     editDraft = null;
     editIsNew = false;
+    editDirty = false;
     document.body.classList.remove("editing");
     renderSongList();
     selectSong(id);
@@ -2934,9 +3032,11 @@ function renderSongList() {
       </span>
     `;
     li.addEventListener("click", () => {
-      selectSong(song.id);
-      document.getElementById("sidebar").classList.remove("open");
-      document.getElementById("sidebar-backdrop").classList.remove("open");
+      confirmDiscardIfDirty(() => {
+        selectSong(song.id);
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-backdrop").classList.remove("open");
+      });
     });
     list.appendChild(li);
   }
@@ -3072,6 +3172,7 @@ function renderEditForm(opts = {}) {
       let value = e.target.value;
       if (e.target.dataset.type === "number") value = value.trim();
       setByPath(editDraft, path, value);
+      editDirty = true;
     });
   }
 
