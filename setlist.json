@@ -1,0 +1,648 @@
+{
+  "songs": [
+    {
+      "id": "dani-fernandez-bailemos",
+      "artist": "Dani Fernández",
+      "title": "Bailemos",
+      "key": "G",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Dani+Fernandez+Bailemos",
+      "links": [],
+      "notes": "",
+      "sections": []
+    },
+    {
+      "id": "dani-fernandez-vulnerable",
+      "artist": "Dani Fernández",
+      "title": "Vulnerable",
+      "key": "G",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Dani+Fernandez+Vulnerable",
+      "links": [],
+      "notes": "",
+      "sections": []
+    },
+    {
+      "id": "alvaro-de-luna-todo-contigo",
+      "artist": "Álvaro de Luna",
+      "title": "Todo contigo",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Alvaro+de+Luna+Todo+contigo",
+      "links": [],
+      "notes": "",
+      "sections": []
+    },
+    {
+      "id": "despistaos-fisica-o-quimica",
+      "artist": "Despistaos",
+      "title": "Física o Química",
+      "key": "A",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Despistaos+Fisica+o+Quimica",
+      "links": [],
+      "notes": "",
+      "sections": []
+    },
+    {
+      "id": "el-canto-del-loco-la-suerte-de-mi-vida",
+      "artist": "El Canto del Loco",
+      "title": "La suerte de mi vida",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=La+suerte+de+mi+vida+El+Canto+del+Loco",
+      "links": [],
+      "notes": "Carlos lleva los solos.",
+      "sections": [
+        {
+          "name": "Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "",
+            "drums": "Aún no entra.",
+            "piano": "",
+            "guitar": "",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estribillo 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Post-estribillo",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "",
+            "drums": "",
+            "piano": "",
+            "guitar": "Solo de Carlos.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estrofa 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "",
+            "drums": "Entra batería en esta estrofa.",
+            "piano": "",
+            "guitar": "Solos por aquí también.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estribillo 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Final",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        }
+      ]
+    },
+    {
+      "id": "coti-antes-que-ver-el-sol",
+      "artist": "Coti",
+      "title": "Antes que ver el sol",
+      "key": "E",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Coti+Antes+que+ver+el+sol",
+      "links": [],
+      "notes": "",
+      "sections": [
+        {
+          "name": "Intro",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Entrada de Carlos + OH.",
+            "drums": "Aún no entra (entra OH).",
+            "piano": "",
+            "guitar": "Carlos lleva la entrada.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Aquí entran guitarra y batería.",
+            "drums": "Entra.",
+            "piano": "",
+            "guitar": "Entra.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Pre-estribillo",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estribillo",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Pre-estribillo final (BREAK)",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Mirar el break del último pre-estribillo.",
+            "drums": "Bombo a tope marcando con la voz.",
+            "piano": "",
+            "guitar": "",
+            "voice": "Marcar con el bombo."
+          }
+        },
+        {
+          "name": "Estribillo final",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        }
+      ]
+    },
+    {
+      "id": "nena-daconte-tenia-tanto-que-darte",
+      "artist": "Nena Daconte",
+      "title": "Tenía tanto que darte",
+      "key": "F",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Nena+Daconte+Tenia+tanto+que+darte",
+      "links": [],
+      "notes": "Cierre con \"paraparapa\" (que cante el público).",
+      "sections": [
+        {
+          "name": "Intro / Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Solo piano.",
+            "drums": "Aún no entra.",
+            "piano": "Lleva el peso (estrofa + medio estribillo).",
+            "guitar": "Aún no entra.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Medio estribillo (sigue solo piano)",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Sigue solo piano hasta la mitad del primer estribillo.",
+            "drums": "Aún no.",
+            "piano": "Sigue.",
+            "guitar": "Aún no.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Post 1er estribillo",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Definir cómo entran batería + guitarra después del 1er estribillo.",
+            "drums": "Entra (ver cómo).",
+            "piano": "",
+            "guitar": "Entra (ver cómo).",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estrofa 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estribillo final",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Outro \"paraparapa\"",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Que lo cante el público — animarlo.",
+            "drums": "",
+            "piano": "",
+            "guitar": "",
+            "voice": "Liderar el coro y lanzarlo al público."
+          }
+        }
+      ]
+    },
+    {
+      "id": "la-casa-azul-revolucion-sexual",
+      "artist": "La Casa Azul",
+      "title": "La revolución sexual",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=La+Casa+Azul+Revolucion+sexual",
+      "links": [],
+      "notes": "",
+      "sections": []
+    },
+    {
+      "id": "fito-fitipaldis-antes-de-que-cuente-diez",
+      "artist": "Fito y Fitipaldis",
+      "title": "Antes de que cuente diez",
+      "key": "D",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Fito+Antes+de+que+cuente+diez",
+      "links": [],
+      "notes": "Carlos lleva los solos.",
+      "sections": [
+        {
+          "name": "Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Todo full.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estribillo 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Todo full.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estrofa 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Todo full.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Solo",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "",
+            "drums": "",
+            "piano": "",
+            "guitar": "Solo de Carlos.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Post-solo",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Solo guitarra.",
+            "drums": "Bajar / parar.",
+            "piano": "Bajar / parar.",
+            "guitar": "Sigue sola.",
+            "voice": "Bajar / parar."
+          }
+        },
+        {
+          "name": "Estribillo final",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Vuelve full.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        }
+      ]
+    },
+    {
+      "id": "fran-perea-1-mas-1-son-7",
+      "artist": "Fran Perea",
+      "title": "1+1 son 7",
+      "key": "Gm",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Fran+Perea+1+1+son+7",
+      "links": [],
+      "notes": "",
+      "sections": [
+        {
+          "name": "Intro freestyle",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Intro libre.",
+            "drums": "No entra.",
+            "piano": "",
+            "guitar": "Carlos hace freestyle.",
+            "voice": "No entra todavía."
+          }
+        },
+        {
+          "name": "Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Estrofa entera con voz + 1 rasgueo de guitarra.",
+            "drums": "No entra.",
+            "piano": "",
+            "guitar": "Un solo rasgueo, marcando.",
+            "voice": "Lleva el peso."
+          }
+        },
+        {
+          "name": "Estribillo 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estrofa 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "",
+            "drums": "Entra batería.",
+            "piano": "",
+            "guitar": "",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estribillo 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Puente",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Bombo + voz.",
+            "drums": "Solo bombo, marcando.",
+            "piano": "Bajar.",
+            "guitar": "Bajar.",
+            "voice": "Marca con el bombo."
+          }
+        },
+        {
+          "name": "Estribillo final",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        }
+      ]
+    },
+    {
+      "id": "karol-g-si-antes-te-hubiera-conocido",
+      "artist": "Karol G",
+      "title": "Si antes te hubiera conocido",
+      "key": "E",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Karol+G+Si+antes+te+hubiera+conocido",
+      "links": [],
+      "notes": "",
+      "sections": []
+    },
+    {
+      "id": "leiva-como-si-fueras-a-morir-manana",
+      "artist": "Leiva",
+      "title": "Como si fueras a morir mañana",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "https://www.youtube.com/results?search_query=Leiva+Como+si+fueras+a+morir+manana",
+      "links": [],
+      "notes": "",
+      "sections": [
+        {
+          "name": "Intro / Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estribillo 1 (entra batería)",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Cuando entra la batería, Carlos hace solos de guitarra.",
+            "drums": "Entra aquí.",
+            "piano": "",
+            "guitar": "Solos de Carlos.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Post-estribillo",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Guitarra + batería sostienen.",
+            "drums": "Sigue.",
+            "piano": "",
+            "guitar": "Sigue.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estrofa 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estribillo final",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        }
+      ]
+    },
+    {
+      "id": "besta-no-me-sale-olvidarte",
+      "artist": "BESTA",
+      "title": "No me sale olvidarte",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "",
+      "links": [],
+      "notes": "Todos tocan en toda la canción excepto en la 1ª vuelta del último estribillo: solo guitarra.",
+      "sections": [
+        {
+          "name": "Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Todos.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estribillo 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Todos.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estrofa 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Todos.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Estribillo 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Todos.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Último estribillo — 1ª vuelta",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Solo guitarra. Bajar todos los demás.",
+            "drums": "Para.",
+            "piano": "Para.",
+            "guitar": "Sigue sola, sosteniendo.",
+            "voice": "Para (o muy bajita)."
+          }
+        },
+        {
+          "name": "Último estribillo — 2ª vuelta",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "Vuelven todos full.", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        }
+      ]
+    },
+    {
+      "id": "besta-ibiza",
+      "artist": "BESTA",
+      "title": "Ibiza",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "",
+      "links": [],
+      "notes": "",
+      "sections": [
+        {
+          "name": "Intro / Estrofa 1",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Entra voz + piano.",
+            "drums": "Aún no entra.",
+            "piano": "Entra. Lleva el peso.",
+            "guitar": "Aún no entra.",
+            "voice": "Empieza la canción."
+          }
+        },
+        {
+          "name": "Estrofa 2",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Entra batería.",
+            "drums": "Entra aquí.",
+            "piano": "",
+            "guitar": "",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Pre-estribillo",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "",
+            "drums": "",
+            "piano": "",
+            "guitar": "Un solo rasgueo, marcando.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estribillo",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Full. ¿Solo de piano aquí? — confirmar.",
+            "drums": "",
+            "piano": "Posible solo, revisar.",
+            "guitar": "",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Puente",
+          "lyrics": "",
+          "chords": "",
+          "notes": { "all": "", "drums": "", "piano": "", "guitar": "", "voice": "" }
+        },
+        {
+          "name": "Build (piano + guitarra + batería)",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Build subiendo intensidad.",
+            "drums": "Sube.",
+            "piano": "Sube.",
+            "guitar": "Sube.",
+            "voice": ""
+          }
+        },
+        {
+          "name": "Estribillo final",
+          "lyrics": "",
+          "chords": "",
+          "notes": {
+            "all": "Empieza chill, luego full.",
+            "drums": "Empieza suave / parado, luego full.",
+            "piano": "",
+            "guitar": "",
+            "voice": ""
+          }
+        }
+      ]
+    },
+    {
+      "id": "besta-apaga-el-llum",
+      "artist": "BESTA",
+      "title": "Apaga el llum",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "",
+      "links": [],
+      "notes": "",
+      "sections": []
+    },
+    {
+      "id": "besta-valeria",
+      "artist": "BESTA",
+      "title": "Valeria",
+      "key": "",
+      "bpm": "",
+      "duration": "",
+      "video": "",
+      "links": [],
+      "notes": "",
+      "sections": []
+    }
+  ]
+}
