@@ -110,6 +110,7 @@ button { font-family: inherit; cursor: pointer; }
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
+.gate-input + .gate-input { margin-top: 10px; }
 .gate-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
@@ -164,6 +165,10 @@ button { font-family: inherit; cursor: pointer; }
   transition: border-color 0.15s, color 0.15s;
 }
 .gate-link:hover { border-color: var(--accent); color: var(--fg); }
+.gate-reset {
+  width: 100%;
+  margin-top: 10px;
+}
 .gate-loading {
   display: flex;
   flex-direction: column;
@@ -433,6 +438,7 @@ button { font-family: inherit; cursor: pointer; }
   letter-spacing: 0.04em;
 }
 .song-item .badge.key { color: var(--accent); }
+.song-item .badge.setlist { color: var(--all); }
 
 /* ============ CONTENT ============ */
 .content {
@@ -483,6 +489,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .song-meta .chip.key { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.4); }
 .song-meta .chip.bpm { color: #6ba9ff; }
+.song-meta .chip.setlist { color: var(--all); border-color: rgba(244, 211, 94, 0.4); }
 
 .song-notes {
   background: var(--bg-2);
@@ -1466,7 +1473,7 @@ body.editing .sidebar::after {
 </head>
 <body class="role-all mode-chords">
 
-<!-- ===== Auth Gate (magic link via Supabase) ===== -->
+<!-- ===== Auth Gate (email + password via Supabase) ===== -->
 <div id="gate">
   <div class="gate-card">
     <img class="gate-logo" src="assets/images/besta_color.png" alt="BESTA">
@@ -1474,15 +1481,23 @@ body.editing .sidebar::after {
 
     <form id="gate-form" autocomplete="off">
       <input id="gate-email" class="gate-input" type="email" required placeholder="tu@email.com" autocomplete="email" autofocus />
-      <button class="gate-btn" type="submit" id="gate-submit">enviar enlace</button>
+      <input id="gate-password" class="gate-input" type="password" required placeholder="contraseña" autocomplete="current-password" />
+      <button class="gate-btn" type="submit" id="gate-submit">entrar</button>
+      <button class="gate-link gate-reset" type="button" id="gate-reset">crear / recuperar contraseña</button>
       <div id="gate-error" class="gate-error" aria-live="polite"></div>
     </form>
 
     <div id="gate-sent" class="gate-sent" hidden>
       <div class="gate-sent-icon">✉</div>
-      <p>Te hemos enviado un email con un enlace para entrar.<br>Ábrelo desde este mismo dispositivo y volverás aquí logueado.</p>
+      <p>Te hemos enviado un email para crear o recuperar tu contraseña.<br>Después vuelve aquí y entra con email + contraseña.</p>
       <button type="button" class="gate-link" id="gate-back">Usar otro email</button>
     </div>
+
+    <form id="gate-recovery" autocomplete="off" hidden>
+      <input id="gate-new-password" class="gate-input" type="password" required minlength="6" placeholder="nueva contraseña" autocomplete="new-password" />
+      <button class="gate-btn" type="submit" id="gate-recovery-submit">guardar contraseña</button>
+      <div id="gate-recovery-error" class="gate-error" aria-live="polite"></div>
+    </form>
 
     <div id="gate-loading" class="gate-loading" hidden>
       <div class="gate-spinner"></div>
@@ -1618,13 +1633,20 @@ const LAST_SONG_KEY = "besta_ensayos_last_song";
 let supa = null;
 let session = null;
 let appInitialized = false;
+let recoveringPassword = false;
 
 const gate = document.getElementById("gate");
 const app = document.getElementById("app");
 const gateForm = document.getElementById("gate-form");
+const gateRecovery = document.getElementById("gate-recovery");
 const gateEmail = document.getElementById("gate-email");
+const gatePassword = document.getElementById("gate-password");
+const gateNewPassword = document.getElementById("gate-new-password");
 const gateError = document.getElementById("gate-error");
 const gateSubmit = document.getElementById("gate-submit");
+const gateReset = document.getElementById("gate-reset");
+const gateRecoveryError = document.getElementById("gate-recovery-error");
+const gateRecoverySubmit = document.getElementById("gate-recovery-submit");
 const gateSent = document.getElementById("gate-sent");
 const gateBack = document.getElementById("gate-back");
 const gateLoading = document.getElementById("gate-loading");
@@ -1632,6 +1654,7 @@ const gateLoading = document.getElementById("gate-loading");
 function showGateState(state) {
   gateForm.hidden = state !== "form";
   gateSent.hidden = state !== "sent";
+  gateRecovery.hidden = state !== "recovery";
   gateLoading.hidden = state !== "loading";
 }
 
@@ -1647,11 +1670,32 @@ function unlock() {
 }
 
 function lock() {
+  recoveringPassword = false;
   gate.classList.remove("hidden");
   app.classList.remove("visible");
   showGateState("form");
   gateEmail.value = "";
+  gatePassword.value = "";
+  gateNewPassword.value = "";
   gateError.textContent = "";
+  gateRecoveryError.textContent = "";
+}
+
+function handleAuthState(event, s) {
+  session = s;
+  if (event === "PASSWORD_RECOVERY") {
+    recoveringPassword = true;
+    gate.classList.remove("hidden");
+    app.classList.remove("visible");
+    showGateState("recovery");
+    setTimeout(() => gateNewPassword.focus(), 0);
+  } else if (recoveringPassword && event === "INITIAL_SESSION") {
+    showGateState("recovery");
+  } else if (s) {
+    unlock();
+  } else {
+    lock();
+  }
 }
 
 async function bootAuth() {
@@ -1667,26 +1711,13 @@ async function bootAuth() {
     auth: { persistSession: true, detectSessionInUrl: true, autoRefreshToken: true }
   });
 
-  // Show loading while we resolve session (e.g. from magic-link redirect)
+  // Show loading while we resolve an existing or password-recovery session.
   showGateState("loading");
 
+  supa.auth.onAuthStateChange(handleAuthState);
+
   const { data: { session: s } } = await supa.auth.getSession();
-  session = s;
-
-  if (session) {
-    unlock();
-  } else {
-    showGateState("form");
-  }
-
-  supa.auth.onAuthStateChange((_event, s) => {
-    session = s;
-    if (s) {
-      unlock();
-    } else {
-      lock();
-    }
-  });
+  handleAuthState("INITIAL_SESSION", s);
 }
 
 bootAuth();
@@ -1695,31 +1726,71 @@ gateForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!supa) return;
   const email = gateEmail.value.trim();
-  if (!email) return;
+  const password = gatePassword.value;
+  if (!email || !password) return;
   gateError.textContent = "";
   gateSubmit.disabled = true;
-  gateSubmit.textContent = "enviando…";
+  gateSubmit.textContent = "entrando…";
   try {
-    const { error } = await supa.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: location.origin + location.pathname,
-        shouldCreateUser: false
-      }
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  } catch (err) {
+    gateError.textContent = err.message || "no se pudo entrar";
+  } finally {
+    gateSubmit.disabled = false;
+    gateSubmit.textContent = "entrar";
+  }
+});
+
+gateReset.addEventListener("click", async () => {
+  if (!supa) return;
+  const email = gateEmail.value.trim();
+  gateError.textContent = "";
+  if (!email) {
+    gateError.textContent = "pon tu email primero";
+    gateEmail.focus();
+    return;
+  }
+  gateReset.disabled = true;
+  gateReset.textContent = "enviando…";
+  try {
+    const { error } = await supa.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + location.pathname
     });
     if (error) throw error;
     showGateState("sent");
   } catch (err) {
-    gateError.textContent = err.message || "no se pudo enviar el enlace";
+    gateError.textContent = err.message || "no se pudo enviar el email";
   } finally {
-    gateSubmit.disabled = false;
-    gateSubmit.textContent = "enviar enlace";
+    gateReset.disabled = false;
+    gateReset.textContent = "crear / recuperar contraseña";
   }
 });
 
 gateBack.addEventListener("click", () => {
   showGateState("form");
   gateEmail.focus();
+});
+
+gateRecovery.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!supa) return;
+  const password = gateNewPassword.value;
+  if (!password) return;
+  gateRecoveryError.textContent = "";
+  gateRecoverySubmit.disabled = true;
+  gateRecoverySubmit.textContent = "guardando…";
+  try {
+    const { error } = await supa.auth.updateUser({ password });
+    if (error) throw error;
+    recoveringPassword = false;
+    unlock();
+  } catch (err) {
+    gateRecoveryError.textContent = err.message || "no se pudo guardar la contraseña";
+  } finally {
+    gateRecoverySubmit.disabled = false;
+    gateRecoverySubmit.textContent = "guardar contraseña";
+  }
 });
 
 function refreshAccountUi() {
@@ -1752,7 +1823,7 @@ let autoscrollPlaying = false;
 let autoscrollMultiplier = 1.0;
 let autoscrollAnim = null;
 let autoscrollLastTick = 0;
-let autoscrollUserInterrupting = false;
+let autoscrollRemainder = 0;
 const AUTOSCROLL_KEY = "besta_ensayos_autoscroll_speed";
 const DEFAULT_BPM = 100;
 const PIXELS_PER_BEAT = 9; // calibrated for ~30 px/s @ 120 BPM
@@ -2264,8 +2335,17 @@ async function loadSongsFromSupabase() {
       // Usar los datos locales que acabamos de insertar (evita race con re-lectura)
       songs = result.songs;
     } else {
-      songs = data.map(row => ({ ...(row.data || {}), id: row.id, _position: row.position }));
+      const positionsAreZeroBased = data.some(row => Number(row.position) === 0);
+      songs = data.map(row => {
+        const rowData = { ...(row.data || {}) };
+        const rawPosition = Number(row.position);
+        if (rowData.setlist_number === undefined && Number.isFinite(rawPosition)) {
+          rowData.setlist_number = rawPosition + (positionsAreZeroBased ? 1 : 0);
+        }
+        return { ...rowData, id: row.id, _position: row.position };
+      });
     }
+    sortSongsBySetlist();
   } catch (err) {
     console.error(err);
     showLoadError(err.message || String(err));
@@ -2303,6 +2383,7 @@ async function forceImportFromJson() {
     return;
   }
   songs = result.songs;
+  sortSongsBySetlist();
   renderSongList();
   if (songs[0]) selectSong(songs[0].id);
 }
@@ -2324,7 +2405,7 @@ async function migrateFromLocalJson() {
 
   const rows = sourceSongs.map((s, i) => {
     const { id, ...rest } = s;
-    return { id, position: i, data: rest };
+    return { id, position: i + 1, data: { ...rest, setlist_number: i + 1 } };
   });
 
   // Upsert para que sea idempotente: si una fila ya existe por id, la sobrescribe
@@ -2334,7 +2415,7 @@ async function migrateFromLocalJson() {
     return { ok: false, error: `${error.message}${error.code ? ' ('+error.code+')' : ''}` };
   }
 
-  const songs = sourceSongs.map((s, i) => ({ ...s, _position: i }));
+  const songs = sourceSongs.map((s, i) => ({ ...s, setlist_number: i + 1, _position: i + 1 }));
   return { ok: true, songs };
 }
 
@@ -2355,6 +2436,37 @@ function setByPath(obj, path, value) {
 
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
+}
+
+function normalizeSetlistNumber(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return Math.round(n);
+}
+
+function getSetlistNumber(song) {
+  const fromData = normalizeSetlistNumber(song?.setlist_number);
+  if (fromData !== "") return fromData;
+  const fromPosition = normalizeSetlistNumber(song?._position);
+  if (fromPosition !== "") return fromPosition;
+  return "";
+}
+
+function compareSongsBySetlist(a, b) {
+  const an = getSetlistNumber(a);
+  const bn = getSetlistNumber(b);
+  if (an !== "" && bn !== "" && an !== bn) return an - bn;
+  if (an !== "" && bn === "") return -1;
+  if (an === "" && bn !== "") return 1;
+  const ap = normalizeSetlistNumber(a?._position);
+  const bp = normalizeSetlistNumber(b?._position);
+  if (ap !== "" && bp !== "" && ap !== bp) return ap - bp;
+  return String(a?.title || "").localeCompare(String(b?.title || ""), "es");
+}
+
+function sortSongsBySetlist() {
+  songs.sort(compareSongsBySetlist);
 }
 
 function slugify(s) {
@@ -2392,6 +2504,7 @@ function emptySong() {
     id: "",
     artist: "",
     title: "",
+    setlist_number: "",
     key: "",
     bpm: "",
     duration: "",
@@ -2433,7 +2546,11 @@ function enterEdit(songId) {
 
 function newSong() {
   if (autoscrollPlaying) stopAutoscroll();
-  editDraft = { ...emptySong(), _position: songs.length };
+  const nextNumber = songs.reduce((max, s) => {
+    const n = getSetlistNumber(s);
+    return n === "" ? max : Math.max(max, n);
+  }, 0) + 1;
+  editDraft = { ...emptySong(), setlist_number: nextNumber, _position: nextNumber };
   editMode = true;
   editIsNew = true;
   editDirty = false;
@@ -2520,6 +2637,8 @@ async function saveEdit() {
   }
 
   // Limpiar campos sin valor en links/sections para que el JSONB sea minimalista
+  draft.setlist_number = normalizeSetlistNumber(draft.setlist_number);
+  if (draft.setlist_number === "") delete draft.setlist_number;
   draft.links = (draft.links || []).filter(l => (l.label || "").trim() || (l.url || "").trim());
   draft.sections = (draft.sections || []).map(s => ({
     name: s.name || "",
@@ -2535,7 +2654,7 @@ async function saveEdit() {
   }));
 
   const { id, _position, ...rest } = draft;
-  const position = (typeof _position === "number" ? _position : songs.length);
+  const position = normalizeSetlistNumber(draft.setlist_number) || normalizeSetlistNumber(_position) || songs.length + 1;
 
   const saveBtns = document.querySelectorAll(".js-save");
   saveBtns.forEach(b => { b.disabled = true; b.textContent = "Guardando…"; });
@@ -2546,7 +2665,7 @@ async function saveEdit() {
       if (error) throw error;
       songs.push({ ...rest, id, _position: position });
     } else {
-      const { error } = await supa.from("songs").update({ data: rest }).eq("id", id);
+      const { error } = await supa.from("songs").update({ position, data: rest }).eq("id", id);
       if (error) throw error;
       const idx = songs.findIndex(s => s.id === id);
       if (idx >= 0) songs[idx] = { ...rest, id, _position: position };
@@ -2557,6 +2676,7 @@ async function saveEdit() {
     editIsNew = false;
     editDirty = false;
     document.body.classList.remove("editing");
+    sortSongsBySetlist();
     renderSongList();
     selectSong(id);
   } catch (err) {
@@ -2884,6 +3004,7 @@ function startAutoscroll() {
   if (autoscrollPlaying || editMode) return;
   autoscrollPlaying = true;
   autoscrollLastTick = performance.now();
+  autoscrollRemainder = 0;
   autoscrollAnim = requestAnimationFrame(autoscrollTick);
   const ctrl = document.getElementById("autoscroll-control");
   const btn = document.getElementById("autoscroll-toggle");
@@ -2896,6 +3017,7 @@ function stopAutoscroll() {
   autoscrollPlaying = false;
   if (autoscrollAnim) cancelAnimationFrame(autoscrollAnim);
   autoscrollAnim = null;
+  autoscrollRemainder = 0;
   const ctrl = document.getElementById("autoscroll-control");
   const btn = document.getElementById("autoscroll-toggle");
   ctrl?.classList.add("idle");
@@ -2911,12 +3033,10 @@ function autoscrollTick(now) {
   if (!content) { stopAutoscroll(); return; }
 
   const speed = getAutoscrollPxPerSec();
-  // Acumulamos sub-pixel para evitar quedarnos quietos a velocidades bajas
-  const delta = speed * dt;
-  autoscrollUserInterrupting = true;
-  content.scrollTop += delta;
-  // Permitir que el listener de "wheel/touch" sepa que somos nosotros, no el usuario
-  setTimeout(() => { autoscrollUserInterrupting = false; }, 0);
+  const delta = speed * dt + autoscrollRemainder;
+  const before = content.scrollTop;
+  content.scrollTop = before + delta;
+  autoscrollRemainder = delta - (content.scrollTop - before);
 
   if (content.scrollTop + content.clientHeight >= content.scrollHeight - 1) {
     stopAutoscroll();
@@ -3000,6 +3120,7 @@ function renderSongList() {
   const q = normalizeText(searchQuery);
   const filtered = q
     ? songs.filter(s =>
+        String(getSetlistNumber(s)).includes(q) ||
         normalizeText(s.title).includes(q) ||
         normalizeText(s.artist).includes(q) ||
         normalizeText(s.key).includes(q))
@@ -3018,6 +3139,7 @@ function renderSongList() {
   }
 
   for (const song of filtered) {
+    const setlistNumber = getSetlistNumber(song);
     const li = document.createElement("li");
     li.className = "song-item";
     li.dataset.id = song.id;
@@ -3027,6 +3149,7 @@ function renderSongList() {
       <span class="artist">${escapeHtml(song.artist || "—")}</span>
       <span class="title">${escapeHtml(song.title || "—")}</span>
       <span class="meta">
+        ${setlistNumber ? `<span class="badge setlist">#${escapeHtml(String(setlistNumber))}</span>` : ""}
         ${song.key ? `<span class="badge key">${escapeHtml(convertChordToken(song.key))}</span>` : ""}
         ${song.bpm ? `<span class="badge">${escapeHtml(String(song.bpm))} BPM</span>` : ""}
       </span>
@@ -3062,6 +3185,7 @@ function renderSong(song) {
   }
 
   const content = document.getElementById("content");
+  const setlistNumber = getSetlistNumber(song);
   const sectionsHtml = (song.sections && song.sections.length)
     ? song.sections.map((sec, i) => renderSection(sec, i)).join("")
     : `<div class="section-empty">
@@ -3089,6 +3213,7 @@ function renderSong(song) {
         <h1>${escapeHtml(song.title || "Sin título")}</h1>
       </div>
       <div class="song-meta">
+        ${setlistNumber ? `<span class="chip setlist">Setlist #${escapeHtml(String(setlistNumber))}</span>` : ""}
         ${song.key ? `<span class="chip key">Tono: ${escapeHtml(convertChordToken(song.key))}</span>` : ""}
         ${song.bpm ? `<span class="chip bpm">${escapeHtml(String(song.bpm))} BPM</span>` : ""}
         ${song.duration ? `<span class="chip">${escapeHtml(song.duration)}</span>` : ""}
@@ -3188,6 +3313,7 @@ function renderEditForm(opts = {}) {
 }
 
 function renderEditFormHtml(draft) {
+  const setlistNumber = getSetlistNumber(draft);
   const linksHtml = (draft.links || []).map((l, i) => `
     <div class="link-edit">
       <input class="edit-input" data-field="links.${i}.label" value="${escapeAttr(l.label || '')}" placeholder="Etiqueta (ej. Spotify)">
@@ -3216,6 +3342,10 @@ function renderEditFormHtml(draft) {
         <div class="edit-field span2">
           <label>Título</label>
           <input class="edit-input" data-field="title" value="${escapeAttr(draft.title || '')}" placeholder="Título de la canción">
+        </div>
+        <div class="edit-field">
+          <label>Nº setlist</label>
+          <input class="edit-input" data-field="setlist_number" data-type="number" type="number" min="1" step="1" value="${escapeAttr(setlistNumber)}" placeholder="1">
         </div>
         <div class="edit-field">
           <label>Tono</label>
