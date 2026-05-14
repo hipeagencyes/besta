@@ -393,6 +393,35 @@ button { font-family: inherit; cursor: pointer; }
   pointer-events: none;
 }
 .sidebar-search-wrap { position: relative; }
+.folder-filters {
+  position: sticky;
+  top: 100px;
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.folder-filter {
+  flex: 0 0 auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.folder-filter:hover { border-color: var(--accent); color: var(--fg); }
+.folder-filter.active {
+  background: rgba(var(--accent-rgb), 0.16);
+  border-color: var(--accent);
+  color: var(--fg);
+}
 .song-empty {
   padding: 24px 18px;
   font-size: 12px;
@@ -1606,6 +1635,7 @@ body.editing .sidebar::after {
           <input id="song-search" type="search" placeholder="buscar canción o artista…" aria-label="Buscar">
         </div>
       </div>
+      <div class="folder-filters" id="folder-filters" aria-label="Carpetas de canciones"></div>
       <button class="new-song-btn" id="new-song-btn" type="button">+ Nueva canción</button>
       <ul class="song-list" id="song-list"></ul>
     </aside>
@@ -1629,6 +1659,9 @@ const MODE_KEY = "besta_ensayos_mode";
 const NOTATION_KEY = "besta_ensayos_notation";
 const DIAGRAMS_KEY = "besta_ensayos_diagrams";
 const LAST_SONG_KEY = "besta_ensayos_last_song";
+const FOLDER_FILTER_KEY = "besta_ensayos_folder_filter";
+const ALL_FOLDERS = "__all";
+const NO_FOLDER = "__none";
 
 let supa = null;
 let session = null;
@@ -1810,6 +1843,7 @@ let songs = [];
 let activeSongId = null;
 let currentNotation = "abc";
 let searchQuery = "";
+let activeFolderFilter = ALL_FOLDERS;
 
 // Edit mode
 let editMode = false;
@@ -2139,6 +2173,7 @@ async function initApp() {
   const savedMode = localStorage.getItem(MODE_KEY) || "chords";
   const savedNotation = localStorage.getItem(NOTATION_KEY) || "abc";
   const savedDiagrams = localStorage.getItem(DIAGRAMS_KEY) || "off";
+  activeFolderFilter = localStorage.getItem(FOLDER_FILTER_KEY) || ALL_FOLDERS;
   setRole(savedRole, false);
   setMode(savedMode, false);
   setNotation(savedNotation, false);
@@ -2346,12 +2381,14 @@ async function loadSongsFromSupabase() {
       });
     }
     sortSongsBySetlist();
+    ensureValidFolderFilter();
   } catch (err) {
     console.error(err);
     showLoadError(err.message || String(err));
     return;
   }
 
+  renderFolderFilters();
   renderSongList();
   const lastId = localStorage.getItem(LAST_SONG_KEY);
   const target = songs.find(s => s.id === lastId) || songs[0];
@@ -2384,6 +2421,8 @@ async function forceImportFromJson() {
   }
   songs = result.songs;
   sortSongsBySetlist();
+  ensureValidFolderFilter();
+  renderFolderFilters();
   renderSongList();
   if (songs[0]) selectSong(songs[0].id);
 }
@@ -2443,6 +2482,22 @@ function normalizeSetlistNumber(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return "";
   return Math.round(n);
+}
+
+function normalizeSongFolders(value) {
+  const raw = Array.isArray(value)
+    ? value
+    : String(value || "").split(",");
+  const seen = new Set();
+  const folders = [];
+  raw.forEach(item => {
+    const folder = String(item || "").trim();
+    const key = normalizeText(folder);
+    if (!folder || seen.has(key)) return;
+    seen.add(key);
+    folders.push(folder);
+  });
+  return folders;
 }
 
 function getSetlistNumber(song) {
@@ -2505,6 +2560,7 @@ function emptySong() {
     artist: "",
     title: "",
     setlist_number: "",
+    folders: [],
     key: "",
     bpm: "",
     duration: "",
@@ -2639,6 +2695,8 @@ async function saveEdit() {
   // Limpiar campos sin valor en links/sections para que el JSONB sea minimalista
   draft.setlist_number = normalizeSetlistNumber(draft.setlist_number);
   if (draft.setlist_number === "") delete draft.setlist_number;
+  draft.folders = normalizeSongFolders(draft.folders);
+  if (!draft.folders.length) delete draft.folders;
   draft.links = (draft.links || []).filter(l => (l.label || "").trim() || (l.url || "").trim());
   draft.sections = (draft.sections || []).map(s => ({
     name: s.name || "",
@@ -2677,6 +2735,8 @@ async function saveEdit() {
     editDirty = false;
     document.body.classList.remove("editing");
     sortSongsBySetlist();
+    ensureValidFolderFilter();
+    renderFolderFilters();
     renderSongList();
     selectSong(id);
   } catch (err) {
@@ -3115,25 +3175,88 @@ function setDiagrams(diagrams, persist) {
   }
 }
 
+function getAvailableFolders() {
+  const byKey = new Map();
+  songs.forEach(song => {
+    normalizeSongFolders(song.folders).forEach(folder => {
+      const key = normalizeText(folder);
+      if (!byKey.has(key)) byKey.set(key, folder);
+    });
+  });
+  return Array.from(byKey.values()).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function ensureValidFolderFilter() {
+  if (activeFolderFilter === ALL_FOLDERS || activeFolderFilter === NO_FOLDER) return;
+  const exists = getAvailableFolders().some(folder => normalizeText(folder) === normalizeText(activeFolderFilter));
+  if (!exists) {
+    activeFolderFilter = ALL_FOLDERS;
+    localStorage.setItem(FOLDER_FILTER_KEY, activeFolderFilter);
+  }
+}
+
+function songMatchesFolder(song) {
+  if (activeFolderFilter === ALL_FOLDERS) return true;
+  const folders = normalizeSongFolders(song.folders);
+  if (activeFolderFilter === NO_FOLDER) return folders.length === 0;
+  return folders.some(folder => normalizeText(folder) === normalizeText(activeFolderFilter));
+}
+
+function renderFolderFilters() {
+  const wrap = document.getElementById("folder-filters");
+  if (!wrap) return;
+  const folders = getAvailableFolders();
+  const withoutFolderCount = songs.filter(song => !normalizeSongFolders(song.folders).length).length;
+  const items = [
+    { value: ALL_FOLDERS, label: "Todas", count: songs.length },
+    ...folders.map(folder => ({
+      value: folder,
+      label: folder,
+      count: songs.filter(song => normalizeSongFolders(song.folders).some(f => normalizeText(f) === normalizeText(folder))).length
+    }))
+  ];
+  if (withoutFolderCount) items.push({ value: NO_FOLDER, label: "Sin carpeta", count: withoutFolderCount });
+
+  wrap.innerHTML = "";
+  items.forEach(item => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "folder-filter";
+    btn.classList.toggle("active", item.value === activeFolderFilter);
+    btn.textContent = `${item.label} ${item.count}`;
+    btn.addEventListener("click", () => {
+      activeFolderFilter = item.value;
+      localStorage.setItem(FOLDER_FILTER_KEY, activeFolderFilter);
+      renderFolderFilters();
+      renderSongList();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
 function renderSongList() {
   const list = document.getElementById("song-list");
   const q = normalizeText(searchQuery);
+  const folderSongs = songs.filter(songMatchesFolder);
   const filtered = q
-    ? songs.filter(s =>
+    ? folderSongs.filter(s =>
         String(getSetlistNumber(s)).includes(q) ||
+        normalizeSongFolders(s.folders).some(folder => normalizeText(folder).includes(q)) ||
         normalizeText(s.title).includes(q) ||
         normalizeText(s.artist).includes(q) ||
         normalizeText(s.key).includes(q))
-    : songs;
+    : folderSongs;
 
   const countEl = document.getElementById("song-count");
-  countEl.textContent = q ? `${filtered.length}/${songs.length}` : songs.length;
+  countEl.textContent = (q || activeFolderFilter !== ALL_FOLDERS)
+    ? `${filtered.length}/${songs.length}`
+    : songs.length;
 
   list.innerHTML = "";
   if (!filtered.length) {
     const empty = document.createElement("li");
     empty.className = "song-empty";
-    empty.textContent = q ? "Sin resultados" : "Setlist vacío";
+    empty.textContent = q ? "Sin resultados" : "Nada en esta carpeta";
     list.appendChild(empty);
     return;
   }
@@ -3186,6 +3309,7 @@ function renderSong(song) {
 
   const content = document.getElementById("content");
   const setlistNumber = getSetlistNumber(song);
+  const folders = normalizeSongFolders(song.folders);
   const sectionsHtml = (song.sections && song.sections.length)
     ? song.sections.map((sec, i) => renderSection(sec, i)).join("")
     : `<div class="section-empty">
@@ -3214,6 +3338,7 @@ function renderSong(song) {
       </div>
       <div class="song-meta">
         ${setlistNumber ? `<span class="chip setlist">Setlist #${escapeHtml(String(setlistNumber))}</span>` : ""}
+        ${folders.map(folder => `<span class="chip">${escapeHtml(folder)}</span>`).join("")}
         ${song.key ? `<span class="chip key">Tono: ${escapeHtml(convertChordToken(song.key))}</span>` : ""}
         ${song.bpm ? `<span class="chip bpm">${escapeHtml(String(song.bpm))} BPM</span>` : ""}
         ${song.duration ? `<span class="chip">${escapeHtml(song.duration)}</span>` : ""}
@@ -3314,6 +3439,7 @@ function renderEditForm(opts = {}) {
 
 function renderEditFormHtml(draft) {
   const setlistNumber = getSetlistNumber(draft);
+  const foldersValue = normalizeSongFolders(draft.folders).join(", ");
   const linksHtml = (draft.links || []).map((l, i) => `
     <div class="link-edit">
       <input class="edit-input" data-field="links.${i}.label" value="${escapeAttr(l.label || '')}" placeholder="Etiqueta (ej. Spotify)">
@@ -3359,7 +3485,10 @@ function renderEditFormHtml(draft) {
           <label>Duración</label>
           <input class="edit-input" data-field="duration" value="${escapeAttr(draft.duration || '')}" placeholder="3:45">
         </div>
-        <div class="edit-field span2"></div>
+        <div class="edit-field span2">
+          <label>Carpetas / bolos</label>
+          <input class="edit-input" data-field="folders" value="${escapeAttr(foldersValue)}" placeholder="Bolo mayo, Ensayo acústico">
+        </div>
 
         <div class="edit-field full">
           <label>Vídeo de referencia <span class="hint">YouTube — usa una URL específica (youtu.be/...) para que se incruste el reproductor</span></label>
