@@ -37,6 +37,50 @@
   --glow: 0 0 18px rgba(var(--accent-rgb), 0.35);
   --lyrics-scale: 1;
 }
+
+/* Tema claro — se aplica si body.theme-light, o si el SO está en claro y no hay preferencia */
+body.theme-light {
+  --bg: #f7f6f3;
+  --bg-2: #ffffff;
+  --bg-3: #ecebe6;
+  --fg: #15131a;
+  --muted: rgba(21, 19, 26, 0.58);
+  --line: rgba(0, 0, 0, 0.09);
+  --line-strong: rgba(0, 0, 0, 0.22);
+  --accent: #b85e2e;
+  --accent-rgb: 184, 94, 46;
+  --drums: #d83333;
+  --piano: #1f6dcf;
+  --guitar: #7546c9;
+  --guitar-rhythm: #7546c9;
+  --guitar-lead: #c45a18;
+  --bass: #a86610;
+  --voice: #178a55;
+  --all: #9c7d10;
+  --glow: 0 0 18px rgba(var(--accent-rgb), 0.20);
+}
+@media (prefers-color-scheme: light) {
+  body:not(.theme-dark):not(.theme-light) {
+    --bg: #f7f6f3;
+    --bg-2: #ffffff;
+    --bg-3: #ecebe6;
+    --fg: #15131a;
+    --muted: rgba(21, 19, 26, 0.58);
+    --line: rgba(0, 0, 0, 0.09);
+    --line-strong: rgba(0, 0, 0, 0.22);
+    --accent: #b85e2e;
+    --accent-rgb: 184, 94, 46;
+    --drums: #d83333;
+    --piano: #1f6dcf;
+    --guitar: #7546c9;
+    --guitar-rhythm: #7546c9;
+    --guitar-lead: #c45a18;
+    --bass: #a86610;
+    --voice: #178a55;
+    --all: #9c7d10;
+    --glow: 0 0 18px rgba(var(--accent-rgb), 0.20);
+  }
+}
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -924,6 +968,9 @@ body.role-voice         .chord-strip { display: none; }
 .piano-svg .key-black.active { fill: var(--accent); }
 .piano-svg .key-white.root { fill: #ff8b4d; }
 .piano-svg .key-black.root { fill: #ff8b4d; }
+/* En modo claro las teclas blancas pierden contraste — borde más fuerte */
+body.theme-light .piano-svg .key-white { stroke: #15131a; }
+body.theme-light .piano-svg .key-black { fill: #2a2730; stroke: #15131a; }
 
 /* ============ COMMENTS PANEL ============ */
 .comments-panel {
@@ -1103,6 +1150,21 @@ body.role-voice         .chord-strip { display: none; }
   padding: 1px 6px;
 }
 .comments-toggle .count:empty { display: none; }
+
+/* Botón tema claro/oscuro */
+.theme-btn {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.theme-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Botón modo concierto */
 .concert-btn {
@@ -2163,6 +2225,7 @@ body.editing .sidebar::after {
       <button data-mode="clean" title="Solo letra, sin acordes ni notas ni diagramas">Limpio</button>
     </div>
 
+    <button class="theme-btn" id="theme-btn" aria-label="Cambiar tema claro/oscuro" title="Tema claro / oscuro">☾</button>
     <button class="concert-btn" id="concert-btn" aria-label="Modo concierto" title="Modo concierto — letra grande, pantalla siempre encendida (Shift+C)">★</button>
 
     <div class="settings-wrap">
@@ -2367,6 +2430,7 @@ const LAST_SONG_KEY = "besta_ensayos_last_song";
 const FOLDER_FILTER_KEY = "besta_ensayos_folder_filter";
 const TRANSPOSE_KEY_PREFIX = "besta_ensayos_transpose_";
 const LYRICS_SCALE_KEY = "besta_ensayos_lyrics_scale";
+const THEME_KEY = "besta_ensayos_theme"; // "light" | "dark" | "" (auto)
 const ALL_FOLDERS = "__all";
 const NO_FOLDER = "__none";
 const LISTS_META_ID = "__besta_lists_meta";
@@ -2663,6 +2727,37 @@ function setLyricsScale(scale) {
   applyLyricsScale();
 }
 applyLyricsScale();
+
+// Tema (light/dark/auto)
+function resolveTheme() {
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === "light" || stored === "dark") return stored;
+  return window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+function applyTheme(theme) {
+  document.body.classList.remove("theme-light", "theme-dark");
+  document.body.classList.add("theme-" + theme);
+  // Color de la barra del navegador
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#050508");
+  const btn = document.getElementById("theme-btn");
+  if (btn) {
+    btn.textContent = theme === "light" ? "☀" : "☾";
+    btn.title = theme === "light" ? "Cambiar a tema oscuro" : "Cambiar a tema claro";
+  }
+}
+function toggleTheme() {
+  const current = document.body.classList.contains("theme-light") ? "light" : "dark";
+  const next = current === "light" ? "dark" : "light";
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+// Aplicar al cargar (antes del DOMContentLoaded para evitar flash)
+applyTheme(resolveTheme());
+// Reaccionar a cambios del SO si no hay preferencia manual
+window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", (e) => {
+  if (!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? "light" : "dark");
+});
 let memberCount = 1;
 
 // Autoscroll
@@ -3152,6 +3247,10 @@ async function initApp() {
 
   // Wire concert mode
   document.getElementById("concert-btn")?.addEventListener("click", toggleConcertMode);
+
+  // Wire theme toggle (and re-aplicar para asegurar el icono correcto)
+  document.getElementById("theme-btn")?.addEventListener("click", toggleTheme);
+  applyTheme(resolveTheme());
 
   // Wire font-size
   document.getElementById("fontsize-smaller")?.addEventListener("click", () => setLyricsScale(lyricsScale - 0.1));
