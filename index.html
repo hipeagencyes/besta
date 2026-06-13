@@ -3,30 +3,30 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="Cuenta regresiva del debut de BESTA: pop-rock con energía retro-futurista. Sigue la señal y prepárate para el lanzamiento." />
+<meta name="description" content="BESTA — pop-rock con energía retro-futurista. Escúchanos, mira los próximos conciertos y contacta con la banda." />
 <meta name="theme-color" content="#050508" />
 
 <!-- Open Graph / compartir -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="BESTA — Countdown al nuevo lanzamiento" />
-<meta property="og:description" content="La señal está viva. Sigue la cuenta atrás del debut de BESTA." />
+<meta property="og:title" content="BESTA" />
+<meta property="og:description" content="Escucha a BESTA y descubre los próximos conciertos." />
 <meta property="og:image" content="https://besta.live/assets/images/og-image.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://besta.live" /> <!-- cambia la URL final de la landing -->
+<meta property="og:url" content="https://besta.live" />
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="BESTA — Countdown al nuevo lanzamiento" />
-<meta name="twitter:description" content="La señal está viva. Sigue la cuenta atrás del debut de BESTA." />
+<meta name="twitter:title" content="BESTA" />
+<meta name="twitter:description" content="Escucha a BESTA y descubre los próximos conciertos." />
 <meta name="twitter:image" content="https://besta.live/assets/images/og-image.png" />
 
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicons/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png">
 <link rel="shortcut icon" href="assets/favicons/favicon.ico">
 
-<title>BESTA — Countdown</title>
+<title>BESTA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="font" href="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoL2U_4vxP0ntnA.woff2" type="font/woff2" crossorigin>
@@ -52,66 +52,54 @@ body {
 main { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
 .hero {
   text-align: center; z-index: 3; padding: clamp(16px, 3vw, 32px);
-  display: grid; gap: clamp(12px, 2vw, 22px); place-items: center;
+  display: grid; gap: clamp(16px, 2.6vw, 28px); place-items: center;
 }
 .brand-logo {
   display: block;
   width: min(56vw, 360px);
   max-width: 100%;
   height: auto;
-  opacity: 0.9;
+  opacity: 0.92;
   filter: drop-shadow(0 0 18px rgba(var(--accent-rgb), 0.2));
-}
-/* Contador */
-.count {
-  font-family: 'Major Mono Display', monospace;
-  font-size: clamp(40px, 6.6vw, 88px);
-  line-height: 1.15;
-  letter-spacing: 0.04em;
-  padding: clamp(10px, 2vw, 16px) clamp(18px, 3vw, 28px);
-  width: fit-content;
-  max-width: calc(100vw - 32px);
-  white-space: nowrap;
-  background: #0d0b11;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  box-shadow:
-    inset 0 0 30px rgba(255,255,255,0.04),
-    0 0 38px rgba(var(--accent-rgb), 0.18),
-    0 0 12px rgba(84, 147, 255, 0.24);
-  position: relative;
-  overflow: hidden;
-}
-.count.tick {
-  animation: tick 0.35s ease;
-}
-@keyframes tick {
-  0% { transform: translateY(-6px) scale(0.98); opacity: 0.7; }
-  60% { transform: translateY(1px) scale(1.01); opacity: 1; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
-}
-.count::after { /* scanline sweep */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.06) 50%,
-    rgba(255,255,255,0) 100%);
-  mix-blend-mode: screen;
-  animation: sweep 3.6s ease-in-out infinite;
-}
-@keyframes sweep {
-  0% { transform: translateY(-100%); }
-  50% { transform: translateY(0); }
-  100% { transform: translateY(100%); }
 }
 .tagline {
   font-size: clamp(14px, 2.2vw, 18px);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(245,247,255,0.82);
+  margin: 0;
 }
+
+/* Botones principales (CTAs) */
+.cta-group {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: clamp(10px, 1.6vw, 16px);
+  max-width: min(92vw, 640px);
+}
+.cta {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(13px, 1.6vw, 15px);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg);
+  cursor: pointer;
+  padding: 13px 22px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  background: rgba(13,11,17,0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s, background 0.2s;
+}
+.cta:hover, .cta:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+  background: rgba(var(--accent-rgb), 0.12);
+  outline: none;
+}
+
 .footer {
   position: absolute; bottom: clamp(12px, 3vw, 28px); left: 0; right: 0;
   display: flex; justify-content: center; gap: 14px; z-index: 3;
@@ -121,7 +109,7 @@ main { position: relative; width: 100%; height: 100%; display: grid; place-items
 .footer a {
   color: var(--fg); text-decoration: none; font-size: 13px; letter-spacing: 0.14em;
   padding: 8px 14px; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px;
-  backdrop-filter: blur(6px); background: rgba(5,5,8,0.35);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(5,5,8,0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
 }
 .footer a:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--glow); }
@@ -173,38 +161,129 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   50% { opacity: 0.97; }
 }
 
-/* Hover reactive glow */
-main:hover .count { box-shadow: 0 0 48px rgba(var(--accent-rgb), 0.32), 0 0 18px rgba(84,147,255,0.32); }
+/* ===== Modales ===== */
+.modal {
+  position: fixed; inset: 0; z-index: 50;
+  display: none; place-items: center;
+  padding: 20px;
+  background: rgba(3,3,6,0.72);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.25s ease;
+}
+.modal.open { display: grid; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-card {
+  position: relative;
+  width: min(92vw, 460px);
+  max-height: 86vh; overflow-y: auto;
+  background: #0d0b11;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 18px;
+  padding: clamp(22px, 4vw, 34px);
+  box-shadow: 0 0 60px rgba(var(--accent-rgb), 0.18), inset 0 0 40px rgba(255,255,255,0.03);
+  animation: popIn 0.28s cubic-bezier(0.2, 0.8, 0.3, 1.1);
+}
+@keyframes popIn { from { transform: translateY(14px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-card h2 {
+  font-family: 'Major Mono Display', monospace;
+  font-size: clamp(20px, 3.4vw, 26px);
+  margin: 0 0 6px; letter-spacing: 0.04em;
+}
+.modal-card .modal-sub {
+  margin: 0 0 20px; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(245,247,255,0.55);
+}
+.modal-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  color: var(--fg); font-size: 20px; line-height: 1; cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.modal-close:hover { background: rgba(var(--accent-rgb), 0.18); border-color: var(--accent); }
 
-/* Responsive center alignment ensured by grid */
+/* Plataformas de streaming */
+.platforms { display: grid; gap: 10px; }
+.platform {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 18px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);
+  color: var(--fg); text-decoration: none;
+  font-weight: 600; letter-spacing: 0.06em;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+.platform:hover { transform: translateX(3px); border-color: var(--accent); background: rgba(var(--accent-rgb),0.1); }
+.platform[aria-disabled="true"] {
+  opacity: 0.55; cursor: default; pointer-events: none;
+}
+.platform .badge {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(var(--accent-rgb),0.18); color: var(--accent); border: 1px solid rgba(var(--accent-rgb),0.4);
+}
+
+/* Lista de conciertos */
+.gigs { display: grid; gap: 12px; }
+.gig {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);
+}
+.gig .gig-date {
+  font-family: 'Major Mono Display', monospace; font-size: 13px;
+  text-align: center; line-height: 1.2; color: var(--accent);
+}
+.gig .gig-date .day { display: block; font-size: 22px; }
+.gig .gig-info { min-width: 0; }
+.gig .gig-info .city { font-weight: 700; letter-spacing: 0.04em; }
+.gig .gig-info .venue { font-size: 13px; color: rgba(245,247,255,0.6); }
+.gig .gig-cta {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+  text-decoration: none; color: var(--fg);
+  padding: 8px 13px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.16);
+  white-space: nowrap; transition: border-color 0.2s, background 0.2s;
+}
+.gig .gig-cta:hover { border-color: var(--accent); background: rgba(var(--accent-rgb),0.12); }
+.gigs-empty { color: rgba(245,247,255,0.6); font-size: 14px; line-height: 1.5; }
+
+/* Formulario de contacto */
+.contact-form { display: grid; gap: 14px; }
+.contact-form label { display: grid; gap: 6px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(245,247,255,0.6); }
+.contact-form input,
+.contact-form textarea {
+  font-family: 'Space Grotesk', sans-serif; font-size: 15px;
+  color: var(--fg); background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+  padding: 12px 14px; width: 100%; resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.contact-form input:focus,
+.contact-form textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.15); }
+.contact-form textarea { min-height: 110px; }
+.contact-submit {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #0d0b11; background: var(--accent); border: none; border-radius: 999px;
+  padding: 14px; cursor: pointer; font-size: 14px;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+.contact-submit:hover { transform: translateY(-2px); box-shadow: var(--glow); }
+.contact-submit:disabled { opacity: 0.6; cursor: default; transform: none; box-shadow: none; }
+.form-status { font-size: 13px; min-height: 18px; letter-spacing: 0.04em; }
+.form-status.ok { color: #6ee7a8; }
+.form-status.err { color: #ff8a8a; }
 
 @media (max-width: 520px) {
   body { padding: 0 10px; }
-  .hero { gap: 12px; }
-  .brand-logo {
-    width: min(78vw, 280px);
-  }
-  .tagline {
-    letter-spacing: 0.07em;
-    font-size: 12.5px;
-    max-width: 92vw;
-    text-align: center;
-  }
-  .count {
-    font-size: clamp(24px, 7.2vw, 30px);
-    padding: 10px 8px;
-    letter-spacing: 0.02em;
-    max-width: 96vw;
-  }
-  .footer {
-    gap: 8px;
-    flex-wrap: wrap;
-    padding: 0 10px 8px;
-  }
-  .footer a {
-    font-size: 12px;
-    padding: 8px 11px;
-  }
+  .hero { gap: 16px; }
+  .brand-logo { width: min(78vw, 280px); }
+  .tagline { letter-spacing: 0.07em; font-size: 12.5px; max-width: 92vw; }
+  .cta { font-size: 12px; padding: 12px 16px; }
+  .footer { gap: 8px; flex-wrap: wrap; padding: 0 10px 8px; }
+  .footer a { font-size: 12px; padding: 8px 11px; }
+  .gig { grid-template-columns: auto 1fr; }
+  .gig .gig-cta { grid-column: 1 / -1; text-align: center; }
 }
 </style>
 </head>
@@ -217,27 +296,98 @@ main:hover .count { box-shadow: 0 0 48px rgba(var(--accent-rgb), 0.32), 0 0 18px
 
 <!-- Fondo de video -->
 <div class="video-bg">
-  <video id="bgvid" autoplay muted playsinline preload="metadata" poster="assets/images/og-image.png"></video>
+  <video id="bgvid" autoplay muted loop playsinline preload="auto" poster="assets/images/og-image.png"></video>
   <div class="video-overlay"></div>
 </div>
 
 <main>
   <section class="hero flicker">
     <img class="brand-logo" src="assets/images/besta_color.png" alt="BESTA">
-    <div id="countdown" class="count">00:00:00:00</div>
+    <div class="cta-group">
+      <button type="button" class="cta" data-modal="modal-listen">Escúchanos</button>
+      <button type="button" class="cta" data-modal="modal-gigs">Próximos conciertos</button>
+      <button type="button" class="cta" data-modal="modal-contact">Contacto</button>
+    </div>
   </section>
   <div class="footer">
-    <a href="https://instagram.com/besta_oficial" target="_blank" rel="noreferrer">instagram</a>
-    <a href="https://open.spotify.com/artist/0nlIm3zhG83MzO6IjuoJyN" target="_blank" rel="noreferrer">spotify</a>
+    <a href="https://instagram.com/besta_oficial" target="_blank" rel="noopener noreferrer">instagram</a>
+    <a href="https://open.spotify.com/artist/0nlIm3zhG83MzO6IjuoJyN" target="_blank" rel="noopener noreferrer">spotify</a>
   </div>
 </main>
 
-<script>
-/* === Ajustes rápidos === */
-const LAUNCH_DATE = new Date("2026-06-06T20:00:00+02:00"); // hora oficial CEST (España)
-/* ======================= */
+<!-- ===== MODAL: Escúchanos ===== -->
+<div class="modal" id="modal-listen" role="dialog" aria-modal="true" aria-labelledby="listen-title">
+  <div class="modal-card">
+    <button type="button" class="modal-close" data-close aria-label="Cerrar">&times;</button>
+    <h2 id="listen-title">Escúchanos</h2>
+    <p class="modal-sub">Pronto en todas las plataformas</p>
+    <!-- Cuando tengáis los enlaces, sustituye href="#" y quita aria-disabled / la etiqueta "Próximamente" -->
+    <div class="platforms">
+      <a class="platform" href="#" aria-disabled="true">Spotify <span class="badge">Próximamente</span></a>
+      <a class="platform" href="#" aria-disabled="true">Apple Music <span class="badge">Próximamente</span></a>
+      <a class="platform" href="#" aria-disabled="true">YouTube Music <span class="badge">Próximamente</span></a>
+      <a class="platform" href="#" aria-disabled="true">Bandcamp <span class="badge">Próximamente</span></a>
+    </div>
+  </div>
+</div>
 
-/* Fondo de vídeo: edita clips y rangos aquí */
+<!-- ===== MODAL: Próximos conciertos ===== -->
+<div class="modal" id="modal-gigs" role="dialog" aria-modal="true" aria-labelledby="gigs-title">
+  <div class="modal-card">
+    <button type="button" class="modal-close" data-close aria-label="Cerrar">&times;</button>
+    <h2 id="gigs-title">Próximos conciertos</h2>
+    <p class="modal-sub">Nos vemos en directo</p>
+    <!-- ===== EDITA AQUÍ TUS CONCIERTOS =====
+         Copia un bloque .gig y cambia el día, mes, ciudad, sala y el enlace de entradas.
+         Si aún no hay entradas, pon href="#" y texto "Pronto". -->
+    <div class="gigs">
+      <div class="gig">
+        <div class="gig-date"><span class="day">21</span>JUN</div>
+        <div class="gig-info">
+          <div class="city">Castelldefels</div>
+          <div class="venue">Festa de la Música al Carrer · Espai Plaça Església · 20:45h</div>
+        </div>
+        <a class="gig-cta" href="https://www.castelldefels.org" target="_blank" rel="noopener noreferrer">Info</a>
+      </div>
+      <div class="gig">
+        <div class="gig-date"><span class="day">18</span>JUL</div>
+        <div class="gig-info">
+          <div class="city">Castelldefels · Nous Talents</div>
+          <div class="venue">Semifinals 18 i 19 jul · Final 20 jul · Jardins del Castell</div>
+        </div>
+        <a class="gig-cta" href="https://www.castelldefels.org" target="_blank" rel="noopener noreferrer">Info</a>
+      </div>
+    </div>
+    <!-- Si no hay fechas, borra los .gig de arriba y descomenta esto:
+    <p class="gigs-empty">Estamos cerrando nuevas fechas. ¡Síguenos en redes para no perderte nada!</p>
+    -->
+  </div>
+</div>
+
+<!-- ===== MODAL: Contacto ===== -->
+<div class="modal" id="modal-contact" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+  <div class="modal-card">
+    <button type="button" class="modal-close" data-close aria-label="Cerrar">&times;</button>
+    <h2 id="contact-title">Contacto</h2>
+    <p class="modal-sub">Bolos, prensa, colaboraciones</p>
+    <form class="contact-form" id="contactForm">
+      <label>Nombre
+        <input type="text" name="nombre" required autocomplete="name" />
+      </label>
+      <label>Email
+        <input type="email" name="email" required autocomplete="email" />
+      </label>
+      <label>Mensaje
+        <textarea name="mensaje" required></textarea>
+      </label>
+      <button type="submit" class="contact-submit">Enviar</button>
+      <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ===== Fondo de vídeo (aftermovie en bucle) ===== */
 const videoBg = document.getElementById("bgvid");
 videoBg.muted = true;
 videoBg.defaultMuted = true;
@@ -245,70 +395,82 @@ videoBg.playsInline = true;
 videoBg.setAttribute("muted", "");
 videoBg.setAttribute("playsinline", "");
 videoBg.setAttribute("webkit-playsinline", "");
+
 const useMobileVideo = window.matchMedia("(max-width: 760px), (pointer: coarse)").matches;
-const clips = useMobileVideo ? [
-  { src: "assets/videos/guitarra-mobile.mp4", start: 0, end: 3.4 },
-  { src: "assets/videos/micro-mobile.mp4",    start: 0, end: 3.3 },
-  { src: "assets/videos/bateria-mobile.mp4",  start: 0, end: 3.3 }
-] : [
-  { src: "assets/videos/guitarra.mp4", start: 0, end: 3.4 }, // ~3-4 s cada uno, total ~10 s
-  { src: "assets/videos/micro.mp4",    start: 0, end: 3.3 },
-  { src: "assets/videos/bateria.mp4",  start: 0, end: 3.3 }
-];
-let clipIndex = 0;
+videoBg.src = useMobileVideo ? "assets/videos/aftermovie-mobile.mp4" : "assets/videos/aftermovie.mp4";
 
-function tryPlayVideo() {
-  videoBg.play().catch(() => {
-    videoBg.style.opacity = 0.55;
-  });
-}
-
-function playClip(i) {
-  const clip = clips[i % clips.length];
-  videoBg.style.opacity = 0.2; // fade-out breve
-  videoBg.src = clip.src;
-  videoBg.muted = true;
-  videoBg.load();
-  videoBg.onloadedmetadata = () => {
-    videoBg.currentTime = clip.start;
-    tryPlayVideo();
-    requestAnimationFrame(() => videoBg.style.opacity = 0.55); // fade-in
-  };
-  videoBg.ontimeupdate = () => {
-    if (videoBg.currentTime >= clip.end) {
-      nextClip();
-    }
-  };
-  videoBg.onended = () => nextClip();
-}
-function nextClip() {
-  clipIndex = (clipIndex + 1) % clips.length;
-  playClip(clipIndex);
-}
-playClip(0);
+function tryPlayVideo() { videoBg.play().catch(() => { videoBg.style.opacity = 0.55; }); }
+videoBg.onloadedmetadata = () => { tryPlayVideo(); videoBg.style.opacity = 0.6; };
+videoBg.load();
 
 ["touchstart", "pointerdown", "click"].forEach(eventName => {
   document.addEventListener(eventName, tryPlayVideo, { once: true, passive: true });
 });
 
-/* Countdown */
-const countdownEl = document.getElementById("countdown");
-function updateCountdown() {
-  const now = new Date();
-  const diff = LAUNCH_DATE - now;
-  if (diff <= 0) { countdownEl.textContent = "00:00:00:00"; return; }
-  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const h = Math.floor(diff / (1000 * 60 * 60)) % 24;
-  const m = Math.floor(diff / (1000 * 60)) % 60;
-  const s = Math.floor(diff / 1000) % 60;
-  countdownEl.textContent = `${String(d).padStart(2,"0")}:${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-  countdownEl.classList.add('tick');
-  setTimeout(() => countdownEl.classList.remove('tick'), 180);
+/* ===== Modales ===== */
+let lastFocused = null;
+function openModal(id) {
+  const m = document.getElementById(id);
+  if (!m) return;
+  lastFocused = document.activeElement;
+  m.classList.add("open");
+  const focusable = m.querySelector("input, textarea, a[href], button:not([data-close])");
+  if (focusable) focusable.focus();
 }
-setInterval(updateCountdown, 1000);
-updateCountdown();
+function closeModal(m) {
+  m.classList.remove("open");
+  if (lastFocused) lastFocused.focus();
+}
+document.querySelectorAll("[data-modal]").forEach(btn => {
+  btn.addEventListener("click", () => openModal(btn.dataset.modal));
+});
+document.querySelectorAll(".modal").forEach(m => {
+  m.addEventListener("click", e => { if (e.target === m) closeModal(m); });
+  m.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => closeModal(m)));
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    const open = document.querySelector(".modal.open");
+    if (open) closeModal(open);
+  }
+});
 
-/* Noise layer */
+/* ===== Formulario de contacto (Google Apps Script) =====
+   1) Despliega tu Apps Script como Web App (acceso: cualquiera).
+   2) Pega la URL del Web App (/exec) en GOOGLE_SCRIPT_URL. */
+const GOOGLE_SCRIPT_URL = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT";
+const contactForm = document.getElementById("contactForm");
+const formStatus = document.getElementById("formStatus");
+contactForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const submitBtn = contactForm.querySelector(".contact-submit");
+  formStatus.className = "form-status";
+  if (GOOGLE_SCRIPT_URL.startsWith("PEGA_AQUI")) {
+    formStatus.textContent = "Formulario aún no conectado. Configura GOOGLE_SCRIPT_URL.";
+    formStatus.classList.add("err");
+    return;
+  }
+  submitBtn.disabled = true;
+  formStatus.textContent = "Enviando…";
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: new FormData(contactForm)
+    });
+    // Con no-cors la respuesta es opaca; asumimos OK si no hay excepción.
+    formStatus.textContent = "¡Gracias! Te responderemos pronto.";
+    formStatus.classList.add("ok");
+    contactForm.reset();
+  } catch (err) {
+    formStatus.textContent = "No se pudo enviar. Inténtalo de nuevo.";
+    formStatus.classList.add("err");
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+/* ===== Capa de ruido / grain ===== */
 const noiseCanvas = document.getElementById("noise");
 const glitchCanvas = document.getElementById("glitch");
 const nctx = noiseCanvas.getContext("2d");
@@ -327,7 +489,7 @@ function drawNoise() {
     imageData.data[i] = v;
     imageData.data[i+1] = v;
     imageData.data[i+2] = v;
-    imageData.data[i+3] = Math.random() * 70; // alpha
+    imageData.data[i+3] = Math.random() * 70;
   }
   nctx.putImageData(imageData, 0, 0);
 }
@@ -348,7 +510,6 @@ function drawGlitch(t) {
       gctx.fillRect(0, y + Math.random()*6 - 3, glitchCanvas.width, h/2);
       gctx.globalCompositeOperation = "source-over";
     }
-    // horizontal shift
     const sliceH = 40 + Math.random()*120;
     const sliceY = Math.random()*(glitchCanvas.height - sliceH);
     const img = gctx.getImageData(0, sliceY, glitchCanvas.width, sliceH);
@@ -358,25 +519,17 @@ function drawGlitch(t) {
   requestAnimationFrame(drawGlitch);
 }
 
-/* Mild flicker on countdown */
-function pulse() {
-  countdownEl.style.filter = `drop-shadow(0 0 ${6+Math.random()*10}px rgba(219, 127, 78, 0.45))`;
-  countdownEl.style.opacity = 0.96 + Math.random()*0.04;
-  requestAnimationFrame(pulse);
-}
-
-/* Mouse parallax for subtle movement */
+/* Parallax sutil con el ratón */
 document.addEventListener("pointermove", e => {
   const x = (e.clientX / window.innerWidth - 0.5) * 8;
   const y = (e.clientY / window.innerHeight - 0.5) * 6;
   document.querySelector(".hero").style.transform = `translate(${x}px, ${y}px)`;
 });
 
-/* Animate */
+/* Animar */
 function loop() { drawNoise(); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 requestAnimationFrame(drawGlitch);
-requestAnimationFrame(pulse);
 </script>
 </body>
 </html>
