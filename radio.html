@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="description" content="BESTA en Ràdio Castelldefels 98.0 FM — entrevista completa." />
+<meta name="theme-color" content="#050508" />
+
+<meta property="og:type" content="music.song" />
+<meta property="og:title" content="BESTA — en Ràdio Castelldefels 98.0 FM" />
+<meta property="og:description" content="Escucha la entrevista completa." />
+<meta property="og:image" content="https://besta.live/assets/images/radio/radio-1.jpg" />
+<meta property="og:url" content="https://besta.live/radio.html" />
+
+<title>BESTA — Radio</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png">
+<link rel="shortcut icon" href="assets/favicons/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Major+Mono+Display&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #050508;
+  --bg-2: #0d0b11;
+  --fg: #f5f7ff;
+  --muted: rgba(245, 247, 255, 0.6);
+  --accent: #db7f4e;
+  --accent-rgb: 219, 127, 78;
+  --radio: #f4d35e;
+  --radio-rgb: 244, 211, 94;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+button { font-family: inherit; cursor: pointer; }
+a { color: inherit; }
+img { display: block; }
+
+/* ============ FONDO: aftermovie en loop ============ */
+.bg-stack {
+  position: fixed; inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #000;
+}
+.bg-fallback {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(var(--accent-rgb), 0.18), transparent 60%),
+    radial-gradient(circle at 70% 70%, rgba(var(--radio-rgb), 0.10), transparent 60%),
+    linear-gradient(180deg, #0a0810 0%, #050508 100%);
+}
+.bg-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1s ease;
+  filter: saturate(1.1) contrast(1.05) brightness(0.65);
+  transform: scale(1.06);
+}
+.bg-video.loaded { opacity: 0.55; }
+.bg-tint {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.85) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.5) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* ============ CAPAS DECORATIVAS ============ */
+.grain-canvas {
+  position: fixed; inset: 0;
+  z-index: 4; pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0.28;
+}
+.scanlines {
+  position: fixed; inset: 0;
+  z-index: 4; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: multiply;
+  opacity: 0.22;
+}
+.vignette {
+  position: fixed; inset: -10%;
+  z-index: 3; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 80%, rgba(0,0,0,0.85) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* ============ ESTRUCTURA ============ */
+.page {
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 12px;
+  text-decoration: none; color: var(--fg);
+}
+.brand img { height: 26px; width: auto; }
+.brand-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.2); }
+.brand-sub {
+  font-family: 'Major Mono Display', monospace;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--muted);
+}
+.spacer { flex: 1; }
+.back-link {
+  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--muted); text-decoration: none;
+  padding: 7px 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.back-link:hover { color: var(--accent); border-color: var(--accent); }
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px 32px;
+  gap: 18px;
+  text-align: center;
+}
+
+/* Intro */
+.on-air {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--radio);
+  padding: 5px 12px;
+  border: 1px solid rgba(var(--radio-rgb), 0.4);
+  border-radius: 999px;
+  background: rgba(var(--radio-rgb), 0.06);
+}
+.on-air::before {
+  content: "";
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--radio);
+  box-shadow: 0 0 12px var(--radio);
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.intro-brand {
+  display: inline-flex; align-items: center; gap: 14px;
+  flex-wrap: wrap; justify-content: center;
+}
+.intro-logo {
+  height: clamp(34px, 5.5vw, 52px);
+  filter: drop-shadow(0 0 18px rgba(var(--accent-rgb), 0.35));
+}
+.intro-en {
+  font-family: 'Major Mono Display', monospace;
+  font-size: clamp(16px, 2.6vw, 26px);
+  letter-spacing: 0.18em; text-transform: lowercase;
+  color: var(--muted);
+}
+.station {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--muted);
+}
+.station strong { color: var(--accent); font-weight: 600; }
+
+/* ============ COVER + PLAY ============ */
+.cover {
+  position: relative;
+  width: min(48vw, 42vh, 360px);
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0d0b11;
+  box-shadow:
+    0 24px 60px rgba(0,0,0,0.7),
+    0 0 60px rgba(var(--accent-rgb), 0.25),
+    inset 0 0 0 1px rgba(255,255,255,0.08);
+  display: grid;
+  place-items: center;
+}
+.cover-fallback {
+  position: absolute; inset: 0;
+  z-index: 0;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 8px, transparent 8px 16px),
+    linear-gradient(135deg, rgba(var(--accent-rgb),0.4), rgba(var(--radio-rgb),0.2));
+  display: grid; place-items: center;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  padding: 16px;
+}
+.cover-photo {
+  position: absolute; inset: 0;
+  z-index: 1;
+  background-image: url('assets/images/radio/radio-1.jpg');
+  background-size: cover; background-position: center;
+  filter: brightness(0.78) saturate(1.05);
+  animation: kenburns 22s ease-in-out infinite alternate;
+  transform-origin: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+@keyframes kenburns {
+  0%   { transform: scale(1.02); }
+  100% { transform: scale(1.10); }
+}
+.cover-gradient {
+  position: absolute; inset: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+}
+.play-btn {
+  position: relative;
+  z-index: 3;
+  width: 96px; height: 96px;
+  border-radius: 50%; border: none;
+  background: var(--accent); color: #1a1009;
+  font-size: 30px;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+  box-shadow:
+    0 0 0 6px rgba(255,255,255,0.08),
+    0 0 50px rgba(var(--accent-rgb), 0.6),
+    inset 0 -3px 0 rgba(0,0,0,0.18);
+}
+.play-btn:hover { transform: scale(1.06); }
+.play-btn.playing { background: var(--radio); color: #2a2306; }
+.play-btn:not(.playing) { animation: pulse-play 2.4s ease-in-out infinite; }
+@keyframes pulse-play {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(255,255,255,0.08), 0 0 40px rgba(var(--accent-rgb), 0.5); }
+  50%      { box-shadow: 0 0 0 12px rgba(var(--accent-rgb), 0.12), 0 0 78px rgba(var(--accent-rgb), 0.75); }
+}
+.cover-label {
+  position: absolute;
+  bottom: 14px; left: 16px; right: 16px;
+  z-index: 3;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+  text-align: left;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+}
+.cover-label strong { color: var(--radio); font-weight: 600; }
+
+/* ============ VISUALIZADOR HORIZONTAL ============ */
+.viz-bars {
+  width: min(48vw, 360px);
+  height: 56px;
+  display: block;
+}
+
+/* ============ CONTROLES ============ */
+.controls {
+  display: grid; gap: 10px;
+  width: min(560px, 92vw);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--muted);
+}
+.scrubber { display: flex; align-items: center; gap: 10px; }
+.scrubber input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--p, 0%), rgba(255,255,255,0.14) var(--p, 0%));
+  outline: none;
+}
+.scrubber input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #0d0b11;
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
+}
+.scrubber input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #0d0b11;
+}
+.time { min-width: 44px; text-align: center; font-weight: 600; color: var(--fg); }
+
+.extras {
+  display: flex; gap: 12px;
+  justify-content: center; align-items: center;
+  flex-wrap: wrap;
+}
+.extras button {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-family: inherit; font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  transition: border-color 0.18s, color 0.18s;
+}
+.extras button:hover { border-color: var(--accent); color: var(--accent); }
+.extras button.active { border-color: var(--radio); color: var(--radio); }
+.extras .vol { display: inline-flex; align-items: center; gap: 8px; }
+.extras .vol input {
+  -webkit-appearance: none; appearance: none;
+  width: 80px; height: 3px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 999px; outline: none;
+}
+.extras .vol input::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--fg);
+}
+
+.foot {
+  text-align: center;
+  padding: 18px 12px 24px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.foot a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted rgba(var(--accent-rgb), 0.5); }
+.foot a:hover { color: var(--fg); }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 760px) {
+  .stage { padding: 8px 16px 28px; gap: 14px; }
+  .cover { width: min(74vw, 56vh, 320px); }
+  .viz-bars { width: min(74vw, 320px); height: 48px; }
+}
+@media (max-width: 540px) {
+  .topbar { padding: 10px 14px; gap: 10px; }
+  .brand-divider, .brand-sub { display: none; }
+  .brand img { height: 22px; }
+  .back-link { padding: 6px 10px; font-size: 10px; letter-spacing: 0.12em; }
+
+  .stage { padding: 6px 14px 22px; gap: 12px; }
+  .on-air { font-size: 10px; letter-spacing: 0.22em; padding: 4px 10px; }
+  .intro-brand { gap: 10px; }
+  .intro-logo { height: clamp(28px, 9vw, 40px); }
+  .intro-en { font-size: clamp(14px, 4.2vw, 18px); }
+  .station { font-size: 11px; letter-spacing: 0.14em; }
+
+  .cover { width: min(82vw, 58vh, 300px); border-radius: 12px; }
+  .play-btn {
+    width: 72px; height: 72px; font-size: 24px;
+    box-shadow: 0 0 0 5px rgba(255,255,255,0.06), 0 0 36px rgba(var(--accent-rgb), 0.55);
+  }
+  .cover-label { font-size: 9px; letter-spacing: 0.18em; bottom: 10px; left: 12px; right: 12px; }
+
+  .viz-bars { width: min(82vw, 300px); height: 40px; }
+
+  .controls { gap: 8px; }
+  .scrubber { gap: 8px; }
+  .time { min-width: 38px; font-size: 11px; }
+  .extras { gap: 8px; font-size: 10px; }
+  .extras button { padding: 5px 10px; font-size: 10px; }
+  .extras .vol input { width: 70px; }
+
+  .foot { font-size: 11px; padding: 14px 12px 18px; }
+}
+@media (max-width: 380px) {
+  .cover { width: min(86vw, 50vh, 260px); }
+  .play-btn { width: 64px; height: 64px; font-size: 22px; }
+  .viz-bars { width: 86vw; }
+  .extras .vol { width: 100%; justify-content: center; }
+}
+@media (max-height: 600px) and (orientation: landscape) {
+  .topbar { padding: 6px 14px; }
+  .stage { gap: 10px; padding: 4px 16px 16px; }
+  .on-air { display: none; }
+  .station { display: none; }
+  .cover { width: min(28vw, 60vh, 220px); }
+  .viz-bars { width: min(40vw, 280px); height: 36px; }
+  .foot { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Fondo: aftermovie en loop (versión móvil ligera si toca) -->
+<div class="bg-stack" aria-hidden="true">
+  <div class="bg-fallback"></div>
+  <video id="bg-video" class="bg-video" muted playsinline loop preload="auto" poster="assets/images/radio/radio-1.jpg"></video>
+  <div class="bg-tint"></div>
+</div>
+
+<!-- Capas decorativas -->
+<canvas class="grain-canvas" id="grain"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="assets/images/besta_color.png" alt="BESTA">
+      <span class="brand-divider"></span>
+      <span class="brand-sub">radio</span>
+    </a>
+    <div class="spacer"></div>
+    <a class="back-link" href="/">← volver</a>
+  </header>
+
+  <main class="stage">
+    <span class="on-air">On air · grabado</span>
+    <div class="intro-brand">
+      <img class="intro-logo" src="assets/images/besta_color.png" alt="BESTA">
+      <span class="intro-en">en la radio</span>
+    </div>
+    <p class="station"><strong>Ràdio Castelldefels</strong> · 98.0 FM</p>
+
+    <!-- COVER + PLAY -->
+    <div class="cover" id="cover">
+      <div class="cover-fallback">Foto de la entrevista</div>
+      <div class="cover-photo" id="cover-photo"></div>
+      <div class="cover-gradient"></div>
+      <button class="play-btn" id="play-btn" aria-label="Reproducir">
+        <span id="play-icon">▶</span>
+      </button>
+      <div class="cover-label"><strong>Entrevista</strong> · Ràdio Castelldefels · 98.0 FM</div>
+    </div>
+
+    <!-- VISUALIZADOR HORIZONTAL -->
+    <canvas class="viz-bars" id="viz-bars" width="720" height="112"></canvas>
+
+    <!-- CONTROLES -->
+    <div class="controls">
+      <div class="scrubber">
+        <span class="time" id="time-current">0:00</span>
+        <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Posición">
+        <span class="time" id="time-total">--:--</span>
+      </div>
+      <div class="extras">
+        <button id="rewind" type="button" title="−15 s">−15s</button>
+        <button id="forward" type="button" title="+15 s">+15s</button>
+        <span class="vol">
+          <span>vol</span>
+          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.9" aria-label="Volumen">
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <footer class="foot">
+    Grabado en directo en los estudios de <a href="https://radiocastelldefels.cat" target="_blank" rel="noreferrer">Ràdio Castelldefels</a>.
+  </footer>
+</div>
+
+<!-- Audio -->
+<audio id="audio" preload="auto">
+  <source src="assets/audios/BESTA%20RADIO%20CASTELLDFELS.m4a" type="audio/mp4">
+</audio>
+
+<script>
+const audio = document.getElementById("audio");
+const playBtn = document.getElementById("play-btn");
+const playIcon = document.getElementById("play-icon");
+const seek = document.getElementById("seek");
+const timeCurrent = document.getElementById("time-current");
+const timeTotal = document.getElementById("time-total");
+const volumeInput = document.getElementById("volume");
+const rewindBtn = document.getElementById("rewind");
+const forwardBtn = document.getElementById("forward");
+const vizCanvas = document.getElementById("viz-bars");
+const vizCtx = vizCanvas.getContext("2d");
+const grainCanvas = document.getElementById("grain");
+const grainCtx = grainCanvas.getContext("2d");
+const bgVideo = document.getElementById("bg-video");
+const coverPhoto = document.getElementById("cover-photo");
+
+let audioCtx = null;
+let analyser = null;
+let dataArray = null;
+let mediaSource = null;
+let audioGraphReady = false;
+let isPlaying = false;
+
+/* Aftermovie como fondo — versión móvil ligera en pantallas pequeñas */
+const useMobileVideo = window.matchMedia("(max-width: 760px), (pointer: coarse)").matches;
+bgVideo.src = useMobileVideo
+  ? "assets/videos/aftermovie-mobile.mp4"
+  : "assets/videos/aftermovie.mp4";
+bgVideo.load();
+
+bgVideo.addEventListener("loadeddata", () => {
+  bgVideo.classList.add("loaded");
+  bgVideo.play().catch(() => {});
+});
+bgVideo.addEventListener("error", () => {
+  console.warn("[radio] aftermovie no disponible: usando fondo gradiente.");
+});
+
+/* Cover photo: comprobar que carga */
+(function checkCover() {
+  const url = "assets/images/radio/radio-1.jpg";
+  const img = new Image();
+  img.onload = () => { coverPhoto.style.opacity = 1; };
+  img.onerror = () => { coverPhoto.style.display = "none"; };
+  img.src = url;
+})();
+
+/* Grain */
+function resizeGrain() {
+  grainCanvas.width = window.innerWidth;
+  grainCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeGrain);
+resizeGrain();
+function drawGrain() {
+  const w = grainCanvas.width, h = grainCanvas.height;
+  const img = grainCtx.createImageData(w, h);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.random() * 255;
+    d[i] = v; d[i+1] = v; d[i+2] = v; d[i+3] = Math.random() * 60;
+  }
+  grainCtx.putImageData(img, 0, 0);
+}
+
+/* Audio + Analyser */
+function setupAudioContext() {
+  if (audioGraphReady) return true;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    if (!audioCtx) audioCtx = new AC();
+    if (!mediaSource) mediaSource = audioCtx.createMediaElementSource(audio);
+    if (!analyser) {
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.78;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+    }
+    try { mediaSource.disconnect(); } catch (_) {}
+    mediaSource.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    audioGraphReady = true;
+    return true;
+  } catch (e) { console.warn("[audio] setup:", e); return false; }
+}
+
+/* Visualizador horizontal */
+function resizeViz() {
+  const rect = vizCanvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  vizCanvas.width = Math.floor(rect.width * dpr);
+  vizCanvas.height = Math.floor(rect.height * dpr);
+  vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", resizeViz);
+window.addEventListener("orientationchange", () => setTimeout(resizeViz, 200));
+if ("ResizeObserver" in window) new ResizeObserver(resizeViz).observe(vizCanvas);
+window.addEventListener("load", () => requestAnimationFrame(resizeViz));
+requestAnimationFrame(resizeViz);
+
+const NUM_BARS = 52;
+function drawViz() {
+  const rect = vizCanvas.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  if (!w || !h) return;
+  vizCtx.clearRect(0, 0, w, h);
+
+  let hasData = false;
+  if (analyser && isPlaying && dataArray) {
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    hasData = (sum / dataArray.length) > 0.5;
+  }
+
+  const gap = 3;
+  const barWidth = (w - gap * (NUM_BARS - 1)) / NUM_BARS;
+  const midY = h / 2;
+  const maxHalf = h * 0.46;
+
+  for (let i = 0; i < NUM_BARS; i++) {
+    let value = 0;
+    if (hasData) {
+      const bin = Math.floor((i / NUM_BARS) * dataArray.length * 0.85);
+      value = dataArray[bin] / 255;
+    } else if (isPlaying) {
+      value = 0.10 + 0.10 * Math.sin(performance.now() / 220 + i * 0.32);
+    } else {
+      value = 0.04;
+    }
+    const halfH = Math.max(2, value * maxHalf);
+    const x = i * (barWidth + gap);
+
+    const grad = vizCtx.createLinearGradient(0, midY - halfH, 0, midY + halfH);
+    grad.addColorStop(0, `rgba(244, 211, 94, ${0.6 + value * 0.4})`);
+    grad.addColorStop(0.5, `rgba(219, 127, 78, ${0.7 + value * 0.3})`);
+    grad.addColorStop(1, `rgba(244, 211, 94, ${0.6 + value * 0.4})`);
+    vizCtx.fillStyle = grad;
+    roundRect(vizCtx, x, midY - halfH, barWidth, halfH * 2, Math.min(barWidth / 2, 3));
+  }
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.fill();
+}
+
+let lastGrain = 0;
+function loop(t) {
+  drawViz();
+  if (t - lastGrain > 60) { drawGrain(); lastGrain = t; }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* Controles */
+function fmtTime(s) {
+  if (isNaN(s) || !isFinite(s)) return "--:--";
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, "0")}`;
+}
+async function play() {
+  try {
+    setupAudioContext();
+    if (audioCtx && audioCtx.state === "suspended") {
+      try { await audioCtx.resume(); } catch (_) {}
+    }
+    await audio.play();
+    isPlaying = true;
+    playIcon.textContent = "❚❚";
+    playBtn.classList.add("playing");
+    bgVideo.play().catch(() => {});
+  } catch (e) { console.warn("[audio] play failed", e); }
+}
+function pause() {
+  audio.pause();
+  isPlaying = false;
+  playIcon.textContent = "▶";
+  playBtn.classList.remove("playing");
+}
+function togglePlay() { isPlaying ? pause() : play(); }
+playBtn.addEventListener("click", togglePlay);
+
+audio.addEventListener("loadedmetadata", () => { timeTotal.textContent = fmtTime(audio.duration); });
+audio.addEventListener("timeupdate", () => {
+  timeCurrent.textContent = fmtTime(audio.currentTime);
+  if (audio.duration) {
+    const pct = (audio.currentTime / audio.duration) * 100;
+    seek.value = pct;
+    seek.style.setProperty("--p", pct + "%");
+  }
+});
+audio.addEventListener("ended", () => { pause(); audio.currentTime = 0; seek.value = 0; });
+audio.addEventListener("play", () => { isPlaying = true; });
+audio.addEventListener("pause", () => { isPlaying = false; });
+
+seek.addEventListener("input", () => {
+  if (!audio.duration) return;
+  audio.currentTime = (seek.value / 100) * audio.duration;
+  seek.style.setProperty("--p", seek.value + "%");
+});
+volumeInput.addEventListener("input", () => { audio.volume = parseFloat(volumeInput.value); });
+audio.volume = parseFloat(volumeInput.value);
+
+rewindBtn.addEventListener("click", () => { audio.currentTime = Math.max(0, audio.currentTime - 15); });
+forwardBtn.addEventListener("click", () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15); });
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input, textarea, select")) return;
+  if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+  if (e.code === "ArrowLeft")  { audio.currentTime = Math.max(0, audio.currentTime - 5); }
+  if (e.code === "ArrowRight") { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5); }
+});
+</script>
+</body>
+</html>
