@@ -904,6 +904,65 @@ body.role-voice         .note:not([data-role="voice"]):not([data-role="all"])   
 }
 .video-search a:hover { transform: translateY(-1px); box-shadow: var(--glow); }
 
+/* ============ AUDIO PLAYER ============ */
+.audio-block {
+  margin-bottom: 22px;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.audio-track {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.audio-track-head { display: flex; align-items: center; gap: 10px; }
+.audio-track-icon {
+  width: 34px; height: 34px;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.06);
+  color: var(--accent);
+  border-radius: 8px;
+  font-size: 16px;
+}
+.audio-track-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fg);
+  word-break: break-word;
+}
+.audio-track audio,
+.audio-edit-info audio { width: 100%; height: 38px; margin-top: 4px; }
+
+/* Audio manager inside edit form */
+.audio-edit-list { display: flex; flex-direction: column; gap: 10px; }
+.audio-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+  padding: 10px 12px;
+}
+.audio-edit-row.uploading { opacity: 0.7; }
+.audio-edit-info { flex: 1; min-width: 0; }
+.audio-edit-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  word-break: break-word;
+}
+.audio-upload-label { cursor: pointer; position: relative; overflow: hidden; }
+.audio-upload-label input[type="file"] { display: none; }
+
 /* ============ CHORD DIAGRAMS ============ */
 body:not(.diagrams-on) .chord-strip { display: none; }
 .chord-strip {
@@ -3093,6 +3152,110 @@ function renderVideoBlock(song) {
 }
 
 /* =========================================================
+   Audio (Supabase Storage)
+   ========================================================= */
+const AUDIO_BUCKET = "audio";
+const AUDIO_MAX_BYTES = 40 * 1024 * 1024; // 40 MB por archivo
+
+function audioPublicUrl(path) {
+  if (!path || !supa) return "";
+  try {
+    const { data } = supa.storage.from(AUDIO_BUCKET).getPublicUrl(path);
+    return data?.publicUrl || "";
+  } catch (e) { return ""; }
+}
+
+function sanitizeAudioName(name) {
+  return String(name || "audio")
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w.\-]+/g, "-")
+    .replace(/-+/g, "-").replace(/^-|-$/g, "")
+    .toLowerCase() || "audio";
+}
+
+// Reproductores en la vista normal de la canción
+function renderAudioBlock(song) {
+  const list = Array.isArray(song.audio) ? song.audio : [];
+  if (!list.length) return "";
+  const tracks = list.map(a => `
+    <div class="audio-track">
+      <div class="audio-track-head">
+        <span class="audio-track-icon">♪</span>
+        <span class="audio-track-name">${escapeHtml(a.name || "Audio")}</span>
+      </div>
+      <audio controls preload="none" src="${escapeAttr(audioPublicUrl(a.path))}"></audio>
+    </div>`).join("");
+  return `<div class="audio-block">${tracks}</div>`;
+}
+
+// Subida desde el formulario de edición
+async function uploadAudioFiles(inputEl) {
+  if (!editDraft) return;
+  const files = Array.from(inputEl.files || []);
+  inputEl.value = "";
+  if (!files.length) return;
+  if (!Array.isArray(editDraft.audio)) editDraft.audio = [];
+
+  // id estable para la ruta de storage (necesario en canciones nuevas)
+  if (!editDraft.id) editDraft.id = generateSongId(editDraft.artist, editDraft.title || "song");
+  const songId = editDraft.id;
+
+  const listEl = document.querySelector(".audio-edit-list");
+  for (const file of files) {
+    if (file.size > AUDIO_MAX_BYTES) {
+      alert(`"${file.name}" es demasiado grande (${(file.size / 1048576).toFixed(1)} MB). Máximo 40 MB.`);
+      continue;
+    }
+    let status = null;
+    if (listEl) {
+      status = document.createElement("div");
+      status.className = "audio-edit-row uploading";
+      status.innerHTML = `<span class="audio-track-icon">↑</span><div class="audio-edit-info"><div class="audio-edit-name">Subiendo ${escapeHtml(file.name)}…</div></div>`;
+      listEl.prepend(status);
+    }
+    const key = `${songId}/${Date.now()}-${sanitizeAudioName(file.name)}`;
+    try {
+      const { error } = await supa.storage.from(AUDIO_BUCKET).upload(key, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type || "audio/mpeg"
+      });
+      if (error) throw error;
+      editDraft.audio.push({
+        path: key,
+        name: file.name,
+        size: file.size,
+        type: file.type || "",
+        uploaded_at: new Date().toISOString()
+      });
+      editDirty = true;
+    } catch (err) {
+      console.error("audio upload failed", err);
+      if (status) status.remove();
+      const hint = /bucket|not found|does not exist/i.test(err?.message || "")
+        ? `\n\nParece que el bucket "audio" no existe todavía en Supabase Storage. Créalo (público) y vuelve a intentarlo.`
+        : "";
+      alert(`No se pudo subir "${file.name}": ${err?.message || err}${hint}`);
+    }
+  }
+  renderEditForm();
+}
+window.uploadAudioFiles = uploadAudioFiles;
+
+async function removeAudio(idx) {
+  if (!editDraft || !Array.isArray(editDraft.audio)) return;
+  const a = editDraft.audio[idx];
+  if (!a) return;
+  if (!confirm(`¿Quitar "${a.name || 'este audio'}"?`)) return;
+  try { await supa.storage.from(AUDIO_BUCKET).remove([a.path]); }
+  catch (e) { console.warn("no se pudo borrar del storage", e); }
+  editDraft.audio.splice(idx, 1);
+  editDirty = true;
+  renderEditForm();
+}
+window.removeAudio = removeAudio;
+
+/* =========================================================
    App
    ========================================================= */
 async function initApp() {
@@ -3722,6 +3885,7 @@ function emptySong() {
     bpm: "",
     duration: "",
     video: "",
+    audio: [],
     links: [],
     notes: "",
     sections: []
@@ -5237,6 +5401,7 @@ function renderSong(song) {
     : "";
 
   const videoHtml = renderVideoBlock(song);
+  const audioHtml = renderAudioBlock(song);
   const listInfoHtml = renderActiveListInfo();
   const deleteBannerHtml = renderDeleteBanner(song);
 
@@ -5263,6 +5428,7 @@ function renderSong(song) {
     ${listInfoHtml}
     ${deleteBannerHtml}
     ${videoHtml}
+    ${audioHtml}
     ${notesHtml}
     ${linksHtml}
     <div class="sections">${sectionsHtml}</div>
@@ -5458,6 +5624,17 @@ function renderEditFormHtml(draft) {
 
   const sectionsHtml = (draft.sections || []).map((sec, i) => renderSectionEditHtml(sec, i, draft.sections.length)).join("");
 
+  const audioEditHtml = (draft.audio || []).map((a, i) => `
+    <div class="audio-edit-row">
+      <span class="audio-track-icon">♪</span>
+      <div class="audio-edit-info">
+        <div class="audio-edit-name">${escapeHtml(a.name || "Audio")}</div>
+        <audio controls preload="none" src="${escapeAttr(audioPublicUrl(a.path))}"></audio>
+      </div>
+      <button class="btn btn-danger" type="button" onclick="removeAudio(${i})" aria-label="Quitar audio">×</button>
+    </div>
+  `).join("") || '<p style="color:var(--muted);font-size:13px;margin:0;">Aún no hay audios. Sube un MP3/M4A y quedará aquí, en el tema, para todos.</p>';
+
   return `
     <div class="edit-form">
       <header class="edit-header">
@@ -5515,6 +5692,17 @@ function renderEditFormHtml(draft) {
           <button class="btn btn-secondary" type="button" onclick="addLink()">+ Añadir link</button>
         </div>
         <div class="links-list">${linksHtml || '<p style="color:var(--muted);font-size:13px;margin:0;">Aún no hay links. Añade Spotify, partituras, etc.</p>'}</div>
+      </div>
+
+      <div class="edit-block">
+        <div class="edit-block-head">
+          <h3>Audios <span class="hint">MP3, M4A, WAV… se guardan en el tema para todos</span></h3>
+          <label class="btn btn-secondary audio-upload-label">
+            + Subir audio
+            <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" multiple onchange="uploadAudioFiles(this)">
+          </label>
+        </div>
+        <div class="audio-edit-list">${audioEditHtml}</div>
       </div>
 
       <div class="edit-block">
