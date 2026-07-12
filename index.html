@@ -557,11 +557,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 <!-- Aviso temporal flotante: enlaza a la página de la radio -->
 <aside id="radio-toast" class="radio-toast" hidden>
-  <a class="radio-toast-link" href="radio.html" aria-label="Escucha BESTA en la radio">
+  <a class="radio-toast-link" href="no-me-sale-olvidarte.html" aria-label="No me sale olvidarte — nuevo single de BESTA">
     <span class="radio-toast-dot" aria-hidden="true"></span>
     <span class="radio-toast-text">
-      <span class="radio-toast-eyebrow">Nuevo</span>
-      <span class="radio-toast-title">BESTA en la radio</span>
+      <span class="radio-toast-eyebrow">Nuevo single · 16 jul</span>
+      <span class="radio-toast-title">No me sale olvidarte</span>
     </span>
     <span class="radio-toast-arrow" aria-hidden="true">→</span>
   </a>
@@ -742,7 +742,7 @@ document.querySelectorAll(".platform-icon[data-platform]").forEach(btn => {
 
 /* ===== Aviso flotante "En la radio" (temporal, dismissible) =====
    Si el usuario lo cierra, no vuelve a aparecer hasta que cambies la versión. */
-const RADIO_TOAST_KEY = "besta_radio_toast_v1";
+const RADIO_TOAST_KEY = "besta_single_nmso_v1";
 const radioToast = document.getElementById("radio-toast");
 const radioToastClose = document.getElementById("radio-toast-close");
 if (radioToast && !localStorage.getItem(RADIO_TOAST_KEY)) {

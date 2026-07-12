@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="description" content="«No me sale olvidarte», el nuevo single de BESTA. Disponible el 16 de julio a las 20:00 (hora España). Pre-guárdalo ya en tu plataforma favorita." />
+<meta name="theme-color" content="#050508" />
+
+<!-- Open Graph / compartir -->
+<meta property="og:type" content="music.song" />
+<meta property="og:title" content="BESTA — No me sale olvidarte" />
+<meta property="og:description" content="Nuevo single · 16 de julio, 20:00 (hora España). Pre-guárdalo ya." />
+<meta property="og:image" content="https://besta.live/assets/images/no-me-sale-olvidarte/cover.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="1200" />
+<meta property="og:url" content="https://besta.live/no-me-sale-olvidarte.html" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="BESTA — No me sale olvidarte" />
+<meta name="twitter:description" content="Nuevo single · 16 de julio, 20:00 (hora España). Pre-guárdalo ya." />
+<meta name="twitter:image" content="https://besta.live/assets/images/no-me-sale-olvidarte/cover.jpg" />
+
+<title>BESTA — No me sale olvidarte</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png">
+<link rel="shortcut icon" href="assets/favicons/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/favicons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Major+Mono+Display&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #050508;
+  --bg-2: #0d0b11;
+  --fg: #f5f7ff;
+  --muted: rgba(245, 247, 255, 0.6);
+  --accent: #db7f4e;
+  --accent-rgb: 219, 127, 78;
+  --gold: #f4d35e;
+  --gold-rgb: 244, 211, 94;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+img { display: block; }
+
+/* ============ FONDO ============ */
+.bg-stack { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #000; }
+.bg-photo {
+  position: absolute; inset: -8%;
+  background-image: url('assets/images/no-me-sale-olvidarte/cover.jpg');
+  background-size: cover; background-position: center;
+  filter: blur(48px) saturate(1.15) brightness(0.55);
+  transform: scale(1.15);
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+.bg-photo.loaded { opacity: 0.9; }
+.bg-fallback {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(var(--accent-rgb), 0.35), transparent 55%),
+    radial-gradient(circle at 78% 78%, rgba(var(--gold-rgb), 0.18), transparent 55%),
+    linear-gradient(180deg, #12100c 0%, #0a0810 45%, #050508 100%);
+}
+.bg-tint {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 68%, rgba(0,0,0,0.85) 100%),
+    linear-gradient(180deg, rgba(5,5,8,0.35) 0%, rgba(5,5,8,0) 30%, rgba(5,5,8,0.55) 100%);
+}
+.grain { position: fixed; inset: 0; z-index: 4; pointer-events: none; mix-blend-mode: soft-light; opacity: 0.26; }
+.scanlines {
+  position: fixed; inset: 0; z-index: 4; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: multiply; opacity: 0.18;
+}
+
+/* ============ ESTRUCTURA ============ */
+.page {
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 22px 20px 40px;
+}
+.topbar {
+  width: 100%; max-width: 460px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 26px;
+}
+.brand { display: inline-flex; align-items: center; gap: 10px; }
+.brand img { height: 22px; width: auto; }
+.spacer { flex: 1; }
+.back-link {
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 7px 13px; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.back-link:hover { color: var(--accent); border-color: var(--accent); }
+
+.card {
+  width: 100%; max-width: 460px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 20px;
+}
+
+/* Badge estado */
+.status {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase;
+  color: var(--gold);
+  padding: 6px 14px;
+  border: 1px solid rgba(var(--gold-rgb), 0.4); border-radius: 999px;
+  background: rgba(var(--gold-rgb), 0.06);
+}
+.status::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 12px var(--gold);
+  animation: blink 1.6s ease-in-out infinite;
+}
+.status.live { color: #58e08a; border-color: rgba(88,224,138,0.45); background: rgba(88,224,138,0.08); }
+.status.live::before { background: #58e08a; box-shadow: 0 0 12px #58e08a; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Cover */
+.cover {
+  position: relative;
+  width: min(72vw, 300px); aspect-ratio: 1/1;
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 26px 70px rgba(0,0,0,0.7), 0 0 60px rgba(var(--accent-rgb), 0.22), inset 0 0 0 1px rgba(255,255,255,0.08);
+  background: #0d0b11;
+}
+.cover-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0; transition: opacity 0.6s ease;
+}
+.cover-img.loaded { opacity: 1; }
+.cover-fallback {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 8px, transparent 8px 16px),
+    linear-gradient(135deg, rgba(var(--accent-rgb),0.5), rgba(var(--gold-rgb),0.25));
+  font-family: 'Major Mono Display', monospace;
+  font-size: 15px; letter-spacing: 0.06em; color: rgba(255,255,255,0.85); line-height: 1.5;
+}
+
+/* Título */
+.titles { display: grid; gap: 4px; }
+.song {
+  margin: 0; font-size: clamp(24px, 6.4vw, 32px); font-weight: 700; letter-spacing: -0.01em;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+}
+.artist {
+  margin: 0; font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--muted);
+}
+
+/* Countdown */
+.countdown-wrap { display: grid; gap: 10px; width: 100%; }
+.countdown-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);
+}
+.countdown { display: flex; justify-content: center; gap: 8px; }
+.cd-cell {
+  min-width: 62px; padding: 12px 8px 10px;
+  background: rgba(13,11,17,0.55);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+.cd-num {
+  font-family: 'JetBrains Mono', monospace; font-weight: 700;
+  font-size: clamp(22px, 6vw, 28px); line-height: 1; color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.cd-unit {
+  margin-top: 6px; font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+}
+
+/* Lista de plataformas */
+.links { width: 100%; display: grid; gap: 10px; margin-top: 2px; }
+.plink {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px;
+  background: rgba(245,247,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.plink:hover { transform: translateY(-1px); border-color: rgba(var(--accent-rgb),0.6); background: rgba(var(--accent-rgb),0.08); }
+.plink .ico { width: 26px; height: 26px; flex: 0 0 26px; display: grid; place-items: center; }
+.plink .ico svg { width: 100%; height: 100%; }
+.plink .name { flex: 1; text-align: left; font-weight: 600; font-size: 15px; }
+.plink .act {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent);
+  padding: 5px 11px; border: 1px solid rgba(var(--accent-rgb),0.4); border-radius: 999px;
+  white-space: nowrap; transition: background 0.2s, color 0.2s;
+}
+.plink:hover .act { background: var(--accent); color: #1a1009; }
+.plink.soon { opacity: 0.5; pointer-events: none; }
+.plink.soon .act { color: var(--muted); border-color: rgba(255,255,255,0.18); }
+
+/* Compartir + foot */
+.share {
+  margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  background: transparent; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px;
+  padding: 9px 18px; transition: border-color 0.2s, color 0.2s;
+}
+.share:hover { color: var(--accent); border-color: var(--accent); }
+.foot {
+  margin-top: 18px; font-size: 11px; color: var(--muted); letter-spacing: 0.04em; text-align: center;
+}
+
+@media (max-width: 420px) {
+  .cd-cell { min-width: 54px; padding: 10px 6px 8px; }
+  .plink .name { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-stack" aria-hidden="true">
+  <div class="bg-fallback"></div>
+  <div class="bg-photo" id="bg-photo"></div>
+  <div class="bg-tint"></div>
+</div>
+<canvas class="grain" id="grain"></canvas>
+<div class="scanlines"></div>
+
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="/"><img src="assets/images/besta_color.png" alt="BESTA"></a>
+    <div class="spacer"></div>
+    <a class="back-link" href="/">← besta.es</a>
+  </header>
+
+  <main class="card">
+    <span class="status" id="status">Próximo estreno</span>
+
+    <div class="cover">
+      <div class="cover-fallback">No me sale<br>olvidarte</div>
+      <img class="cover-img" id="cover-img" src="assets/images/no-me-sale-olvidarte/cover.jpg" alt="Carátula — No me sale olvidarte">
+    </div>
+
+    <div class="titles">
+      <h1 class="song">No me sale olvidarte</h1>
+      <p class="artist">BESTA · Single</p>
+    </div>
+
+    <div class="countdown-wrap" id="countdown-wrap">
+      <div class="countdown-label" id="cd-caption">Disponible el 16 de julio · 20:00 h (España)</div>
+      <div class="countdown" id="countdown">
+        <div class="cd-cell"><div class="cd-num" id="cd-d">00</div><div class="cd-unit">días</div></div>
+        <div class="cd-cell"><div class="cd-num" id="cd-h">00</div><div class="cd-unit">horas</div></div>
+        <div class="cd-cell"><div class="cd-num" id="cd-m">00</div><div class="cd-unit">min</div></div>
+        <div class="cd-cell"><div class="cd-num" id="cd-s">00</div><div class="cd-unit">seg</div></div>
+      </div>
+    </div>
+
+    <nav class="links" id="links"></nav>
+
+    <button class="share" id="share">Compartir</button>
+
+    <p class="foot">© 2026 BESTA · No me sale olvidarte</p>
+  </main>
+</div>
+
+<script>
+/* =========================================================================
+   CONFIG — edita aquí. Cuando tengas cada enlace, pégalo y listo.
+   - presave  → enlace de pre-guardado / pre-add (antes del estreno)
+   - listen   → enlace para escuchar (a partir del estreno)
+   Deja "" para que el botón aparezca como «Próximamente» y no sea clicable.
+   Si un presave está vacío pero hay listen, antes del estreno se muestra
+   igualmente como «Próximamente».
+   ========================================================================= */
+const RELEASE = new Date('2026-07-16T20:00:00+02:00'); // 16 jul 2026, 20:00 hora España (CEST)
+
+const PLATFORMS = [
+  {
+    key: 'apple',
+    name: 'Apple Music',
+    presave: 'https://music.apple.com/us/album/no-me-sale-olvidarte-single/6785591762',
+    listen:  'https://music.apple.com/us/album/no-me-sale-olvidarte-single/6785591762',
+  },
+  { key: 'spotify',    name: 'Spotify',        presave: '', listen: '' },
+  { key: 'amazon',     name: 'Amazon Music',   presave: '', listen: '' },
+  { key: 'youtubemusic', name: 'YouTube Music', presave: '', listen: '' },
+  { key: 'youtube',    name: 'YouTube',        presave: '', listen: '' },
+  { key: 'deezer',     name: 'Deezer',         presave: '', listen: '' },
+  { key: 'tidal',      name: 'Tidal',          presave: '', listen: '' },
+];
+
+/* =========================== Iconos (SVG marca) =========================== */
+const ICONS = {
+  spotify: '<svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.32c-.22.36-.68.47-1.03.25-2.83-1.73-6.39-2.12-10.58-1.16-.41.09-.81-.16-.9-.57-.09-.41.16-.81.57-.9 4.59-1.05 8.52-.6 11.69 1.34.36.22.47.68.25 1.04zm1.47-3.27c-.28.45-.87.6-1.32.32-3.24-1.99-8.18-2.57-12.01-1.41-.51.15-1.04-.13-1.19-.64-.15-.51.14-1.04.64-1.19 4.38-1.33 9.82-.68 13.55 1.6.45.28.6.87.33 1.32zm.13-3.4C15.7 8.21 8.6 7.98 4.85 9.12c-.6.18-1.24-.16-1.42-.76-.18-.61.16-1.24.76-1.42 4.31-1.31 12.15-1.06 16.4 1.47.55.32.72 1.03.4 1.57-.32.55-1.03.72-1.57.4z"/></svg>',
+  apple: '<svg viewBox="0 0 24 24" fill="#FA57C1"><path d="M23.994 6.124a9.23 9.23 0 00-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 00-1.877-.726 10.496 10.496 0 00-1.564-.15c-.04-.003-.083-.01-.124-.013H5.988c-.152.01-.303.017-.455.026-.747.043-1.49.123-2.193.4-1.336.53-2.3 1.452-2.865 2.78-.192.448-.292.925-.363 1.408-.056.392-.088.785-.1 1.18 0 .032-.007.062-.01.093v12.223c.01.14.017.283.027.424.05.815.154 1.624.497 2.373.65 1.42 1.738 2.353 3.234 2.801.42.127.856.187 1.293.228.555.053 1.11.06 1.667.06h11.03a12.5 12.5 0 001.57-.1c.822-.106 1.596-.35 2.295-.81a5.046 5.046 0 001.88-2.207c.186-.42.293-.87.37-1.324.113-.675.138-1.358.137-2.04-.002-3.8 0-7.598-.003-11.397zm-6.423 3.99v5.712c0 .417-.058.827-.244 1.206-.29.59-.76.962-1.388 1.14-.35.1-.706.157-1.07.173-.95.045-1.773-.6-1.943-1.536-.142-.773.227-1.624 1.038-2.022.32-.156.66-.24 1.006-.31.267-.052.535-.1.8-.16.19-.045.318-.16.35-.36.008-.043.011-.09.011-.133 0-1.63.003-3.26.003-4.888v-2.5c0-.032-.001-.064-.008-.096-.036-.183-.207-.31-.4-.27-.144.03-.288.06-.43.093-.61.14-1.222.28-1.833.42l-1.87.428-.66.152c-.198.045-.316.176-.35.377-.008.04-.008.084-.008.126 0 2.856 0 5.712-.005 8.568 0 .424-.064.837-.257 1.22-.29.573-.756.943-1.377 1.12-.35.1-.708.156-1.072.174-.947.047-1.772-.6-1.94-1.536-.145-.766.223-1.618 1.03-2.017.32-.156.66-.24 1.006-.31.267-.052.535-.1.8-.16.19-.043.318-.16.35-.36.007-.033.01-.07.01-.104V6.626c0-.16.028-.31.104-.454.126-.238.323-.38.578-.44.185-.045.372-.083.558-.125l1.918-.44 1.87-.43c.65-.15 1.302-.297 1.952-.45.28-.064.556-.14.84-.176.4-.05.735.24.766.646.006.06.006.12.006.18l.005 5.578z"/></svg>',
+  amazon: '<svg viewBox="0 0 24 24" fill="#25D1DA"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.02 5.4a4.6 4.6 0 011.02.12c.66.16 1.2.6 1.44 1.26.12.36.18.72.18 1.08v.36h-1.86v-.24c0-.24-.06-.48-.18-.66-.18-.24-.48-.3-.78-.24-.36.06-.6.36-.6.78v8.28h-1.86V8.28c0-1.5 1.02-2.7 2.52-2.85.12-.02.24-.03.36-.03zm4.62 3.06c1.62 0 2.94 1.02 2.94 3v.36c0 .18-.12.3-.3.3h-3.72v.72c0 .78.42 1.2 1.02 1.2.48 0 .84-.24.96-.72.06-.18.18-.24.36-.24h1.32c.18 0 .3.12.3.3-.18 1.32-1.26 2.16-2.94 2.16-1.86 0-3.06-1.14-3.06-3.24v-.9c0-1.98 1.26-3.14 3.12-3.14zm-.06 1.38c-.6 0-.96.42-1.02 1.14v.06h2.04v-.06c0-.72-.42-1.2-1.02-1.2zM5.4 16.8c2.04 1.32 4.44 1.98 6.6 1.98 1.5 0 3.12-.3 4.68-.96.24-.12.42.12.24.3-1.44 1.26-3.42 1.92-5.22 1.92-2.52 0-4.8-.96-6.48-2.52-.18-.18 0-.42.18-.72z"/></svg>',
+  youtubemusic: '<svg viewBox="0 0 24 24" fill="#FF0000"><path d="M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm0 19.104c-3.924 0-7.104-3.18-7.104-7.104S8.076 4.896 12 4.896s7.104 3.18 7.104 7.104-3.18 7.104-7.104 7.104zM9.6 8.4l6 3.6-6 3.6V8.4z"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.121 2.136c1.871.505 9.377.505 9.377.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>',
+  deezer: '<svg viewBox="0 0 24 24" fill="#A238FF"><path d="M18.81 4.16H24v2.61h-5.19V4.16zM12.6 8.42h5.19v2.61H12.6V8.42zm6.21 0H24v2.61h-5.19V8.42zM0 12.68h5.19v2.61H0v-2.61zm6.3 0h5.19v2.61H6.3v-2.61zm6.3 0h5.19v2.61H12.6v-2.61zm6.21 0H24v2.61h-5.19v-2.61zM0 16.93h5.19v2.61H0v-2.61zm6.3 0h5.19v2.61H6.3v-2.61zm6.3 0h5.19v2.61H12.6v-2.61zm6.21 0H24v2.61h-5.19v-2.61z"/></svg>',
+  tidal: '<svg viewBox="0 0 24 24" fill="#00FFFF"><path d="M12.012 3.992L8.008 7.996 4.004 3.992 0 7.996 4.004 12l4.004-4.004L12.012 12l-4.004 4.004 4.004 4.004 4.004-4.004L12.016 12l4.004-4.004-4.008-4.004zm4.008 4.004l4.004-4.004L24.03 7.996 20.024 12l-4.004-4.004z"/></svg>',
+};
+function iconFor(key){ return ICONS[key] || '<svg viewBox="0 0 24 24" fill="#db7f4e"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>'; }
+
+/* =========================== Render de enlaces =========================== */
+const released = () => Date.now() >= RELEASE.getTime();
+const linksEl = document.getElementById('links');
+
+function renderLinks() {
+  const live = released();
+  linksEl.innerHTML = '';
+  PLATFORMS.forEach(p => {
+    const url = live ? (p.listen || p.presave) : p.presave;
+    const soon = !url;
+    const label = live ? 'Escuchar' : 'Pre-save';
+    const a = document.createElement(soon ? 'div' : 'a');
+    a.className = 'plink' + (soon ? ' soon' : '');
+    if (!soon) { a.href = url; a.target = '_blank'; a.rel = 'noopener'; }
+    a.innerHTML =
+      '<span class="ico">' + iconFor(p.key) + '</span>' +
+      '<span class="name">' + p.name + '</span>' +
+      '<span class="act">' + (soon ? 'Próximamente' : label) + '</span>';
+    linksEl.appendChild(a);
+  });
+}
+
+/* =========================== Countdown =========================== */
+const cd = {
+  wrap: document.getElementById('countdown-wrap'),
+  caption: document.getElementById('cd-caption'),
+  d: document.getElementById('cd-d'),
+  h: document.getElementById('cd-h'),
+  m: document.getElementById('cd-m'),
+  s: document.getElementById('cd-s'),
+};
+const statusEl = document.getElementById('status');
+let wasReleased = released();
+
+function pad(n){ return String(n).padStart(2, '0'); }
+
+function tick() {
+  const diff = RELEASE.getTime() - Date.now();
+  if (diff <= 0) {
+    if (!wasReleased) { wasReleased = true; renderLinks(); }
+    statusEl.textContent = 'Ya disponible';
+    statusEl.classList.add('live');
+    cd.caption.textContent = 'Ya disponible en todas las plataformas';
+    cd.d.textContent = cd.h.textContent = cd.m.textContent = cd.s.textContent = '00';
+    document.getElementById('countdown').style.display = 'none';
+    return;
+  }
+  const s = Math.floor(diff / 1000);
+  cd.d.textContent = pad(Math.floor(s / 86400));
+  cd.h.textContent = pad(Math.floor((s % 86400) / 3600));
+  cd.m.textContent = pad(Math.floor((s % 3600) / 60));
+  cd.s.textContent = pad(s % 60);
+}
+
+/* =========================== Compartir =========================== */
+const shareBtn = document.getElementById('share');
+shareBtn.addEventListener('click', async () => {
+  const shareData = {
+    title: 'BESTA — No me sale olvidarte',
+    text: '«No me sale olvidarte», nuevo single de BESTA. Pre-guárdalo ya 👇',
+    url: location.href,
+  };
+  try {
+    if (navigator.share) { await navigator.share(shareData); }
+    else {
+      await navigator.clipboard.writeText(location.href);
+      shareBtn.textContent = '¡Enlace copiado!';
+      setTimeout(() => { shareBtn.textContent = 'Compartir'; }, 1800);
+    }
+  } catch (_) {}
+});
+
+/* =========================== Fondo / carátula =========================== */
+(function loadCover(){
+  const img = document.getElementById('cover-img');
+  const bg = document.getElementById('bg-photo');
+  const probe = new Image();
+  probe.onload = () => { img.classList.add('loaded'); bg.classList.add('loaded'); };
+  probe.onerror = () => {}; // se queda el fallback (degradado + texto)
+  probe.src = 'assets/images/no-me-sale-olvidarte/cover.jpg';
+})();
+
+/* =========================== Grain =========================== */
+const grain = document.getElementById('grain');
+const gctx = grain.getContext('2d');
+function resizeGrain(){ grain.width = window.innerWidth; grain.height = window.innerHeight; }
+window.addEventListener('resize', resizeGrain); resizeGrain();
+function drawGrain(){
+  const w = grain.width, h = grain.height;
+  const im = gctx.createImageData(w, h), d = im.data;
+  for (let i = 0; i < d.length; i += 4){ const v = Math.random()*255; d[i]=d[i+1]=d[i+2]=v; d[i+3]=Math.random()*55; }
+  gctx.putImageData(im, 0, 0);
+}
+let last = 0;
+function loop(t){ if (t - last > 70){ drawGrain(); last = t; } requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+
+/* =========================== Init =========================== */
+renderLinks();
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
