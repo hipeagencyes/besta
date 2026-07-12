@@ -253,8 +253,6 @@ img { display: block; }
   </header>
 
   <main class="card">
-    <span class="status" id="status">Próximo estreno</span>
-
     <div class="cover">
       <div class="cover-fallback">No me sale<br>olvidarte</div>
       <img class="cover-img" id="cover-img" src="assets/images/no-me-sale-olvidarte/cover.jpg" alt="Carátula — No me sale olvidarte">
@@ -352,7 +350,6 @@ const cd = {
   m: document.getElementById('cd-m'),
   s: document.getElementById('cd-s'),
 };
-const statusEl = document.getElementById('status');
 let wasReleased = released();
 
 function pad(n){ return String(n).padStart(2, '0'); }
@@ -361,8 +358,6 @@ function tick() {
   const diff = RELEASE.getTime() - Date.now();
   if (diff <= 0) {
     if (!wasReleased) { wasReleased = true; renderLinks(); }
-    statusEl.textContent = 'Ya disponible';
-    statusEl.classList.add('live');
     cd.caption.textContent = 'Ya disponible en todas las plataformas';
     cd.d.textContent = cd.h.textContent = cd.m.textContent = cd.s.textContent = '00';
     document.getElementById('countdown').style.display = 'none';
