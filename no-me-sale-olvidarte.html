@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="description" content="«No me sale olvidarte», el nuevo single de BESTA. Disponible el 16 de julio a las 20:00 (hora España). Pre-guárdalo ya en tu plataforma favorita." />
+<meta name="description" content="«No me sale olvidarte», el nuevo single de BESTA, ya disponible. Escúchalo en Spotify, Apple Music, YouTube y más." />
 <meta name="theme-color" content="#050508" />
 
 <!-- Open Graph / compartir -->
 <meta property="og:type" content="music.song" />
 <meta property="og:title" content="BESTA — No me sale olvidarte" />
-<meta property="og:description" content="Nuevo single · 16 de julio, 20:00 (hora España). Pre-guárdalo ya." />
+<meta property="og:description" content="Nuevo single de BESTA · Ya disponible. Escúchalo ahora." />
 <meta property="og:image" content="https://besta.es/assets/images/no-me-sale-olvidarte/cover.jpg" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="1200" />
+<meta property="og:image:width" content="1000" />
+<meta property="og:image:height" content="1000" />
 <meta property="og:url" content="https://besta.es/no-me-sale-olvidarte.html" />
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="BESTA — No me sale olvidarte" />
-<meta name="twitter:description" content="Nuevo single · 16 de julio, 20:00 (hora España). Pre-guárdalo ya." />
+<meta name="twitter:description" content="Nuevo single de BESTA · Ya disponible. Escúchalo ahora." />
 <meta name="twitter:image" content="https://besta.es/assets/images/no-me-sale-olvidarte/cover.jpg" />
 
 <title>BESTA — No me sale olvidarte</title>
@@ -294,15 +294,25 @@ const RELEASE = new Date('2026-07-16T20:00:00+02:00'); // 16 jul 2026, 20:00 hor
 
 const PLATFORMS = [
   {
+    key: 'spotify',
+    name: 'Spotify',
+    presave: 'https://open.spotify.com/album/51uZIhY5muEFfmYGwpveNH',
+    listen:  'https://open.spotify.com/album/51uZIhY5muEFfmYGwpveNH',
+  },
+  {
     key: 'apple',
     name: 'Apple Music',
     presave: 'https://music.apple.com/us/album/no-me-sale-olvidarte-single/6785591762',
     listen:  'https://music.apple.com/us/album/no-me-sale-olvidarte-single/6785591762',
   },
-  { key: 'spotify',    name: 'Spotify',        presave: '', listen: '' },
-  { key: 'amazon',     name: 'Amazon Music',   presave: '', listen: '' },
+  {
+    key: 'youtube',
+    name: 'YouTube',
+    presave: 'https://www.youtube.com/watch?v=BJ4YJIrproU',
+    listen:  'https://www.youtube.com/watch?v=BJ4YJIrproU',
+  },
   { key: 'youtubemusic', name: 'YouTube Music', presave: '', listen: '' },
-  { key: 'youtube',    name: 'YouTube',        presave: '', listen: '' },
+  { key: 'amazon',     name: 'Amazon Music',   presave: '', listen: '' },
   { key: 'deezer',     name: 'Deezer',         presave: '', listen: '' },
   { key: 'tidal',      name: 'Tidal',          presave: '', listen: '' },
 ];
@@ -375,7 +385,7 @@ const shareBtn = document.getElementById('share');
 shareBtn.addEventListener('click', async () => {
   const shareData = {
     title: 'BESTA — No me sale olvidarte',
-    text: '«No me sale olvidarte», nuevo single de BESTA. Pre-guárdalo ya 👇',
+    text: '«No me sale olvidarte», nuevo single de BESTA. Escúchalo ya 👇',
     url: location.href,
   };
   try {
