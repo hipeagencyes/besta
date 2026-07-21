@@ -624,6 +624,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
     <h2 id="contact-title">Contacto</h2>
     <p class="modal-sub">Bolos, prensa, colaboraciones</p>
     <form class="contact-form" id="contactForm">
+      <!-- Web3Forms: campos ocultos -->
+      <input type="hidden" name="subject" value="Nuevo mensaje desde besta.es" />
+      <input type="hidden" name="from_name" value="Web besta.es" />
+      <!-- Honeypot anti-spam (debe quedar vacío) -->
+      <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" style="display:none" aria-hidden="true" />
       <label>Nombre
         <input type="text" name="nombre" required autocomplete="name" />
       </label>
@@ -691,33 +696,41 @@ document.addEventListener("keydown", e => {
   }
 });
 
-/* ===== Formulario de contacto (Google Apps Script) =====
-   1) Despliega tu Apps Script como Web App (acceso: cualquiera).
-   2) Pega la URL del Web App (/exec) en GOOGLE_SCRIPT_URL. */
-const GOOGLE_SCRIPT_URL = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT";
+/* ===== Formulario de contacto (Web3Forms → info@besta.es) =====
+   Consigue tu access key gratis en https://web3forms.com poniendo
+   info@besta.es como destino, y pégala aquí abajo. */
+const WEB3FORMS_ACCESS_KEY = "58a9cff7-90b2-4a86-919c-34cae4be4139";
 const contactForm = document.getElementById("contactForm");
 const formStatus = document.getElementById("formStatus");
 contactForm.addEventListener("submit", async e => {
   e.preventDefault();
   const submitBtn = contactForm.querySelector(".contact-submit");
   formStatus.className = "form-status";
-  if (GOOGLE_SCRIPT_URL.startsWith("PEGA_AQUI")) {
-    formStatus.textContent = "Formulario aún no conectado. Configura GOOGLE_SCRIPT_URL.";
+  if (WEB3FORMS_ACCESS_KEY.startsWith("PEGA_AQUI")) {
+    formStatus.textContent = "Formulario aún no conectado. Configura WEB3FORMS_ACCESS_KEY.";
     formStatus.classList.add("err");
     return;
   }
   submitBtn.disabled = true;
   formStatus.textContent = "Enviando…";
   try {
-    await fetch(GOOGLE_SCRIPT_URL, {
+    const payload = Object.fromEntries(new FormData(contactForm).entries());
+    payload.access_key = WEB3FORMS_ACCESS_KEY;
+    payload.replyto = payload.email || "";
+    const res = await fetch("https://api.web3forms.com/submit", {
       method: "POST",
-      mode: "no-cors",
-      body: new FormData(contactForm)
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(payload)
     });
-    // Con no-cors la respuesta es opaca; asumimos OK si no hay excepción.
-    formStatus.textContent = "¡Gracias! Te responderemos pronto.";
-    formStatus.classList.add("ok");
-    contactForm.reset();
+    const data = await res.json();
+    if (data.success) {
+      formStatus.textContent = "¡Gracias! Te responderemos pronto.";
+      formStatus.classList.add("ok");
+      contactForm.reset();
+    } else {
+      formStatus.textContent = "No se pudo enviar. Inténtalo de nuevo.";
+      formStatus.classList.add("err");
+    }
   } catch (err) {
     formStatus.textContent = "No se pudo enviar. Inténtalo de nuevo.";
     formStatus.classList.add("err");
