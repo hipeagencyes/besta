@@ -247,6 +247,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   white-space: nowrap; transition: border-color 0.2s, background 0.2s;
 }
 .gig .gig-cta:hover { border-color: var(--accent); background: rgba(var(--accent-rgb),0.12); }
+/* Botón "Pronto": informativo, no clicable */
+.gig .gig-cta-soon { color: rgba(245,247,255,0.5); border-style: dashed; cursor: default; }
+.gig .gig-cta-soon:hover { border-color: rgba(255,255,255,0.16); background: transparent; }
+/* Texto de ubicación aún secreta */
+.blurred { filter: blur(4px); user-select: none; opacity: 0.85; }
 .gigs-empty { color: rgba(245,247,255,0.6); font-size: 14px; line-height: 1.5; }
 
 /* Formulario de contacto */
@@ -514,13 +519,13 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   </section>
   <div class="footer">
     <div class="platform-icons" role="group" aria-label="Plataformas y redes sociales">
-      <!-- Música: muestran 'Próximamente' al pulsar -->
-      <button type="button" class="platform-icon" data-platform="Spotify" aria-label="Spotify (próximamente)">
+      <!-- Música -->
+      <a class="platform-icon" href="https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe" target="_blank" rel="noopener noreferrer" aria-label="BESTA en Spotify">
         <img src="https://cdn.simpleicons.org/spotify/ffffff" width="22" height="22" alt="" aria-hidden="true">
-      </button>
-      <button type="button" class="platform-icon" data-platform="Apple Music" aria-label="Apple Music (próximamente)">
+      </a>
+      <a class="platform-icon" href="https://music.apple.com/us/artist/besta/6785490450" target="_blank" rel="noopener noreferrer" aria-label="BESTA en Apple Music">
         <img src="https://cdn.simpleicons.org/applemusic/ffffff" width="22" height="22" alt="" aria-hidden="true">
-      </button>
+      </a>
       <button type="button" class="platform-icon platform-icon-wide" data-platform="Amazon Music" aria-label="Amazon Music (próximamente)">
         <!-- Amazon Music: texto "music" + flecha smile -->
         <svg viewBox="0 0 64 28" height="22" fill="currentColor" aria-hidden="true">
@@ -595,20 +600,28 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
          Si aún no hay entradas, pon href="#" y texto "Pronto". -->
     <div class="gigs">
       <div class="gig">
-        <div class="gig-date"><span class="day">21</span>JUN</div>
+        <div class="gig-date"><span class="day">14</span>AGO</div>
+        <div class="gig-info">
+          <div class="city">Por confirmar</div>
+          <div class="venue">Fecha pendiente de confirmación</div>
+        </div>
+        <span class="gig-cta gig-cta-soon">Pronto</span>
+      </div>
+      <div class="gig">
+        <div class="gig-date"><span class="day">15</span>AGO</div>
         <div class="gig-info">
           <div class="city">Castelldefels</div>
-          <div class="venue">Festa de la Música al Carrer · Espai Plaça Església · 20:45h</div>
+          <div class="venue">Festa Major de Castelldefels (FM)</div>
         </div>
         <a class="gig-cta" href="https://www.castelldefels.org" target="_blank" rel="noopener noreferrer">Info</a>
       </div>
       <div class="gig">
-        <div class="gig-date"><span class="day">18</span>JUL</div>
+        <div class="gig-date"><span class="day">29</span>AGO</div>
         <div class="gig-info">
-          <div class="city">Castelldefels · Nous Talents</div>
-          <div class="venue">Semifinals 18 i 19 jul · Final 20 jul · Jardins del Castell</div>
+          <div class="city">Ubicación secreta 🔒</div>
+          <div class="venue"><span class="blurred">En algún lugar muy especial</span> · se revela pronto</div>
         </div>
-        <a class="gig-cta" href="https://www.castelldefels.org" target="_blank" rel="noopener noreferrer">Info</a>
+        <span class="gig-cta gig-cta-soon">Pronto</span>
       </div>
     </div>
     <!-- Si no hay fechas, borra los .gig de arriba y descomenta esto:
