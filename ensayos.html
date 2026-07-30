@@ -2167,6 +2167,7 @@ body.editing .sidebar::after {
   gap: 8px;
   justify-content: flex-end;
 }
+.modal-actions #list-delete { margin-right: auto; }
 
 @media (max-width: 720px) {
   .edit-grid { grid-template-columns: 1fr 1fr; }
@@ -2220,6 +2221,108 @@ body.editing .sidebar::after {
   .toggle-group { font-size: 10px; }
   .toggle-group button { padding: 5px 7px; font-size: 10px; letter-spacing: 0.06em; }
   .brand-sub { display: none; }
+}
+/* =======================================================
+   MODO DIRECTO — letra a pantalla completa, pase por estrofas
+   ======================================================= */
+.live-btn {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.live-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.live-overlay {
+  position: fixed; inset: 0; z-index: 4000;
+  background: var(--bg); color: var(--fg);
+  display: flex; flex-direction: column;
+  -webkit-user-select: none; user-select: none;
+  touch-action: manipulation;
+  overscroll-behavior: contain;
+}
+.live-overlay[hidden] { display: none; }
+
+.live-topbar {
+  position: relative; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.live-song-title { font-size: clamp(15px, 2.4vw, 22px); font-weight: 700; min-width: 0; }
+.live-song-title .artist { color: var(--muted); font-weight: 500; font-size: 0.8em; }
+.live-exit {
+  flex: none;
+  background: transparent; border: 1px solid var(--line-strong); color: var(--fg);
+  width: 44px; height: 44px; border-radius: 12px; font-size: 20px; cursor: pointer;
+}
+.live-exit:hover { border-color: var(--accent); color: var(--accent); }
+
+.live-stage {
+  position: relative; z-index: 1;
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 18px;
+  padding: 28px clamp(20px, 6vw, 90px);
+  overflow-y: auto;
+}
+.live-section-name {
+  text-transform: uppercase; letter-spacing: 0.12em;
+  font-size: clamp(13px, 1.8vw, 18px); font-weight: 700; color: var(--accent);
+}
+.live-lyrics {
+  font-weight: 700; line-height: 1.28;
+  font-size: clamp(30px, 6.2vw, 68px);
+  white-space: pre-wrap; word-break: break-word;
+}
+.live-cue {
+  font-size: clamp(28px, 5vw, 56px); font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.live-song-lead { display: flex; flex-direction: column; gap: 10px; }
+.live-song-lead .num { color: var(--accent); font-size: clamp(13px, 2vw, 18px); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.live-song-lead .t { font-size: clamp(34px, 7vw, 80px); font-weight: 800; line-height: 1.1; }
+.live-song-lead .a { color: var(--muted); font-size: clamp(18px, 3vw, 30px); font-weight: 600; }
+
+/* zonas táctiles (iPad): izquierda = atrás, derecha = siguiente */
+.live-tap {
+  position: absolute; top: 66px; bottom: 92px; z-index: 2;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.live-tap-prev { left: 0; width: 32%; }
+.live-tap-next { right: 0; width: 68%; }
+
+.live-controls {
+  position: relative; z-index: 3;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+}
+.live-controls button {
+  background: var(--bg-2); border: 1px solid var(--line-strong); color: var(--fg);
+  height: 48px; min-width: 48px; padding: 0 16px; border-radius: 12px;
+  font-size: 18px; font-weight: 700; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.live-controls button:hover { border-color: var(--accent); color: var(--accent); }
+.live-controls .live-nav { font-size: 22px; }
+.live-progress { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 60px; text-align: center; font-weight: 700; }
+.live-speed { display: flex; align-items: center; gap: 4px; }
+.live-speed button { height: 40px; min-width: 40px; padding: 0 10px; font-size: 16px; }
+.live-speed span { min-width: 42px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+#live-autoplay.on { border-color: var(--accent); color: var(--accent); background: rgba(var(--accent-rgb), 0.08); }
+@media (max-width: 560px) {
+  .live-speed { order: 5; }
 }
 </style>
 </head>
@@ -2286,6 +2389,7 @@ body.editing .sidebar::after {
 
     <button class="theme-btn" id="theme-btn" aria-label="Cambiar tema claro/oscuro" title="Tema claro / oscuro">☾</button>
     <button class="concert-btn" id="concert-btn" aria-label="Modo concierto" title="Modo concierto — letra grande, pantalla siempre encendida (Shift+C)">★</button>
+    <button class="live-btn" id="live-btn" aria-label="Modo directo" title="Modo directo — letra a pantalla completa, pase por estrofas (para iPad)">Directo</button>
 
     <div class="settings-wrap">
       <button class="settings-btn" id="settings-btn" aria-label="Ajustes" title="Ajustes">⚙</button>
@@ -2331,6 +2435,28 @@ body.editing .sidebar::after {
     <div class="fontsize-control" title="Tamaño de letra">
       <button id="fontsize-smaller" title="Más pequeño">A−</button>
       <button id="fontsize-bigger" title="Más grande">A+</button>
+    </div>
+  </div>
+
+  <!-- Modo directo: letra a pantalla completa, pase por estrofas -->
+  <div class="live-overlay" id="live-overlay" hidden>
+    <div class="live-topbar">
+      <div class="live-song-title" id="live-song-title"></div>
+      <button class="live-exit" id="live-exit" aria-label="Salir del modo directo" title="Salir (Esc)">✕</button>
+    </div>
+    <div class="live-tap live-tap-prev" id="live-tap-prev" aria-hidden="true"></div>
+    <div class="live-tap live-tap-next" id="live-tap-next" aria-hidden="true"></div>
+    <div class="live-stage" id="live-stage"></div>
+    <div class="live-controls">
+      <button class="live-nav" id="live-prev" aria-label="Anterior" title="Anterior (←)">◀</button>
+      <div class="live-progress" id="live-progress">–</div>
+      <button id="live-autoplay" aria-label="Autoplay" title="Autoplay (avance automático)">▶ Auto</button>
+      <div class="live-speed" title="Segundos por estrofa en autoplay">
+        <button id="live-slower" aria-label="Más lento" title="Más lento">−</button>
+        <span id="live-speed-display">12s</span>
+        <button id="live-faster" aria-label="Más rápido" title="Más rápido">+</button>
+      </div>
+      <button class="live-nav" id="live-next" aria-label="Siguiente" title="Siguiente (→)">▶</button>
     </div>
   </div>
 
@@ -2380,6 +2506,7 @@ body.editing .sidebar::after {
           <textarea id="list-notes" placeholder="Contexto del concierto, orden previsto, quién falta, etc."></textarea>
         </label>
         <div class="modal-actions">
+          <button class="btn btn-danger" type="button" id="list-delete" hidden>Eliminar lista</button>
           <button class="btn btn-secondary" type="button" id="list-cancel">Cancelar</button>
           <button class="btn btn-primary" type="submit" id="list-save">Guardar</button>
         </div>
@@ -3344,6 +3471,7 @@ async function initApp() {
 
   const listBackdrop = document.getElementById("list-modal-backdrop");
   document.getElementById("list-cancel")?.addEventListener("click", closeListModal);
+  document.getElementById("list-delete")?.addEventListener("click", deleteListFromModal);
   document.getElementById("list-form")?.addEventListener("submit", saveListFromModal);
   listBackdrop?.addEventListener("click", (e) => {
     if (e.target === listBackdrop) closeListModal();
@@ -3411,6 +3539,28 @@ async function initApp() {
   // Wire concert mode
   document.getElementById("concert-btn")?.addEventListener("click", toggleConcertMode);
 
+  // Wire modo directo
+  document.getElementById("live-btn")?.addEventListener("click", openLiveMode);
+  document.getElementById("live-exit")?.addEventListener("click", closeLiveMode);
+  document.getElementById("live-prev")?.addEventListener("click", () => liveGo(-1));
+  document.getElementById("live-next")?.addEventListener("click", () => liveGo(1));
+  document.getElementById("live-tap-prev")?.addEventListener("click", () => liveGo(-1));
+  document.getElementById("live-tap-next")?.addEventListener("click", () => liveGo(1));
+  document.getElementById("live-autoplay")?.addEventListener("click", () => liveSetAutoplay(!liveAutoplay));
+  document.getElementById("live-slower")?.addEventListener("click", () => liveSetSpeed(-1));
+  document.getElementById("live-faster")?.addEventListener("click", () => liveSetSpeed(1));
+  document.addEventListener("keydown", (e) => {
+    if (!liveActive) return;
+    if (e.target.matches?.("input, textarea, select")) return;
+    switch (e.key) {
+      case "Escape": e.preventDefault(); closeLiveMode(); break;
+      case "ArrowRight": case "PageDown": case " ": e.preventDefault(); liveGo(1); break;
+      case "ArrowLeft": case "PageUp": e.preventDefault(); liveGo(-1); break;
+      case "Home": e.preventDefault(); liveIndex = 0; renderLiveSlide(); if (liveAutoplay) liveScheduleNext(); break;
+      case "End": e.preventDefault(); liveIndex = liveSlides.length - 1; renderLiveSlide(); if (liveAutoplay) liveScheduleNext(); break;
+    }
+  });
+
   // Wire theme toggle (and re-aplicar para asegurar el icono correcto)
   document.getElementById("theme-btn")?.addEventListener("click", toggleTheme);
   applyTheme(resolveTheme());
@@ -3454,7 +3604,7 @@ async function initApp() {
   }
   // Atajos de teclado globales (lectura)
   document.addEventListener("keydown", (e) => {
-    if (editMode) return;
+    if (editMode || liveActive) return;
     if (e.target.matches?.("input, textarea, select")) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
@@ -4851,12 +5001,165 @@ window.toggleConcertMode = toggleConcertMode;
 
 // Re-adquirir wake lock al volver al tab
 document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "visible" &&
-      document.body.classList.contains("concert-mode") &&
-      "wakeLock" in navigator && !wakeLock) {
+  if (document.visibilityState !== "visible" || !("wakeLock" in navigator)) return;
+  if (document.body.classList.contains("concert-mode") && !wakeLock) {
     try { wakeLock = await navigator.wakeLock.request("screen"); } catch (_) {}
   }
+  if (liveActive && !liveWakeLock) {
+    try {
+      liveWakeLock = await navigator.wakeLock.request("screen");
+      liveWakeLock.addEventListener?.("release", () => { liveWakeLock = null; });
+    } catch (_) {}
+  }
 });
+
+/* =========================================================
+   MODO DIRECTO — letra a pantalla completa, pase por estrofas,
+   autoplay opcional y zonas táctiles (pensado para iPad en directo).
+   ========================================================= */
+const LIVE_SPEED_KEY = "besta_ensayos_live_speed";
+let liveActive = false;
+let liveSlides = [];
+let liveIndex = 0;
+let liveAutoplay = false;
+let liveTimer = null;
+let liveWakeLock = null;
+let liveAutoplaySeconds = (() => {
+  const v = parseInt(localStorage.getItem(LIVE_SPEED_KEY), 10);
+  return (!isNaN(v) && v >= 3 && v <= 60) ? v : 12;
+})();
+
+function liveStripChords(text) {
+  return String(text || "").replace(/\[[^\]]+\]/g, "");
+}
+
+// Construye la secuencia de "slides" desde las canciones visibles (respeta el filtro/orden de la lista):
+// por cada canción, una portada + una diapositiva por sección (letra grande, o cue si es instrumental).
+function buildLiveSlides() {
+  const items = Array.from(document.querySelectorAll("#song-list .song-item[data-id]"));
+  let ids = items.map(li => li.dataset.id);
+  if (!ids.length && activeSongId) ids = [activeSongId];
+  const slides = [];
+  ids.forEach(id => {
+    const song = songs.find(s => s.id === id);
+    if (!song) return;
+    slides.push({
+      songId: id, kind: "intro",
+      title: song.title || "Sin título", artist: song.artist || "",
+      setNum: getSetlistNumber(song)
+    });
+    (Array.isArray(song.sections) ? song.sections : []).forEach(sec => {
+      const lyrics = liveStripChords(sec.lyrics).trim();
+      const type = sec.type || inferSectionType(sec.name);
+      const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
+      const name = sec.name || typeLabel || "Sección";
+      if (lyrics) {
+        slides.push({ songId: id, kind: "lyrics", title: song.title || "", artist: song.artist || "", sectionName: name, lyrics });
+      } else {
+        slides.push({ songId: id, kind: "cue", title: song.title || "", artist: song.artist || "", sectionName: name, cue: typeLabel || name });
+      }
+    });
+  });
+  return slides;
+}
+
+function liveSlideIndexForSong(songId) {
+  const i = liveSlides.findIndex(s => s.songId === songId);
+  return i === -1 ? 0 : i;
+}
+
+function renderLiveSlide() {
+  const slide = liveSlides[liveIndex];
+  const stage = document.getElementById("live-stage");
+  const titleEl = document.getElementById("live-song-title");
+  const progEl = document.getElementById("live-progress");
+  if (!slide || !stage) return;
+
+  if (slide.kind === "intro") {
+    stage.innerHTML = `
+      <div class="live-song-lead">
+        <div class="num">${slide.setNum ? "Setlist #" + escapeHtml(String(slide.setNum)) : "Canción"}</div>
+        <div class="t">${escapeHtml(slide.title)}</div>
+        ${slide.artist ? `<div class="a">${escapeHtml(slide.artist)}</div>` : ""}
+      </div>`;
+  } else if (slide.kind === "cue") {
+    stage.innerHTML = `
+      <div class="live-section-name">${escapeHtml(slide.sectionName)}</div>
+      <div class="live-cue">${escapeHtml(slide.cue)}</div>`;
+  } else {
+    stage.innerHTML = `
+      <div class="live-section-name">${escapeHtml(slide.sectionName)}</div>
+      <div class="live-lyrics">${escapeHtml(slide.lyrics)}</div>`;
+  }
+  stage.scrollTop = 0;
+
+  if (titleEl) titleEl.innerHTML = `${escapeHtml(slide.title)}${slide.artist ? ` <span class="artist">· ${escapeHtml(slide.artist)}</span>` : ""}`;
+  if (progEl) progEl.textContent = `${liveIndex + 1} / ${liveSlides.length}`;
+}
+
+function liveGo(delta) {
+  if (!liveActive || !liveSlides.length) return;
+  const next = liveIndex + delta;
+  if (next < 0) return;
+  if (next >= liveSlides.length) { liveSetAutoplay(false); return; } // fin del setlist
+  liveIndex = next;
+  renderLiveSlide();
+  if (liveAutoplay) liveScheduleNext();
+}
+
+function liveScheduleNext() {
+  if (liveTimer) clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => liveGo(1), liveAutoplaySeconds * 1000);
+}
+
+function liveSetAutoplay(on) {
+  liveAutoplay = on;
+  const btn = document.getElementById("live-autoplay");
+  btn?.classList.toggle("on", on);
+  if (btn) btn.textContent = on ? "❚❚ Auto" : "▶ Auto";
+  if (liveTimer) { clearTimeout(liveTimer); liveTimer = null; }
+  if (on) liveScheduleNext();
+}
+
+function liveSetSpeed(delta) {
+  liveAutoplaySeconds = Math.max(3, Math.min(60, liveAutoplaySeconds + delta));
+  localStorage.setItem(LIVE_SPEED_KEY, String(liveAutoplaySeconds));
+  const el = document.getElementById("live-speed-display");
+  if (el) el.textContent = liveAutoplaySeconds + "s";
+  if (liveAutoplay) liveScheduleNext();
+}
+
+async function openLiveMode() {
+  liveSlides = buildLiveSlides();
+  if (!liveSlides.length) { alert("No hay canciones para mostrar en directo."); return; }
+  liveIndex = activeSongId ? liveSlideIndexForSong(activeSongId) : 0;
+  liveActive = true;
+  const spd = document.getElementById("live-speed-display");
+  if (spd) spd.textContent = liveAutoplaySeconds + "s";
+  liveSetAutoplay(false);
+  renderLiveSlide();
+  const overlay = document.getElementById("live-overlay");
+  if (overlay) overlay.hidden = false;
+  try {
+    if ("wakeLock" in navigator) {
+      liveWakeLock = await navigator.wakeLock.request("screen");
+      liveWakeLock.addEventListener?.("release", () => { liveWakeLock = null; });
+    }
+  } catch (_) {}
+}
+window.openLiveMode = openLiveMode;
+
+async function closeLiveMode() {
+  if (!liveActive) return;
+  liveActive = false;
+  liveSetAutoplay(false);
+  const overlay = document.getElementById("live-overlay");
+  if (overlay) overlay.hidden = true;
+  if (liveWakeLock) { try { await liveWakeLock.release(); } catch (_) {} liveWakeLock = null; }
+  // Deja seleccionada la canción que se estaba viendo en directo
+  const slide = liveSlides[liveIndex];
+  if (slide && slide.songId && slide.songId !== activeSongId) selectSong(slide.songId);
+}
 
 function setRole(role, persist) {
   if (!VALID_ROLES_SET.has(role)) role = "all";
@@ -5138,6 +5441,8 @@ function openListModal(name = "") {
   document.getElementById("list-name").value = meta?.name || "";
   document.getElementById("list-date").value = meta?.date || "";
   document.getElementById("list-notes").value = meta?.notes || "";
+  const delBtn = document.getElementById("list-delete");
+  if (delBtn) delBtn.hidden = listModalMode !== "edit";
   document.getElementById("list-modal-backdrop")?.classList.add("open");
   setTimeout(() => document.getElementById("list-name")?.focus(), 0);
 }
@@ -5165,6 +5470,53 @@ async function saveListFromModal(e) {
   } catch (err) {
     alert("Error al guardar lista: " + (err.message || err));
   }
+}
+
+// Quita la etiqueta de carpeta/lista de todas las canciones (NO borra las canciones)
+async function removeFolderFromAllSongs(name) {
+  const updates = [];
+  songs = songs.map(song => {
+    const folders = normalizeSongFolders(song.folders);
+    if (!folders.some(f => normalizeText(f) === normalizeText(name))) return song;
+    const updated = { ...song, folders: folders.filter(f => normalizeText(f) !== normalizeText(name)) };
+    updates.push(updated);
+    return updated;
+  });
+  for (const song of updates) {
+    const { id, _position, ...rest } = song;
+    const { error } = await supa.from("songs").update({ data: rest }).eq("id", id);
+    if (error) throw error;
+  }
+}
+
+// Elimina una lista: borra su metadata y desetiqueta las canciones. Las canciones se conservan.
+function deleteListFromModal() {
+  const name = listModalOriginalName;
+  if (!name) return;
+  const count = songs.filter(s => normalizeSongFolders(s.folders).some(f => normalizeText(f) === normalizeText(name))).length;
+  closeListModal();
+  showConfirm({
+    title: "Eliminar lista",
+    body: `¿Eliminar la lista "${name}"? Se quitará de las ${count} canción${count === 1 ? "" : "es"} que la tienen, pero las canciones NO se borran.`,
+    confirmLabel: "Eliminar lista",
+    danger: true,
+    onConfirm: async () => {
+      try {
+        delete listsMeta[normalizeText(name)];
+        await removeFolderFromAllSongs(name);
+        await persistListsMeta();
+        if (normalizeText(activeFolderFilter) === normalizeText(name)) {
+          activeFolderFilter = ALL_FOLDERS;
+          localStorage.setItem(FOLDER_FILTER_KEY, activeFolderFilter);
+        }
+        renderFolderFilters();
+        renderSongList();
+        if (activeSongId) renderSong(songs.find(s => s.id === activeSongId));
+      } catch (err) {
+        alert("Error al eliminar lista: " + (err.message || err));
+      }
+    }
+  });
 }
 
 function closeAddToListModal() {
