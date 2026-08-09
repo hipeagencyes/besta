@@ -5649,14 +5649,21 @@ function closeListModal() {
 
 function openListModal(name = "") {
   const meta = name ? getListMeta(name) : null;
-  listModalMode = meta ? "edit" : "create";
-  listModalOriginalName = meta?.name || "";
-  document.getElementById("list-modal-title").textContent = meta ? "Editar lista" : "Nueva lista";
-  document.getElementById("list-name").value = meta?.name || "";
+  // Una lista "existe" si tiene meta, o si al menos una canción la tiene en `folders`.
+  // Sin este check, listas creadas implícitamente (arrastrar canción a carpeta nueva,
+  // importadas, etc.) no muestran el botón de eliminar.
+  const nameExistsAsFolder = name && songs.some(s =>
+    normalizeSongFolders(s.folders).some(f => normalizeText(f) === normalizeText(name))
+  );
+  const isExisting = !!meta || nameExistsAsFolder;
+  listModalMode = isExisting ? "edit" : "create";
+  listModalOriginalName = meta?.name || (nameExistsAsFolder ? name : "");
+  document.getElementById("list-modal-title").textContent = isExisting ? "Editar lista" : "Nueva lista";
+  document.getElementById("list-name").value = meta?.name || (nameExistsAsFolder ? name : "");
   document.getElementById("list-date").value = meta?.date || "";
   document.getElementById("list-notes").value = meta?.notes || "";
   const delBtn = document.getElementById("list-delete");
-  if (delBtn) delBtn.hidden = listModalMode !== "edit";
+  if (delBtn) delBtn.hidden = !isExisting;
   document.getElementById("list-modal-backdrop")?.classList.add("open");
   setTimeout(() => document.getElementById("list-name")?.focus(), 0);
 }
