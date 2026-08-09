@@ -1271,8 +1271,9 @@ body.theme-light .piano-svg .key-black { fill: #2a2730; stroke: #15131a; }
 .concert-btn:hover { border-color: var(--accent); color: var(--accent); }
 body.concert-mode .concert-btn { border-color: var(--accent); color: var(--accent); background: rgba(var(--accent-rgb), 0.08); }
 
-/* Modo concierto: tipografía grande, UI minimalista */
-body.concert-mode .topbar .toggle-group.mode,
+/* Modo concierto: tipografía grande, UI minimalista.
+   Se MANTIENE visible el toggle de modo (Letra+Acordes / Letra / Limpio)
+   para que cada músico decida si quiere ver los acordes o no. */
 body.concert-mode .topbar .settings-wrap,
 body.concert-mode .video-block,
 body.concert-mode .song-meta .chip.bpm,
@@ -1285,7 +1286,15 @@ body.concert-mode .song-section .chords-line {
   line-height: 1.55;
 }
 body.concert-mode .section-label { font-size: 14px; }
+/* Los diagramas de acordes ocupan mucho — fuera en directo.
+   Los acordes INLINE dentro de la letra sí se ven (dependen del modo global). */
 body.concert-mode .chord-strip { display: none !important; }
+/* En concierto hacer los acordes inline más visibles */
+body.concert-mode.mode-chords .lyrics-block .chord {
+  font-size: 0.75em;
+  color: var(--accent);
+  font-weight: 700;
+}
 @media (max-width: 860px) {
   body.concert-mode .song-section .lyrics-block,
   body.concert-mode .song-section .chords-line { font-size: 26px; line-height: 1.5; }
@@ -3811,9 +3820,10 @@ async function initApp() {
       const dy = t.clientY - touchStart.y;
       const dt = Date.now() - touchStart.t;
       touchStart = null;
-      if (dt > 600) return;
-      if (Math.abs(dx) < 80) return;
-      if (Math.abs(dy) > Math.abs(dx) * 0.6) return; // demasiado vertical
+      // Umbrales más generosos para que responda con confianza en móvil / concierto
+      if (dt > 900) return;                                // hasta 0.9s
+      if (Math.abs(dx) < 55) return;                       // 55px basta
+      if (Math.abs(dy) > Math.abs(dx) * 0.7) return;       // gesto claramente horizontal
       goRelativeSong(dx < 0 ? 1 : -1);
     }, { passive: true });
   }
@@ -4189,7 +4199,7 @@ function enterEdit(songId) {
   editDirty = false;
   document.body.classList.add("editing");
   showAutoscrollControl(false);
-  renderEditForm();
+  renderEditForm({ resetScroll: true });
 }
 
 function newSong() {
@@ -4206,7 +4216,7 @@ function newSong() {
   document.body.classList.add("editing");
   showAutoscrollControl(false);
   document.querySelectorAll(".song-item").forEach(el => el.classList.remove("active"));
-  renderEditForm();
+  renderEditForm({ resetScroll: true });
 }
 window.newSong = newSong;
 
@@ -5179,9 +5189,17 @@ window.deleteComment = deleteComment;
 
 /* =========================================================
    NAVEGACIÓN entre canciones (atajos + swipe)
+   Cooldown para evitar saltar varias canciones si se acumulan
+   swipes o pulsaciones rápidas accidentales durante el directo.
    ========================================================= */
+let lastSongChangeAt = 0;
+const SONG_CHANGE_COOLDOWN_MS = 450;
 function goRelativeSong(delta) {
+  const now = Date.now();
+  if (now - lastSongChangeAt < SONG_CHANGE_COOLDOWN_MS) return;   // ignora si aún dentro del cooldown
   if (!activeSongId) return;
+  // Normalizamos delta a ±1 pase lo que pase (nunca más de una canción por gesto)
+  delta = delta > 0 ? 1 : -1;
   // Usar lista renderizada (respeta filtros y búsqueda)
   const items = Array.from(document.querySelectorAll("#song-list .song-item[data-id]"));
   const ids = items.map(li => li.dataset.id);
@@ -5190,6 +5208,7 @@ function goRelativeSong(delta) {
   if (idx === -1) return;
   const newIdx = idx + delta;
   if (newIdx < 0 || newIdx >= ids.length) return;
+  lastSongChangeAt = now;
   confirmDiscardIfDirty(() => selectSong(ids[newIdx]));
 }
 
@@ -5950,12 +5969,17 @@ function selectSong(id) {
   showAutoscrollControl(!editMode);
 }
 
+let lastRenderedSongId = null;
 function renderSong(song) {
   if (editMode && editDraft) {
     return renderEditForm();
   }
 
   const content = document.getElementById("content");
+  // Si es la MISMA canción, preservar la posición de scroll (evita saltar arriba
+  // cuando el render viene de guardar/borrar/reordenar algo).
+  const isSameSong = song?.id === lastRenderedSongId;
+  const savedScroll = isSameSong ? content.scrollTop : 0;
   const setlistNumber = getSetlistNumber(song);
   const folders = normalizeSongFolders(song.folders);
   const sectionsHtml = (song.sections && song.sections.length)
@@ -6008,7 +6032,8 @@ function renderSong(song) {
     ${linksHtml}
     <div class="sections">${sectionsHtml}</div>
   `;
-  content.scrollTop = 0;
+  content.scrollTop = savedScroll;
+  lastRenderedSongId = song?.id ?? null;
 
   // After DOM is in place, render guitar chord SVGs (SVGuitar paints into existing nodes)
   requestAnimationFrame(() => {
@@ -6072,6 +6097,10 @@ function renderEditForm(opts = {}) {
   const draft = editDraft;
   if (!draft) return;
   const content = document.getElementById("content");
+  // Preservamos la posición de scroll entre re-renders del editor
+  // (añadir/borrar/mover secciones no debería tirarnos arriba).
+  // Solo reseteamos si el llamador lo pide explícitamente (opts.resetScroll).
+  const savedScroll = opts.resetScroll ? 0 : content.scrollTop;
   content.innerHTML = renderEditFormHtml(draft);
 
   // Bind delegated input/change events
@@ -6183,7 +6212,7 @@ function renderEditForm(opts = {}) {
       if (typeof el.select === "function") el.select();
     }
   }
-  content.scrollTop = 0;
+  content.scrollTop = savedScroll;
 }
 
 function renderEditFormHtml(draft) {
@@ -6411,6 +6440,13 @@ function renderSection(sec, idx) {
 
   const type = sec.type || inferSectionType(sec.name);
   const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
+  // En lectura mostramos el TIPO (Intro, Estrofa, Pre-estribillo…), nunca "Sección N".
+  // El número/posición solo importa a nivel de edición.
+  const rawName = (sec.name || "").trim();
+  const isGenericNumbered = /^secci[oó]n\s*\d+$/i.test(rawName);
+  const primaryLabel = (rawName && !isGenericNumbered) ? rawName : (typeLabel || "Sección");
+  const showTypeBadge = type && type !== "custom" && typeLabel
+    && primaryLabel.toLowerCase() !== typeLabel.toLowerCase();
 
   const lyricsHtml = sec.lyrics
     ? `<div class="lyrics-block">${renderLyrics(sec.lyrics)}</div>`
@@ -6445,9 +6481,8 @@ function renderSection(sec, idx) {
     <section class="song-section${noNotes ? ' no-notes' : ''}" data-section-type="${type}">
       <div class="section-content">
         <h3 class="section-label">
-          <span class="section-label-name">${escapeHtml(sec.name || `Sección ${idx + 1}`)}</span>
-          ${type && type !== "custom" && typeLabel && (sec.name || "").toLowerCase() !== typeLabel.toLowerCase()
-            ? `<span class="section-label-type">${escapeHtml(typeLabel)}</span>` : ""}
+          <span class="section-label-name">${escapeHtml(primaryLabel)}</span>
+          ${showTypeBadge ? `<span class="section-label-type">${escapeHtml(typeLabel)}</span>` : ""}
         </h3>
         ${stripHtml}
         ${chordsLineHtml}
