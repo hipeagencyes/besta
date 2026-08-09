@@ -1550,10 +1550,67 @@ body.editing .sidebar::after {
   padding: 0 6px;
 }
 
+/* Metrónomo / claqueta */
+.metro-control {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px 0 4px;
+  border-left: 1px solid var(--line);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--fg);
+}
+.metro-toggle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.06s;
+}
+.metro-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.metro-toggle.playing {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1009;
+}
+.metro-toggle.tick { transform: scale(1.18); }
+.metro-control button:not(.metro-toggle) {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.metro-control button:not(.metro-toggle):hover { border-color: var(--accent); color: var(--accent); }
+#metro-bpm-display {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 600;
+}
+#metro-bpm-display.custom { color: var(--accent); }
+
 @media (max-width: 540px) {
   .autoscroll-control { bottom: 12px; right: 12px; padding: 4px; }
   .autoscroll-toggle { width: 34px; height: 34px; }
   .autoscroll-bpm-hint { display: none; }
+  /* En móvil dejamos la claqueta compacta: solo el botón */
+  .metro-control button:not(.metro-toggle),
+  #metro-bpm-display { display: none; }
+  .metro-control { padding: 0 4px; }
 }
 
 /* ============ EDIT MODE ============ */
@@ -2426,6 +2483,12 @@ body.editing .sidebar::after {
       <button id="autoscroll-faster" title="Más rápido">+</button>
     </div>
     <span class="autoscroll-bpm-hint" id="autoscroll-bpm-hint"></span>
+    <div class="metro-control" title="Claqueta / metrónomo — usa el BPM de la canción (acento en el 1)">
+      <button class="metro-toggle" id="metro-toggle" title="Claqueta on/off">♩</button>
+      <button id="metro-slower" title="−5 BPM">−</button>
+      <span id="metro-bpm-display">100</span>
+      <button id="metro-faster" title="+5 BPM">+</button>
+    </div>
     <div class="transpose-control" title="Transposición (no modifica los datos guardados)">
       <button id="transpose-down" title="Bajar medio tono">♭</button>
       <span id="transpose-display">0</span>
@@ -3529,6 +3592,12 @@ async function initApp() {
   });
   if (asSlower) asSlower.addEventListener("click", () => adjustAutoscrollSpeed(-0.1));
   if (asFaster) asFaster.addEventListener("click", () => adjustAutoscrollSpeed(0.1));
+
+  // Wire metrónomo / claqueta
+  document.getElementById("metro-toggle")?.addEventListener("click", toggleMetronome);
+  document.getElementById("metro-slower")?.addEventListener("click", () => adjustMetroBpm(-5));
+  document.getElementById("metro-faster")?.addEventListener("click", () => adjustMetroBpm(5));
+  updateMetroUi();
 
   // Wire transpose
   document.getElementById("transpose-down")?.addEventListener("click", () => setTranspose(transposeAmount - 1));
@@ -4682,12 +4751,105 @@ function updateAutoscrollUi() {
     const bpm = song?.bpm;
     hint.textContent = bpm ? `${bpm} BPM` : `~${DEFAULT_BPM} BPM (sin valor)`;
   }
+  updateMetroUi();
 }
 
 function showAutoscrollControl(show) {
   const ctrl = document.getElementById("autoscroll-control");
   if (!ctrl) return;
   ctrl.hidden = !show;
+  if (!show && metroPlaying) stopMetronome();
+}
+
+/* =========================================================
+   METRÓNOMO / CLAQUETA — clic por BPM, acento en el beat 1
+   Usa Web Audio con scheduler adelantado para un tempo estable.
+   ========================================================= */
+const METRO_BEATS_PER_BAR = 4;
+let metroCtx = null;
+let metroPlaying = false;
+let metroBpmOverride = null;      // null → sigue el BPM de la canción
+let metroNextNoteTime = 0;
+let metroBeat = 0;
+let metroTimer = null;
+
+function metroGetBpm() {
+  return metroBpmOverride || getCurrentBpm();
+}
+
+function metroPlayClick(time, beatIndex) {
+  const accent = (beatIndex % METRO_BEATS_PER_BAR) === 0;
+  const osc = metroCtx.createOscillator();
+  const gain = metroCtx.createGain();
+  osc.type = "square";
+  osc.frequency.value = accent ? 1500 : 900;
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(accent ? 0.5 : 0.28, time + 0.001);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.045);
+  osc.connect(gain); gain.connect(metroCtx.destination);
+  osc.start(time);
+  osc.stop(time + 0.06);
+  // Pulso visual sincronizado con el audio
+  const delayMs = Math.max(0, (time - metroCtx.currentTime) * 1000);
+  setTimeout(() => metroFlash(accent), delayMs);
+}
+
+function metroFlash() {
+  const btn = document.getElementById("metro-toggle");
+  if (!btn) return;
+  btn.classList.add("tick");
+  setTimeout(() => btn.classList.remove("tick"), 90);
+}
+
+function metroScheduler() {
+  const secondsPerBeat = 60 / metroGetBpm();
+  while (metroNextNoteTime < metroCtx.currentTime + 0.12) {
+    metroPlayClick(metroNextNoteTime, metroBeat);
+    metroNextNoteTime += secondsPerBeat;
+    metroBeat++;
+  }
+}
+
+function startMetronome() {
+  if (metroPlaying) return;
+  if (!metroCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    metroCtx = new AC();
+  }
+  if (metroCtx.state === "suspended") metroCtx.resume();
+  metroPlaying = true;
+  metroBeat = 0;
+  metroNextNoteTime = metroCtx.currentTime + 0.08;
+  metroTimer = setInterval(metroScheduler, 25);
+  const btn = document.getElementById("metro-toggle");
+  if (btn) { btn.classList.add("playing"); btn.title = "Parar claqueta"; }
+}
+
+function stopMetronome() {
+  metroPlaying = false;
+  if (metroTimer) { clearInterval(metroTimer); metroTimer = null; }
+  const btn = document.getElementById("metro-toggle");
+  if (btn) { btn.classList.remove("playing", "tick"); btn.title = "Claqueta on/off"; }
+}
+
+function toggleMetronome() {
+  metroPlaying ? stopMetronome() : startMetronome();
+}
+
+function adjustMetroBpm(delta) {
+  const base = metroGetBpm();
+  const next = Math.max(30, Math.min(300, base + delta));
+  // Si coincide con el BPM de la canción, volvemos a "seguir canción"
+  metroBpmOverride = (next === getCurrentBpm()) ? null : next;
+  updateMetroUi();
+}
+
+function updateMetroUi() {
+  const disp = document.getElementById("metro-bpm-display");
+  if (!disp) return;
+  disp.textContent = String(metroGetBpm());
+  disp.classList.toggle("custom", metroBpmOverride !== null);
 }
 
 /* =========================================================
@@ -5714,6 +5876,8 @@ function renderSongList() {
 
 function selectSong(id) {
   if (autoscrollPlaying) stopAutoscroll();
+  if (metroPlaying) stopMetronome();
+  metroBpmOverride = null;   // cada canción arranca siguiendo su propio BPM
   activeSongId = id;
   localStorage.setItem(LAST_SONG_KEY, id);
   document.querySelectorAll(".song-item").forEach(el => {
