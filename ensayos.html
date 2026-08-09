@@ -364,6 +364,21 @@ button { font-family: inherit; cursor: pointer; }
   backdrop-filter: blur(2px);
 }
 
+/* Botón de colapsar la lista (solo escritorio) */
+.sidebar-collapse-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.sidebar-collapse-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 .main {
   flex: 1;
   display: grid;
@@ -380,6 +395,21 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg-2);
   overflow-y: auto;
   min-height: 0;
+  min-width: 0;
+}
+
+/* Colapso en escritorio: la columna de la lista se cierra a 0 */
+@media (min-width: 861px) {
+  .sidebar-collapse-btn { display: inline-flex; align-items: center; }
+  .main { transition: grid-template-columns 0.28s ease; }
+  body.sidebar-collapsed .main { grid-template-columns: 0 1fr; }
+  body.sidebar-collapsed .sidebar {
+    overflow: hidden;
+    border-right: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+  }
 }
 .sidebar-header {
   padding: 14px 18px 8px;
@@ -2422,6 +2452,7 @@ body.editing .sidebar::after {
 <div id="app">
   <header class="topbar">
     <button class="menu-toggle" id="menu-toggle" aria-label="Lista de canciones">☰ Canciones</button>
+    <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" aria-label="Ocultar lista de canciones" aria-expanded="true" title="Ocultar lista">⇤</button>
     <a class="brand" href="/">
       <img class="brand-logo" src="assets/images/besta_color.png" alt="BESTA">
       <span class="brand-sub">ensayos</span>
@@ -3500,6 +3531,27 @@ async function initApp() {
     backdrop.classList.toggle("open");
   });
   backdrop.addEventListener("click", closeSidebar);
+
+  // Colapsar la lista (escritorio) — estado recordado
+  const SIDEBAR_COLLAPSED_KEY = "besta_sidebar_collapsed";
+  const collapseBtn = document.getElementById("sidebar-collapse-btn");
+  function updateSidebarCollapseUi() {
+    const collapsed = document.body.classList.contains("sidebar-collapsed");
+    if (!collapseBtn) return;
+    collapseBtn.innerHTML = collapsed ? "☰" : "⇤";
+    collapseBtn.setAttribute("aria-expanded", String(!collapsed));
+    collapseBtn.setAttribute("aria-label", collapsed ? "Mostrar lista de canciones" : "Ocultar lista de canciones");
+    collapseBtn.title = collapsed ? "Mostrar lista" : "Ocultar lista";
+  }
+  if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1") {
+    document.body.classList.add("sidebar-collapsed");
+  }
+  updateSidebarCollapseUi();
+  collapseBtn?.addEventListener("click", () => {
+    const collapsed = document.body.classList.toggle("sidebar-collapsed");
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
+    updateSidebarCollapseUi();
+  });
 
   // Wire account UI + logout
   refreshAccountUi();
