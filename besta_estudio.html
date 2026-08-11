@@ -141,6 +141,7 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
       <button class="btn" id="expVid" disabled>Exportar vídeo</button>
       <button class="btn" id="expGif" disabled>Exportar GIF</button>
       <button class="btn" id="expCfg" disabled>Guardar ajustes</button>
+      <button class="btn" id="impCfg" disabled>Cargar ajustes</button>
       <button class="btn" id="clearSes" disabled>Borrar sesión</button>
       <div id="tstat">—</div>
       <span id="savedTag">sin guardar</span>
@@ -193,6 +194,9 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
             <button data-col="cream" class="on">Crema</button>
             <button data-col="orange">Naranja</button>
           </div></div>
+        <div class="row" id="rateRow" style="display:none"><label>Velocidad</label>
+          <input type="range" id="rate" min="0" max="400" step="5" value="100">
+          <span class="val" id="rateV">1,00×</span></div>
         <div class="row"><label>Brillo</label>
           <input type="range" id="gain" min="20" max="180" value="100">
           <span class="val" id="gainV">100</span></div>
@@ -273,6 +277,7 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
 
 <input type="file" id="fileImg" accept="image/*" hidden>
 <input type="file" id="fileMedia" accept="image/*,video/*" hidden>
+<input type="file" id="fileCfg" accept="application/json,.json" hidden>
 
 <script>
 "use strict";
@@ -401,7 +406,7 @@ async function loadWall(file,keep){
             lum:n?sum/n:120, wing:(b.x<PAD-8||b.x+b.w>PAD+W+8),
             role:"logo",media:null,el:null,fit:"cover",aged:70,gain:100,
             col:"cream",ph:Math.random(),k:1+((Math.random()*3)|0),
-            vdur:0,vin:0,vlen:0,vrate:1,mkey:null};
+            vdur:0,vin:0,vlen:0,vrate:1,rate:1,mkey:null};
   });
   // los laterales espejados nunca muestran el logo del revés
   screens.forEach((s,j)=>{ if(s.wing) s.role=["static","flat","off","static"][j%4];
@@ -461,6 +466,9 @@ const P=()=>({scan:+$("#scan").value/100,grain:+$("#grain").value/100,
 
 /* recorte y velocidad de los vídeos ------------------------------- */
 const fmt=(v,n=1)=>(isFinite(v)?v:0).toFixed(n).replace(".",",");
+/* velocidad de la nieve, la desenganchada, la banda y el parpadeo */
+const RATED=["static","flat","roll","off"];
+const sRate=s=>Math.max(0,s.rate==null?1:s.rate);   // 0 = imagen congelada
 const isVid=s=>!!(s&&s.el&&s.el.tagName==="VIDEO");
 const vDur =s=>s.vdur>0?s.vdur:0;
 const vIn  =s=>{const d=vDur(s);return d?Math.min(Math.max(0,s.vin||0),Math.max(0,d-.1)):0;};
@@ -510,8 +518,9 @@ function screenContent(s,t,SC,p){
       vignette(g,w,h,.34+.16*a);
     }
   } else if(s.role==="static"){
-    const k=(t*TILES.length*3)%TILES.length|0;
-    const tile=TILES[k], ox=(t*997)%1*tile.width, oy=(t*613)%1*tile.height;
+    const tt=t*sRate(s);
+    const k=(tt*TILES.length*3)%TILES.length|0;
+    const tile=TILES[k], ox=(tt*997)%1*tile.width, oy=(tt*613)%1*tile.height;
     g.globalAlpha=Math.min(1,(s.lum/150)*gain);
     for(let y=-1;y<=Math.ceil(h/tile.height);y++)
       for(let x=-1;x<=Math.ceil(w/tile.width);x++)
@@ -522,7 +531,7 @@ function screenContent(s,t,SC,p){
     const c3=s.col==="orange"?ORANGE:CREAM;
     g.fillStyle=`rgb(${c3.map(v=>Math.round(v*.92*gain)).join(",")})`;
     g.fillRect(0,0,w,h);
-    const yb=(((t*2+s.ph)%1)*h);
+    const yb=(((t*2*sRate(s)+s.ph)%1)*h);
     const gr=g.createLinearGradient(0,yb-h*.16,0,yb+h*.16);
     gr.addColorStop(0,"rgba(255,255,255,0)");
     gr.addColorStop(.5,"rgba(255,255,255,.10)");
@@ -530,7 +539,7 @@ function screenContent(s,t,SC,p){
     g.fillStyle=gr;g.fillRect(0,0,w,h);
     lines(g,w,h,lin,.10);vignette(g,w,h,.38);
   } else if(s.role==="roll"){
-    const sh=((t*s.k)%1)*h;
+    const sh=((t*s.k*sRate(s))%1)*h;
     g.globalAlpha=gain;
     g.drawImage(S.plate,s.x,s.y,s.w,s.h,0,sh,w,h);
     g.drawImage(S.plate,s.x,s.y,s.w,s.h,0,sh-h,w,h);
@@ -539,8 +548,9 @@ function screenContent(s,t,SC,p){
     g.fillRect(0,sh-h-3*SC,w,3*SC);
     lines(g,w,h,lin,.14);
   } else if(s.role==="off"){
-    const fl=Math.exp(-Math.pow((((t+s.ph)%1)-.5)/.016,2)/2);
-    g.globalAlpha=(.10+.05*Math.sin(6.283*(t*s.k+s.ph))+.55*fl)*gain;
+    const tt=t*sRate(s);
+    const fl=Math.exp(-Math.pow((((tt+s.ph)%1)-.5)/.016,2)/2);
+    g.globalAlpha=(.10+.05*Math.sin(6.283*(tt*s.k+s.ph))+.55*fl)*gain;
     g.drawImage(S.plate,s.x,s.y,s.w,s.h,0,0,w,h);
     g.globalAlpha=1;vignette(g,w,h,.5);
   } else return null;                      // 'logo' → se deja la placa original
@@ -658,6 +668,9 @@ function syncPanel(){
   $("#role").value=s.role;
   $("#mediaBox").style.display=s.role==="media"?"block":"none";
   $("#tintRow").style.display=s.role==="flat"?"flex":"none";
+  $("#rateRow").style.display=RATED.includes(s.role)?"flex":"none";
+  $("#rate").value=Math.round(sRate(s)*100);
+  $("#rateV").textContent=sRate(s)?fmt(sRate(s),2)+"×":"quieta";
   $("#mediaName").textContent=s.media||"Sin archivo";
   $("#aged").value=s.aged;$("#agedV").textContent=s.aged;
   $("#gain").value=s.gain;$("#gainV").textContent=s.gain;
@@ -691,6 +704,7 @@ $("#role").onchange=e=>{const v=e.target.value;
   const s=S.screens[S.sel];
   $("#mediaBox").style.display=v==="media"?"block":"none";
   $("#tintRow").style.display=v==="flat"?"flex":"none";
+  $("#rateRow").style.display=RATED.includes(v)?"flex":"none";
   if(v==="media"&&s&&!s.el)$("#fileMedia").click();
   refreshVid();renderChans();resize();if(!S.playing)draw(now());};
 $("#mediaPick").onclick=()=>$("#fileMedia").click();
@@ -720,6 +734,10 @@ $("#vfit").onclick=()=>{const secs=+$("#secs").value;
   const v=+e.target.value;apply(s=>s[k]=v);
   $("#"+k+"V").textContent=e.target.value;
   if(!S.playing)draw(now());});
+$("#rate").oninput=e=>{const v=+e.target.value/100;
+  apply(s=>{if(RATED.includes(s.role))s.rate=v;});
+  $("#rateV").textContent=v?fmt(v,2)+"×":"quieta";
+  if(!S.playing)draw(now());};
 ["scan","grain","sweep","flick"].forEach(k=>$("#"+k).oninput=e=>{
   $("#"+k+"V").textContent=e.target.value;if(!S.playing)draw(now());});
 $("#secs").oninput=e=>{$("#secsV").textContent=e.target.value+" s";updRes();refreshVid();};
@@ -803,7 +821,7 @@ $("#resetAll").onclick=()=>{
   if(!confirm("Todas las pantallas vuelven a su estado inicial, se sueltan las fotos y "+
               "vídeos cargados y las texturas vuelven a los valores de fábrica. ¿Seguir?"))return;
   S.screens.forEach(s=>Object.assign(s,{role:s.role0,media:null,el:null,mkey:null,
-    fit:"cover",aged:70,gain:100,col:"cream",vdur:0,vin:0,vlen:0,vrate:1}));
+    fit:"cover",aged:70,gain:100,col:"cream",rate:1,vdur:0,vin:0,vlen:0,vrate:1}));
   for(const k in DEF)$("#"+k).value=DEF[k];
   ["scan","grain","sweep","flick"].forEach(k=>$("#"+k+"V").textContent=$("#"+k).value);
   $("#secsV").textContent=$("#secs").value+" s";
@@ -914,15 +932,71 @@ $("#expGif").onclick=async()=>{
 
 $("#expCfg").onclick=()=>{
   const p=P();
-  const cfg={lienzo:[S.PW,S.PH],escala:p.sc,segundos:p.secs,fps:p.fps,
+  const cfg={formato:$("#aspect").value,lienzo:[S.PW,S.PH],escala:p.sc,
+    segundos:p.secs,fps:p.fps,
     textura:{lineas:+$("#scan").value,grano:+$("#grain").value,
              banda:+$("#sweep").value,parpadeo:+$("#flick").value},
     pantallas:S.screens.map(s=>({n:s.i,x:s.cx,y:s.cy,w:s.cw,h:s.ch,rol:s.role,
       archivo:s.media,encuadre:s.fit,epoca:s.aged,brillo:s.gain,color:s.col,
+      velocidad:+sRate(s).toFixed(2),
       video:isVid(s)?{inicio:+vIn(s).toFixed(2),duracion:+vLen(s).toFixed(2),
                       velocidad:+vRate(s).toFixed(2)}:null}))};
   save(new Blob([JSON.stringify(cfg,null,1)],{type:"application/json"}),
        `besta-ajustes-${stamp()}.json`);
+};
+
+/* cargar un JSON de ajustes sobre la pared que ya está abierta.
+   Las pantallas se emparejan por posición, no por orden, para que un
+   archivo guardado siga valiendo aunque la detección varíe un poco.   */
+$("#impCfg").onclick=()=>$("#fileCfg").click();
+$("#fileCfg").onchange=async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  if(!S.screens.length){alert("Carga primero la imagen de la pared.");return;}
+  let cfg;
+  try{ cfg=JSON.parse(await f.text()); }
+  catch(err){ alert("Ese archivo no es un JSON de ajustes de besta estudio.");return; }
+  if(!cfg||!Array.isArray(cfg.pantallas)){
+    alert("Ese JSON no lleva la lista de pantallas.");return; }
+
+  if(cfg.escala)$("#scale").value=cfg.escala;
+  if(cfg.segundos){$("#secs").value=cfg.segundos;$("#secsV").textContent=cfg.segundos+" s";}
+  if(cfg.fps)$("#fps").value=cfg.fps;
+  const T=cfg.textura||{},MAP={scan:"lineas",grain:"grano",sweep:"banda",flick:"parpadeo"};
+  for(const k in MAP) if(T[MAP[k]]!=null){
+    $("#"+k).value=T[MAP[k]];$("#"+k+"V").textContent=$("#"+k).value; }
+
+  const libres=S.screens.slice();
+  let puestas=0,sinArchivo=0;
+  for(const a of cfg.pantallas){
+    const cx=a.x+a.w/2, cy=a.y+a.h/2;
+    let best=null,bd=Infinity;
+    for(const s of libres){
+      const d=Math.hypot(s.cx+s.cw/2-cx, s.cy+s.ch/2-cy);
+      if(d<bd){bd=d;best=s;}
+    }
+    if(!best||bd>Math.max(best.cw,best.ch))continue;   // demasiado lejos: no es la misma tele
+    libres.splice(libres.indexOf(best),1);
+    best.fit=a.encuadre||best.fit;
+    if(a.epoca!=null)best.aged=a.epoca;
+    if(a.brillo!=null)best.gain=a.brillo;
+    if(a.color)best.col=a.color;
+    if(a.velocidad!=null)best.rate=a.velocidad;
+    if(a.video){best.vin=a.video.inicio||0;
+      best.vlen=a.video.duracion||best.vlen;best.vrate=a.video.velocidad||1;
+      if(isVid(best))best.el.playbackRate=vRate(best);}
+    if(a.rol==="media"&&!best.el){ best.role="logo";sinArchivo++; }   // el JSON no lleva los archivos
+    else if(a.rol) best.role=a.rol;
+    puestas++;
+  }
+  S.selSet=new Set();S.sel=-1;
+  updRes();syncPanel();autosave();
+  alert(`Ajustes cargados en ${puestas} de ${S.screens.length} pantallas.`+
+    (sinArchivo?`\n\n${sinArchivo} tenían una foto o un vídeo asignado: el JSON solo guarda `+
+      `el nombre del archivo, no el archivo, así que esas han quedado con el logo y hay que `+
+      `volver a cargarles el medio a mano.`:"")+
+    (cfg.lienzo&&(cfg.lienzo[0]!==S.PW||cfg.lienzo[1]!==S.PH)
+      ? `\n\nOjo: el JSON se guardó con un lienzo de ${cfg.lienzo[0]}×${cfg.lienzo[1]} `+
+        `y ahora es ${S.PW}×${S.PH}; puede que no cuadren todas.`:""));
 };
 
 /* ══ 7. sesión persistente ══════════════════════════════════════════
@@ -954,7 +1028,7 @@ function snapshot(){
   const ui={};UIK.forEach(k=>ui[k]=$("#"+k).value);
   return {v:1,mid:S.mid,ui,
     screens:S.screens.map(s=>({role:s.role,fit:s.fit,aged:s.aged,gain:s.gain,col:s.col,
-      ph:s.ph,k:s.k,media:s.media,mkey:s.mkey,
+      ph:s.ph,k:s.k,rate:s.rate,media:s.media,mkey:s.mkey,
       vdur:s.vdur,vin:s.vin,vlen:s.vlen,vrate:s.vrate}))};
 }
 function autosave(){
@@ -998,7 +1072,7 @@ async function restore(){
   for(let i=0;i<Math.min(A.length,S.screens.length);i++){
     const a=A[i],s=S.screens[i];
     Object.assign(s,{role:a.role,fit:a.fit,aged:a.aged,gain:a.gain,col:a.col,
-      ph:a.ph,k:a.k,media:a.media,mkey:a.mkey||null,
+      ph:a.ph,k:a.k,rate:a.rate==null?1:a.rate,media:a.media,mkey:a.mkey||null,
       vdur:a.vdur||0,vin:a.vin||0,vlen:a.vlen||0,vrate:a.vrate||1});
     if(s.mkey){
       let blob=null;try{ blob=await idbGet(s.mkey); }catch(e){}
