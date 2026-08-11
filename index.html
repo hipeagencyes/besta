@@ -107,13 +107,13 @@ main { position: relative; width: 100%; height: 100%; display: grid; place-items
   flex-wrap: wrap;
   padding: 0 12px;
 }
-.footer a {
+.footer a:not(.platform-icon) {
   color: var(--fg); text-decoration: none; font-size: 13px; letter-spacing: 0.14em;
   padding: 8px 14px; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px;
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(5,5,8,0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
 }
-.footer a:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--glow); }
+.footer a:not(.platform-icon):hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--glow); }
 
 /* Canvas layers */
 .canvas-stack {
@@ -294,7 +294,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .tagline { letter-spacing: 0.07em; font-size: 12.5px; max-width: 92vw; }
   .cta { font-size: 12px; padding: 12px 16px; }
   .footer { gap: 8px; flex-wrap: wrap; padding: 0 10px 8px; }
-  .footer a { font-size: 12px; padding: 8px 11px; }
+  .footer a:not(.platform-icon) { font-size: 12px; padding: 8px 11px; }
   .gig { grid-template-columns: auto 1fr; }
   .gig .gig-cta { grid-column: 1 / -1; text-align: center; }
 }
@@ -329,7 +329,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .platform-icon svg {
   width: 22px; height: 22px;
   display: block;
-  fill: currentColor;
+  flex: 0 0 auto;
 }
 /* Variante para iconos más anchos (texto + glifo, p.ej. Amazon Music) */
 .platform-icon-wide { width: auto; min-width: 30px; padding: 0 4px; }
@@ -424,10 +424,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .radio-toast-dot {
   width: 12px; height: 12px;
   border-radius: 50%;
-  background: #f4d35e;
-  box-shadow: 0 0 14px #f4d35e;
+  background: var(--dot, #f4d35e);
+  box-shadow: 0 0 14px var(--dot, #f4d35e);
   animation: radio-toast-blink 1.4s ease-in-out infinite;
   flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
 }
 @keyframes radio-toast-blink {
   0%, 100% { opacity: 1; }
@@ -438,6 +439,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   flex-direction: column;
   line-height: 1.15;
   text-align: left;
+  transition: opacity 0.32s ease, transform 0.32s ease;
+}
+/* Estado intermedio del carrusel: el texto sale y entra */
+.radio-toast-text.swapping {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 .radio-toast-eyebrow {
   font-size: 11px;
@@ -540,18 +547,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
       <span class="platform-sep" aria-hidden="true"></span>
 
-      <!-- Redes sociales: enlaces reales — outline minimalista, sin lente central -->
+      <!-- Redes sociales: enlaces reales -->
       <a class="platform-icon" href="https://instagram.com/besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="5"/>
-          <circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/>
-          <path d="M8 12h8M12 8v8"/>
-        </svg>
+        <img src="https://cdn.simpleicons.org/instagram/ffffff" width="22" height="22" alt="" aria-hidden="true">
       </a>
       <a class="platform-icon" href="https://tiktok.com/@besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-          <path d="M16.6 2h-2.9v13.4a2.7 2.7 0 1 1-2.7-2.7c.3 0 .6 0 .8.1V9.9a5.8 5.8 0 0 0-.8-.1 5.7 5.7 0 1 0 5.7 5.7V8.1a8 8 0 0 0 4.7 1.5V6.7a4.8 4.8 0 0 1-4.8-4.7Z"/>
-        </svg>
+        <img src="https://cdn.simpleicons.org/tiktok/ffffff" width="22" height="22" alt="" aria-hidden="true">
       </a>
     </div>
   </div>
@@ -562,9 +563,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 <!-- Aviso temporal flotante: enlaza a la página de la radio -->
 <aside id="radio-toast" class="radio-toast" hidden>
-  <a class="radio-toast-link" href="no-me-sale-olvidarte.html" aria-label="No me sale olvidarte — nuevo single de BESTA">
-    <span class="radio-toast-dot" aria-hidden="true"></span>
-    <span class="radio-toast-text">
+  <a class="radio-toast-link" id="radio-toast-link" href="no-me-sale-olvidarte.html" aria-label="No me sale olvidarte — nuevo single de BESTA">
+    <span class="radio-toast-dot" id="radio-toast-dot" aria-hidden="true"></span>
+    <span class="radio-toast-text" id="radio-toast-text">
       <span class="radio-toast-eyebrow">Nuevo single · 16 jul</span>
       <span class="radio-toast-title">No me sale olvidarte</span>
     </span>
@@ -600,26 +601,22 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
          Si aún no hay entradas, pon href="#" y texto "Pronto". -->
     <div class="gigs">
       <div class="gig">
-        <div class="gig-date"><span class="day">14</span>AGO</div>
-        <div class="gig-info">
-          <div class="city">Por confirmar</div>
-          <div class="venue">Fecha pendiente de confirmación</div>
-        </div>
-        <span class="gig-cta gig-cta-soon">Pronto</span>
-      </div>
-      <div class="gig">
         <div class="gig-date"><span class="day">15</span>AGO</div>
         <div class="gig-info">
           <div class="city">Castelldefels</div>
-          <div class="venue">Festa Major de Castelldefels (FM)</div>
+          <div class="venue">Festa Major de Castelldefels · 21:00 – 21:30</div>
         </div>
-        <a class="gig-cta" href="https://www.castelldefels.org" target="_blank" rel="noopener noreferrer">Info</a>
+        <a class="gig-cta" href="https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto" target="_blank" rel="noopener noreferrer">Info</a>
       </div>
+      <!-- 29 AGO · Benicarló, El Catxull (Festa Major, Plaça Constitució).
+           La cartelera aún no está publicada → los datos van borrosos.
+           CUANDO SE PUBLIQUE: quita los dos <span class="blurred"> y cambia el
+           "Pronto" por: <a class="gig-cta" href="https://www.instagram.com/elcatxull/" target="_blank" rel="noopener noreferrer">Info</a> -->
       <div class="gig">
         <div class="gig-date"><span class="day">29</span>AGO</div>
         <div class="gig-info">
-          <div class="city">Ubicación secreta 🔒</div>
-          <div class="venue"><span class="blurred">En algún lugar muy especial</span> · se revela pronto</div>
+          <div class="city"><span class="blurred">Benicarló</span></div>
+          <div class="venue"><span class="blurred">El Catxull · Festa Major · Plaça Constitució</span> · se revela pronto</div>
         </div>
         <span class="gig-cta gig-cta-soon">Pronto</span>
       </div>
@@ -766,17 +763,153 @@ document.querySelectorAll(".platform-icon[data-platform]").forEach(btn => {
   btn.addEventListener("click", () => showComingToast(btn.dataset.platform));
 });
 
-/* ===== Aviso flotante "En la radio" (temporal, dismissible) =====
-   Si el usuario lo cierra, no vuelve a aparecer hasta que cambies la versión. */
+/* ===== Aviso flotante rotativo (single + próximos conciertos) =====
+   Si el usuario lo cierra, no vuelve a aparecer hasta que cambies la versión.
+
+   ===== EDITA AQUÍ LOS AVISOS =====
+   Cada bloque es una "tarjeta" del carrusel:
+     eyebrow : línea pequeña de arriba
+     title   : texto grande
+     href    : enlace (externo o interno). Si no hay, usa modal: "modal-gigs"
+     modal   : abre un modal de la web en vez de navegar
+     date    : "AAAA-MM-DD" — si ya pasó, la tarjeta se oculta sola
+     dot     : color del puntito                                            */
+const TOAST_SLIDES = [
+  {
+    eyebrow: "Nuevo single · 16 jul",
+    title: "No me sale olvidarte",
+    href: "no-me-sale-olvidarte.html",
+    label: "No me sale olvidarte — nuevo single de BESTA",
+    dot: "#f4d35e"
+  },
+  {
+    eyebrow: "Próximo concierto · 15 ago · 21:00",
+    title: "Castelldefels · Festa Major",
+    href: "https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto",
+    label: "Concierto en Castelldefels, Festa Major, 15 de agosto a las 21:00",
+    date: "2026-08-15",
+    dot: "#db7f4e"
+  },
+  /* 29 AGO · Benicarló, El Catxull (Festa Major, Plaça Constitució).
+     Aún no hay cartelera pública → el aviso no da el sitio y abre el modal,
+     donde los datos aparecen borrosos. CUANDO SE PUBLIQUE, sustituye por:
+       title: "Benicarló · El Catxull",
+       href: "https://www.instagram.com/elcatxull/",   (y quita la línea modal) */
+  {
+    eyebrow: "Próximo concierto · 29 ago",
+    title: "Ubicación próximamente...",
+    modal: "modal-gigs",
+    label: "Concierto sorpresa el 29 de agosto, ubicación por revelar",
+    date: "2026-08-29",
+    dot: "#db7f4e"
+  }
+];
+const TOAST_INTERVAL = 5200;   // ms que se ve cada aviso
 const RADIO_TOAST_KEY = "besta_single_nmso_v1";
 const radioToast = document.getElementById("radio-toast");
 const radioToastClose = document.getElementById("radio-toast-close");
-if (radioToast && !localStorage.getItem(RADIO_TOAST_KEY)) {
+const radioToastLink = document.getElementById("radio-toast-link");
+const radioToastText = document.getElementById("radio-toast-text");
+const radioToastDot = document.getElementById("radio-toast-dot");
+
+/* Solo avisos vigentes: los conciertos ya pasados desaparecen del carrusel */
+const todayISO = new Date().toISOString().slice(0, 10);
+const toastSlides = TOAST_SLIDES.filter(s => !s.date || s.date >= todayISO);
+
+function renderToastSlide(slide) {
+  radioToastText.innerHTML =
+    `<span class="radio-toast-eyebrow"></span><span class="radio-toast-title"></span>`;
+  radioToastText.querySelector(".radio-toast-eyebrow").textContent = slide.eyebrow;
+  radioToastText.querySelector(".radio-toast-title").textContent = slide.title;
+  radioToastDot.style.setProperty("--dot", slide.dot || "#f4d35e");
+  radioToastLink.setAttribute("aria-label", slide.label || slide.title);
+  if (slide.modal) {
+    radioToastLink.setAttribute("href", "#");
+    radioToastLink.dataset.toastModal = slide.modal;
+    radioToastLink.removeAttribute("target");
+    radioToastLink.removeAttribute("rel");
+  } else {
+    radioToastLink.setAttribute("href", slide.href || "#");
+    delete radioToastLink.dataset.toastModal;
+    const external = /^https?:/.test(slide.href || "");
+    if (external) {
+      radioToastLink.setAttribute("target", "_blank");
+      radioToastLink.setAttribute("rel", "noopener noreferrer");
+    } else {
+      radioToastLink.removeAttribute("target");
+      radioToastLink.removeAttribute("rel");
+    }
+  }
+}
+
+let toastIndex = 0;
+let toastTimer = null;
+
+/* Reserva el ancho del aviso más largo para que la píldora no "salte" al rotar */
+function fitToastWidth() {
+  if (!radioToast || toastSlides.length < 2) return;
+  radioToastText.style.minWidth = "";
+  if (window.innerWidth <= 540) return;   // en móvil la píldora ya ocupa todo el ancho
+  const current = toastSlides[toastIndex];
+  const wasVisible = radioToast.style.visibility;
+  radioToast.style.visibility = "hidden";
+  let widest = 0;
+  toastSlides.forEach(slide => {
+    renderToastSlide(slide);
+    widest = Math.max(widest, radioToastText.offsetWidth);
+  });
+  renderToastSlide(current);
+  radioToastText.style.minWidth = widest + "px";
+  radioToast.style.visibility = wasVisible;
+}
+function showToastSlide(i) {
+  toastIndex = (i + toastSlides.length) % toastSlides.length;
+  radioToastText.classList.add("swapping");
+  setTimeout(() => {
+    renderToastSlide(toastSlides[toastIndex]);
+    radioToastText.classList.remove("swapping");
+  }, 320);
+}
+function startToastRotation() {
+  if (toastSlides.length < 2) return;
+  stopToastRotation();
+  toastTimer = setInterval(() => showToastSlide(toastIndex + 1), TOAST_INTERVAL);
+}
+function stopToastRotation() {
+  clearInterval(toastTimer);
+  toastTimer = null;
+}
+
+if (radioToast && toastSlides.length && !localStorage.getItem(RADIO_TOAST_KEY)) {
+  renderToastSlide(toastSlides[0]);
   radioToast.hidden = false;
+  fitToastWidth();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToastWidth);
+  window.addEventListener("resize", fitToastWidth);
+  startToastRotation();
+
+  /* Pausa mientras se lee (hover/foco) y con la pestaña en segundo plano */
+  radioToast.addEventListener("mouseenter", stopToastRotation);
+  radioToast.addEventListener("mouseleave", startToastRotation);
+  radioToast.addEventListener("focusin", stopToastRotation);
+  radioToast.addEventListener("focusout", startToastRotation);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopToastRotation(); else startToastRotation();
+  });
+
+  /* Avisos que abren un modal de la propia web */
+  radioToastLink.addEventListener("click", e => {
+    const modalId = radioToastLink.dataset.toastModal;
+    if (modalId) {
+      e.preventDefault();
+      openModal(modalId);
+    }
+  });
 }
 if (radioToastClose) {
   radioToastClose.addEventListener("click", () => {
     radioToast.hidden = true;
+    stopToastRotation();
     try { localStorage.setItem(RADIO_TOAST_KEY, "1"); } catch (_) {}
   });
 }
