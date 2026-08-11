@@ -111,6 +111,14 @@ input[type=text]:focus{outline:none;border-color:var(--orange)}
 #busy small{color:var(--muted);font-family:var(--mono);font-size:11px}
 .warn{background:#2A1A12;border-left:2px solid var(--orange);padding:9px 12px;
   font-size:11px;line-height:1.5;color:#D8C4B4;margin-top:10px}
+body.scene .mode-wall{display:none}
+body:not(.scene) .mode-scene{display:none}
+#modes{flex:none;margin-left:6px}
+#modes button{padding:7px 12px}
+#hits.scene .hit{border-style:dashed;border-color:rgba(206,96,42,.25)}
+#hits.scene .hit{cursor:move}
+#hits.scene .hit.on{border-style:solid}
+#hits.hide{display:none}
 ::-webkit-scrollbar{width:9px}::-webkit-scrollbar-track{background:var(--ink)}
 ::-webkit-scrollbar-thumb{background:#332C26}
 </style>
@@ -118,7 +126,11 @@ input[type=text]:focus{outline:none;border-color:var(--orange)}
 <body>
 
 <header>
-  <div class="brand">besta<span>estudio de muro crt</span></div>
+  <div class="brand">besta<span id="brandSub">estudio de muro crt</span></div>
+  <div class="seg" id="modes">
+    <button data-mode="wall" class="on">Muro CRT</button>
+    <button data-mode="scene">Portada flotante</button>
+  </div>
   <div class="hstat" id="hstat">sin imagen</div>
 </header>
 
@@ -128,8 +140,8 @@ input[type=text]:focus{outline:none;border-color:var(--orange)}
       <div id="wrap"><canvas id="cv"></canvas><div id="hits"></div></div>
       <div id="drop">
         <div class="box">
-          <h1>Arrastra la pared de televisores</h1>
-          <p>Un JPG o PNG del muro con los televisores encendidos. El programa detecta cada
+          <h1 id="dropH">Arrastra la pared de televisores</h1>
+          <p id="dropP">Un JPG o PNG del muro con los televisores encendidos. El programa detecta cada
              pantalla por su brillo y te deja asignarle fotos o vídeos.</p>
           <button class="btn pri" id="pick">Elegir imagen</button>
         </div>
@@ -150,7 +162,59 @@ input[type=text]:focus{outline:none;border-color:var(--orange)}
   </div>
 
   <aside>
-    <div class="sec">
+    <div class="sec mode-scene">
+      <h2>Portada</h2>
+      <div class="row"><label id="bgName">Sin fondo</label>
+        <button class="btn" id="bgPick">Cargar</button></div>
+      <div class="row"><label>Relleno de los lados</label>
+        <div class="seg" style="flex:1.4">
+          <button data-fill="blur" class="on">Desenfoque</button>
+          <button data-fill="crop">Recortar</button>
+          <button data-fill="flat">Negro</button>
+        </div></div>
+      <div class="row"><label>Brillo del fondo</label>
+        <input type="range" id="bgGain" min="20" max="150" value="100">
+        <span class="val" id="bgGainV">100</span></div>
+      <div class="row"><button class="btn pri" id="addLayer" style="flex:1">Añadir elementos PNG</button></div>
+      <p class="hint">Arrastra los PNG sobre el lienzo para colocarlos. Cada elemento flota
+        por su cuenta y el bucle cierra sin salto.</p>
+    </div>
+
+    <div class="sec mode-scene">
+      <h2 id="layHead">Elemento seleccionado</h2>
+      <div id="noLay"><p class="hint">Pulsa un elemento del lienzo o de la lista de abajo
+        para moverlo y darle vida.</p></div>
+      <div id="layBox" style="display:none">
+        <div class="row"><label>Tamaño</label>
+          <input type="range" id="lSize" min="2" max="120" value="30">
+          <span class="val" id="lSizeV">30 %</span></div>
+        <div class="row"><label>Opacidad</label>
+          <input type="range" id="lOp" min="5" max="100" value="100">
+          <span class="val" id="lOpV">100</span></div>
+        <div class="row"><label>Deriva</label>
+          <input type="range" id="lAmp" min="0" max="120" value="25">
+          <span class="val" id="lAmpV">2,5 %</span></div>
+        <div class="row"><label>Vueltas por bucle</label>
+          <input type="range" id="lSpd" min="1" max="6" value="1">
+          <span class="val" id="lSpdV">1</span></div>
+        <div class="row"><label>Balanceo</label>
+          <input type="range" id="lRot" min="0" max="120" value="15">
+          <span class="val" id="lRotV">1,5°</span></div>
+        <div class="row"><label>Respiración</label>
+          <input type="range" id="lBr" min="0" max="30" value="4">
+          <span class="val" id="lBrV">4 %</span></div>
+        <div class="row"><label>Época</label>
+          <input type="range" id="lAged" min="0" max="100" value="0">
+          <span class="val" id="lAgedV">0</span></div>
+        <div class="row">
+          <button class="btn" id="lUp" style="flex:1">Subir</button>
+          <button class="btn" id="lDown" style="flex:1">Bajar</button>
+          <button class="btn" id="lDel" style="flex:1">Quitar</button></div>
+        <div class="row"><button class="btn" id="lCenter" style="flex:1">Centrar</button></div>
+      </div>
+    </div>
+
+    <div class="sec mode-wall">
       <h2 id="selHead">Pantalla seleccionada</h2>
       <div id="noSel"><p class="hint">Haz clic en cualquier televisor del muro para cambiar
         lo que emite. Con <b>Ctrl</b> (o <b>⌘</b>) y <b>Mayús</b> pulsados eliges varios a la vez
@@ -212,7 +276,7 @@ input[type=text]:focus{outline:none;border-color:var(--orange)}
       </div>
     </div>
 
-    <div class="sec">
+    <div class="sec mode-wall">
       <h2>Atajos</h2>
       <div class="row"><label>Selección</label>
         <div class="seg" style="flex:1.4">
@@ -239,7 +303,7 @@ input[type=text]:focus{outline:none;border-color:var(--orange)}
     </div>
 
     <div class="sec">
-      <h2>Muro</h2>
+      <h2 id="canvasHead">Muro</h2>
       <div class="row"><label>Formato</label>
         <select id="aspect">
           <option value="2">Panorámico 2:1 — pared 8×4 m</option>
@@ -309,24 +373,34 @@ input[type=text]:focus{outline:none;border-color:var(--orange)}
         <span class="val" id="flickV">35</span></div>
     </div>
 
-    <div class="sec" style="padding-left:0;padding-right:0">
+    <div class="sec mode-wall" style="padding-left:0;padding-right:0">
       <h2 style="padding:0 18px">Canales detectados <span id="cnt"></span></h2>
       <div id="chans"></div>
+    </div>
+
+    <div class="sec mode-scene" style="padding-left:0;padding-right:0">
+      <h2 style="padding:0 18px">Elementos <span id="lcnt"></span></h2>
+      <div id="lays"></div>
     </div>
   </aside>
 </main>
 
 <input type="file" id="fileImg" accept="image/*" hidden>
 <input type="file" id="fileMedia" accept="image/*,video/*" hidden>
+<input type="file" id="fileBg" accept="image/*" hidden>
+<input type="file" id="fileLayer" accept="image/png,image/*" multiple hidden>
 <input type="file" id="fileCfg" accept="application/json,.json" hidden>
 
 <script>
 "use strict";
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const cv=$("#cv"), ctx=cv.getContext("2d",{willReadFrequently:false});
-const CREAM=[232,220,197], ORANGE=[206,96,42];
+const CREAM=[232,220,197], ORANGE=[206,96,42], TAU=Math.PI*2;
 const S={img:null,plate:null,PW:0,PH:0,PAD:0,screens:[],sel:-1,selSet:new Set(),
-         playing:false,t0:0,mid:0};
+         playing:false,t0:0,mid:0,wallPW:0,wallPH:0};
+/* modo «portada flotante»: un fondo y N elementos PNG a la deriva */
+let MODE="wall";
+const V={bg:null,bgName:"",bgKey:null,fill:"blur",gain:100,layers:[],sel:-1,lid:0};
 
 /* ══ 1. morfología y detección ══════════════════════════════════════ */
 function minF(src,w,h,r){
@@ -402,7 +476,9 @@ function newCv(w,h){const c=document.createElement("canvas");c.width=w;c.height=
 
 async function loadWall(file,keep){
   busy("leyendo imagen","");
-  if(!keep){ await idbClear().catch(noSave); await idbPut("wall",file).catch(noSave); S.mid=0; }
+  if(!keep){                       // limpia solo lo de la pared, la escena no se toca
+    for(const old of S.screens) if(old.mkey) await idbDel(old.mkey).catch(()=>{});
+    await idbPut("wall",file).catch(noSave); S.mid=0; }
   const img=new Image();
   img.src=URL.createObjectURL(file);
   await img.decode();
@@ -454,7 +530,8 @@ async function loadWall(file,keep){
   screens.forEach((s,j)=>{ if(s.wing) s.role=["static","flat","off","static"][j%4];
                            s.role0=s.role; });   // estado al que vuelve «Restablecer»
 
-  Object.assign(S,{img,plate,PW,PH,PAD,screens,sel:-1,selSet:new Set(),file});
+  Object.assign(S,{img,plate,PW,PH,PAD,screens,sel:-1,selSet:new Set(),file,
+                   wallPW:PW,wallPH:PH});
   buildTiles();
   $("#drop").classList.add("hide");
   $$(".btn").forEach(b=>b.disabled=false);
@@ -566,7 +643,7 @@ function screenContent(s,t,SC,p){
     const txt=(s.txt==null?"@besta_oficial":s.txt).trim();
     if(txt){
       const r=sRate(s);
-      const pulso=r?(.84+.16*Math.sin(6.283*(t*r*4+s.ph))):1;   // latido de tubo
+      const pulso=r?(.84+.16*Math.sin(TAU*(t*r*4+s.ph))):1;   // latido de tubo
       // 100 % = el texto llena el ancho de la pantalla; el resto es proporción
       const F=n=>`700 ${n}px ui-monospace,"SF Mono",Menlo,Consolas,monospace`;
       g.font=F(100);
@@ -617,7 +694,7 @@ function screenContent(s,t,SC,p){
   } else if(s.role==="off"){
     const tt=t*sRate(s);
     const fl=Math.exp(-Math.pow((((tt+s.ph)%1)-.5)/.016,2)/2);
-    g.globalAlpha=(.10+.05*Math.sin(6.283*(tt*s.k+s.ph))+.55*fl)*gain;
+    g.globalAlpha=(.10+.05*Math.sin(TAU*(tt*s.k+s.ph))+.55*fl)*gain;
     g.drawImage(S.plate,s.x,s.y,s.w,s.h,0,0,w,h);
     g.globalAlpha=1;vignette(g,w,h,.5);
   } else return null;                      // 'logo' → se deja la placa original
@@ -654,7 +731,28 @@ function ticker(W,H,t,SC){
   ctx.restore();
 }
 
+/* textura de época y cinta: común a los dos modos */
+function overlays(W,H,t,SC,p){
+  ticker(W,H,t,SC);
+  if(p.scan>0)lines(ctx,W,H,Math.max(1,Math.round(1.6*SC)),.09*p.scan);
+  if(p.sweep>0){
+    const yb=((t)%1)*H*1.3-H*.15;
+    const gr=ctx.createLinearGradient(0,yb-H*.16,0,yb+H*.16);
+    gr.addColorStop(0,"rgba(255,244,225,0)");
+    gr.addColorStop(.5,`rgba(255,244,225,${.055*p.sweep})`);
+    gr.addColorStop(1,"rgba(255,244,225,0)");
+    ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+  }
+  if(p.grain>0&&GRAIN.length){
+    const tl=GRAIN[(t*GRAIN.length*8|0)%GRAIN.length];
+    ctx.globalCompositeOperation="overlay";ctx.globalAlpha=.11*p.grain;
+    const pat=ctx.createPattern(tl,"repeat");ctx.fillStyle=pat;ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
+  }
+}
+
 function draw(t){
+  if(MODE==="scene")return drawScene(t);
   if(!S.plate)return;                        // aún no hay pared cargada
   const p=P(),SC=p.sc;
   const W=Math.round(S.PW*SC),H=Math.round(S.PH*SC);
@@ -666,7 +764,7 @@ function draw(t){
     const c=screenContent(s,t,SC,p);
     if(c){ctx.drawImage(c,Math.round(s.x*SC),Math.round(s.y*SC));}
     else if(p.flick>0){                      // parpadeo sutil del logo
-      const f=.028*p.flick*Math.sin(6.283*(t*s.k+s.ph));
+      const f=.028*p.flick*Math.sin(TAU*(t*s.k+s.ph));
       ctx.globalCompositeOperation=f>0?"lighter":"multiply";
       ctx.globalAlpha=Math.abs(f);
       ctx.drawImage(f>0?s.maskW:s.mask,Math.round(s.x*SC),Math.round(s.y*SC),
@@ -684,32 +782,91 @@ function draw(t){
     g2.addColorStop(0,"rgba(0,0,0,.94)");g2.addColorStop(1,"rgba(0,0,0,.30)");
     ctx.fillStyle=g2;ctx.fillRect(W-P2,0,P2,H);
   }
-  ticker(W,H,t,SC);
-  if(p.scan>0)lines(ctx,W,H,Math.max(1,Math.round(1.6*SC)),.09*p.scan);
-  if(p.sweep>0){
-    const yb=((t)%1)*H*1.3-H*.15;
-    const gr=ctx.createLinearGradient(0,yb-H*.16,0,yb+H*.16);
-    gr.addColorStop(0,"rgba(255,244,225,0)");
-    gr.addColorStop(.5,`rgba(255,244,225,${.055*p.sweep})`);
-    gr.addColorStop(1,"rgba(255,244,225,0)");
-    ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+  overlays(W,H,t,SC,p);
+}
+
+/* ══ 4b. portada flotante ═══════════════════════════════════════════
+   Un fondo (la portada del single) y encima N elementos PNG que van a
+   la deriva. Todas las frecuencias son enteras respecto al bucle, así
+   que el vídeo exportado encadena sin salto.                          */
+function lPos(L,t){
+  const n=L.spd||1, a=TAU*(n*t+L.ph), b=TAU*(2*n*t+L.ph*1.7+.15);
+  return {dx:(L.amp/1000)*Math.sin(a), dy:(L.amp/1000)*.62*Math.sin(b),
+          rot:(L.rot/1000)*Math.sin(a+1.1), sc:1+(L.br/100)*Math.sin(b+.6)};
+}
+function lBox(L){                    // caja en fracciones del lienzo, en reposo
+  const el=L.el; if(!el||!el.naturalWidth)return {w:0,h:0};
+  const w=(L.s||30)/100;
+  const h=w*S.PW*(el.naturalHeight/el.naturalWidth)/S.PH;
+  return {w,h};
+}
+function drawScene(t){
+  const p=P(),SC=p.sc;
+  const W=Math.round(S.PW*SC),H=Math.round(S.PH*SC);
+  if(!W||!H)return;
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1;ctx.filter="none";
+  ctx.fillStyle="#070605";ctx.fillRect(0,0,W,H);
+
+  if(V.bg){
+    const r=V.bg.naturalWidth/V.bg.naturalHeight, dr=W/H;
+    const bg=V.gain/100;
+    if(V.fill==="blur"){                       // los lados, la propia portada difuminada
+      let dw,dh; if(r>dr){dh=H;dw=H*r;}else{dw=W;dh=W/r;}
+      ctx.filter=`blur(${Math.max(4,Math.round(28*SC))}px) brightness(${.5*bg}) saturate(.8)`;
+      ctx.drawImage(V.bg,(W-dw)/2,(H-dh)/2,dw,dh);
+      ctx.filter="none";
+    }
+    let dw,dh;
+    if(V.fill==="crop"){ if(r>dr){dh=H;dw=H*r;}else{dw=W;dh=W/r;} }   // cubrir
+    else { if(r>dr){dw=W;dh=W/r;}else{dh=H;dw=H*r;} }                 // entera
+    ctx.globalAlpha=Math.min(1,bg);
+    ctx.drawImage(V.bg,(W-dw)/2,(H-dh)/2,dw,dh);
+    ctx.globalAlpha=1;
   }
-  if(p.grain>0){
-    const tl=GRAIN[(t*GRAIN.length*8|0)%GRAIN.length];
-    ctx.globalCompositeOperation="overlay";ctx.globalAlpha=.11*p.grain;
-    const pat=ctx.createPattern(tl,"repeat");ctx.fillStyle=pat;ctx.fillRect(0,0,W,H);
-    ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
+
+  for(const L of V.layers){
+    const el=L.el; if(!el||!el.naturalWidth)continue;
+    const {w,h}=lBox(L), m=lPos(L,t);
+    const cx=(L.x+m.dx)*W, cy=(L.y+m.dy)*H;
+    const dw=w*W*m.sc, dh=h*H*m.sc;
+    ctx.save();
+    ctx.translate(cx,cy);ctx.rotate(m.rot);
+    ctx.globalAlpha=(L.op==null?100:L.op)/100;
+    const ag=(L.aged||0)/100;
+    if(ag>0)ctx.filter=`grayscale(${.35*ag}) sepia(${.4*ag}) contrast(${1-.12*ag}) `+
+                       `brightness(${1-.06*ag}) saturate(${1-.25*ag})`;
+    ctx.drawImage(el,-dw/2,-dh/2,dw,dh);
+    ctx.filter="none";ctx.globalAlpha=1;
+    ctx.restore();
   }
+  overlays(W,H,t,SC,p);
 }
 
 /* ══ 5. interfaz ════════════════════════════════════════════════════ */
 function resize(){
+  if(!S.PW||!S.PH)return;
   const box=$("#viewport").getBoundingClientRect();
   const sc=Math.min((box.width-40)/S.PW,(box.height-40)/S.PH);
   const w=S.PW*sc,h=S.PH*sc;
   $("#wrap").style.width=w+"px";$("#wrap").style.height=h+"px";
   cv.style.width=w+"px";cv.style.height=h+"px";
   const hits=$("#hits");hits.innerHTML="";
+  hits.classList.toggle("scene",MODE==="scene");
+  if(MODE==="scene"){                       // cajas para pinchar y arrastrar elementos
+    V.layers.forEach((L,i)=>{
+      const b=lBox(L); if(!b.w)return;
+      const d=document.createElement("div");
+      d.className="hit"+(i===V.sel?" on":"");
+      d.style.cssText=`left:${(L.x-b.w/2)*w}px;top:${(L.y-b.h/2)*h}px;`+
+                      `width:${b.w*w}px;height:${b.h*h}px`;
+      d.innerHTML=`<i>${String(i+1).padStart(2,"0")}</i>`;
+      d.onpointerdown=e=>dragLayer(e,i,d,w,h);
+      hits.appendChild(d);
+    });
+    return;
+  }
   S.screens.forEach((s,i)=>{
     const d=document.createElement("div");
     d.className="hit"+(S.selSet.has(i)?" on":"")+(i===S.sel?" pri":"")
@@ -873,7 +1030,9 @@ $("#rate").oninput=e=>{const v=+e.target.value/100;
 $("#secs").oninput=e=>{$("#secsV").textContent=e.target.value+" s";updRes();refreshVid();};
 $("#fps").onchange=updRes;
 $("#scale").onchange=()=>{updRes();if(!S.playing)draw(now());};
-$("#aspect").onchange=()=>{ if(!S.file)return;
+$("#aspect").onchange=()=>{
+  if(MODE==="scene"){sceneDims();updRes();resize();if(!S.playing)draw(now());autosave();return;}
+  if(!S.file)return;
   if(confirm("Cambiar el formato vuelve a detectar las pantallas y pierde las asignaciones. ¿Seguir?"))
     loadWall(S.file);
   else $("#aspect").value=S.PAD>0?(S.PW/S.PH).toFixed(4):"0";};
@@ -890,6 +1049,7 @@ function updRes(){
 $("#play").onclick=()=>{
   S.playing=!S.playing;
   $("#play").textContent=S.playing?"❚❚ Pausa":"▶ Reproducir";
+  $("#hits").classList.toggle("hide",S.playing&&MODE==="scene");
   if(S.playing){S.t0=performance.now();
     S.screens.forEach(s=>{if(s.el&&s.el.tagName==="VIDEO")s.el.play().catch(()=>{});});
     loop();}
@@ -898,7 +1058,7 @@ $("#play").onclick=()=>{
 function loop(){if(!S.playing)return;syncVideos();draw(now());requestAnimationFrame(loop);}
 
 /* carga de archivos */
-$("#pick").onclick=()=>$("#fileImg").click();
+$("#pick").onclick=()=>$(MODE==="scene"?"#fileBg":"#fileImg").click();
 $("#fileImg").onchange=e=>e.target.files[0]&&loadWall(e.target.files[0]);
 $("#fileMedia").onchange=async e=>{
   const f=e.target.files[0];e.target.value="";if(!f)return;
@@ -924,6 +1084,151 @@ $("#fileMedia").onchange=async e=>{
   renderChans();resize();if(!S.playing)draw(now());
   autosave();
 };
+
+/* ══ 5b. portada flotante: interfaz ═════════════════════════════════ */
+function sceneDims(){
+  if(!V.bg){S.PW=0;S.PH=0;return;}
+  const want=+$("#aspect").value;
+  const H=Math.min(V.bg.naturalHeight,720);        // base; la resolución final la da ×N
+  S.PW=want?Math.round(H*want):Math.round(H*V.bg.naturalWidth/V.bg.naturalHeight);
+  S.PH=H;
+}
+function setMode(m){
+  MODE=m;
+  document.body.classList.toggle("scene",m==="scene");
+  $$("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));
+  $("#brandSub").textContent=m==="scene"?"estudio de portada flotante":"estudio de muro crt";
+  $("#canvasHead").textContent=m==="scene"?"Lienzo":"Muro";
+  $("#dropH").textContent=m==="scene"?"Arrastra la portada del single"
+                                     :"Arrastra la pared de televisores";
+  $("#dropP").textContent=m==="scene"
+    ? "El JPG o PNG de la portada hace de fondo. Después sueltas encima los PNG de los "+
+      "elementos y cada uno flota por su cuenta."
+    : "Un JPG o PNG del muro con los televisores encendidos. El programa detecta cada "+
+      "pantalla por su brillo y te deja asignarle fotos o vídeos.";
+  const listo=m==="scene"?!!V.bg:!!S.plate;
+  $("#drop").classList.toggle("hide",listo);
+  if(listo)$$(".btn").forEach(b=>b.disabled=false);
+  if(m==="scene")sceneDims();
+  else {S.PW=S.wallPW;S.PH=S.wallPH;}
+  $("#hstat").innerHTML=m==="scene"
+    ? (V.bg?`<b>${V.bg.naturalWidth}×${V.bg.naturalHeight}</b> portada · <b>${V.layers.length}</b> elementos`
+          :"sin portada")
+    : (S.plate?`<b>${S.plate.width}×${S.plate.height}</b> lienzo · <b>${S.screens.length}</b> pantallas`
+          :"sin imagen");
+  syncLay();renderLays();updRes();resize();if(!S.playing)draw(now());
+}
+$$("#modes button").forEach(b=>b.onclick=()=>{setMode(b.dataset.mode);autosave();});
+
+function selectLayer(i){V.sel=i;syncLay();renderLays();resize();
+  if(!S.playing)draw(now());}
+function dragLayer(e,i,d,w,h){
+  e.preventDefault();selectLayer(i);
+  const L=V.layers[i],x0=e.clientX,y0=e.clientY,lx=L.x,ly=L.y;
+  const mv=ev=>{
+    L.x=Math.max(-.3,Math.min(1.3,lx+(ev.clientX-x0)/w));
+    L.y=Math.max(-.3,Math.min(1.3,ly+(ev.clientY-y0)/h));
+    const b=lBox(L);
+    d.style.left=((L.x-b.w/2)*w)+"px";d.style.top=((L.y-b.h/2)*h)+"px";
+    if(!S.playing)draw(now());
+  };
+  const up=()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);
+    autosave();};
+  addEventListener("pointermove",mv);addEventListener("pointerup",up);
+}
+function syncLay(){
+  const L=V.layers[V.sel];
+  $("#noLay").style.display=L?"none":"block";
+  $("#layBox").style.display=L?"block":"none";
+  $("#layHead").textContent=L?`Elemento · ${L.name}`:"Elemento seleccionado";
+  $("#bgName").textContent=V.bgName||"Sin fondo";
+  $$("[data-fill]").forEach(b=>b.classList.toggle("on",b.dataset.fill===V.fill));
+  $("#bgGain").value=V.gain;$("#bgGainV").textContent=V.gain;
+  if(!L)return;
+  $("#lSize").value=L.s;   $("#lSizeV").textContent=L.s+" %";
+  $("#lOp").value=L.op;    $("#lOpV").textContent=L.op;
+  $("#lAmp").value=L.amp;  $("#lAmpV").textContent=fmt(L.amp/10)+" %";
+  $("#lSpd").value=L.spd;  $("#lSpdV").textContent=L.spd;
+  $("#lRot").value=L.rot;  $("#lRotV").textContent=fmt(L.rot*.0573)+"°";
+  $("#lBr").value=L.br;    $("#lBrV").textContent=L.br+" %";
+  $("#lAged").value=L.aged;$("#lAgedV").textContent=L.aged;
+}
+function renderLays(){
+  $("#lcnt").textContent=V.layers.length?"· "+V.layers.length:"";
+  $("#lays").innerHTML=V.layers.map((L,i)=>
+    `<div class="chan${i===V.sel?" on":""}" data-i="${i}">
+       <span class="d media"></span><span class="n">${String(i+1).padStart(2,"0")}</span>
+       <span class="r">${L.name}</span><span class="sz">${L.s} %</span></div>`).join("");
+  $$("#lays .chan").forEach(e=>e.onclick=()=>selectLayer(+e.dataset.i));
+}
+const LSET={lSize:"s",lOp:"op",lAmp:"amp",lSpd:"spd",lRot:"rot",lBr:"br",lAged:"aged"};
+for(const id in LSET)$("#"+id).oninput=e=>{
+  const L=V.layers[V.sel];if(!L)return;
+  L[LSET[id]]=+e.target.value;
+  syncLay();if(id==="lSize"){renderLays();resize();}
+  if(!S.playing)draw(now());
+};
+$$("[data-fill]").forEach(b=>b.onclick=()=>{V.fill=b.dataset.fill;syncLay();
+  if(!S.playing)draw(now());});
+$("#bgGain").oninput=e=>{V.gain=+e.target.value;$("#bgGainV").textContent=V.gain;
+  if(!S.playing)draw(now());};
+$("#lUp").onclick=()=>{const i=V.sel;if(i<0||i>=V.layers.length-1)return;
+  [V.layers[i],V.layers[i+1]]=[V.layers[i+1],V.layers[i]];selectLayer(i+1);autosave();};
+$("#lDown").onclick=()=>{const i=V.sel;if(i<1)return;
+  [V.layers[i],V.layers[i-1]]=[V.layers[i-1],V.layers[i]];selectLayer(i-1);autosave();};
+$("#lDel").onclick=()=>{const i=V.sel;if(i<0)return;
+  V.layers.splice(i,1);selectLayer(Math.min(i,V.layers.length-1));autosave();};
+$("#lCenter").onclick=()=>{const L=V.layers[V.sel];if(!L)return;
+  L.x=.5;L.y=.5;resize();if(!S.playing)draw(now());autosave();};
+
+/* carga del fondo y de los elementos */
+$("#bgPick").onclick=()=>$("#fileBg").click();
+$("#addLayer").onclick=()=>$("#fileLayer").click();
+$("#fileBg").onchange=async e=>{const f=e.target.files[0];e.target.value="";
+  if(f)await loadBg(f);};
+$("#fileLayer").onchange=async e=>{const fs=[...e.target.files];e.target.value="";
+  await addLayers(fs);};
+
+async function loadBg(f){
+  busy("leyendo portada",f.name);
+  const el=await elFromBlob(f);
+  if(!el.naturalWidth){busy(false);alert("No he podido leer esa imagen.");return;}
+  V.bg=el;V.bgName=f.name;V.bgKey="bg";
+  await idbPut("bg",f).catch(noSave);
+  sceneDims();
+  $("#drop").classList.add("hide");
+  $$(".btn").forEach(b=>b.disabled=false);
+  busy(false);setMode("scene");autosave();
+}
+async function addLayers(files){
+  const imgs=files.filter(f=>f.type.startsWith("image"));
+  if(!imgs.length)return;
+  for(let i=0;i<imgs.length;i++){
+    const f=imgs[i];
+    busy("cargando elementos",`${i+1} de ${imgs.length}`,i/imgs.length);
+    const el=await elFromBlob(f);
+    if(!el.naturalWidth)continue;
+    const key="L"+(++V.lid);
+    let ok=true;await idbPut(key,f).catch(()=>{ok=false;noSave();});
+    // tamaño de partida: como venga el PNG respecto al lienzo, con tope
+    const s=Math.max(4,Math.min(60,Math.round(el.naturalWidth/Math.max(1,S.PW)*100)))||30;
+    V.layers.push({name:f.name.replace(/\.[a-z0-9]+$/i,""),el,mkey:ok?key:null,
+      x:.5,y:.5,s,op:100,amp:25,spd:1,rot:15,br:4,aged:0,ph:Math.random()});
+  }
+  busy(false);
+  selectLayer(V.layers.length-1);autosave();
+}
+/* soltar archivos ya con la escena abierta */
+["dragenter","dragover"].forEach(ev=>$("#viewport").addEventListener(ev,e=>{
+  if(MODE==="scene")e.preventDefault();}));
+$("#viewport").addEventListener("drop",async e=>{
+  if(MODE!=="scene")return;
+  e.preventDefault();
+  const fs=[...e.dataTransfer.files].filter(f=>f.type.startsWith("image"));
+  if(!fs.length)return;
+  if(!V.bg)await loadBg(fs.shift());
+  if(fs.length)await addLayers(fs);
+});
 
 /* ── atajos de muro ──────────────────────────────────────────────── */
 $("#selAll").onclick =()=>setSel(S.screens.map((_,i)=>i));
@@ -974,7 +1279,12 @@ const dz=$("#drop");
   e.preventDefault();dz.classList.add("over");}));
 ["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{
   e.preventDefault();dz.classList.remove("over");}));
-dz.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadWall(f);});
+dz.addEventListener("drop",async e=>{
+  const fs=[...e.dataTransfer.files].filter(f=>f.type.startsWith("image"));
+  if(!fs.length)return;
+  if(MODE==="scene"){ await loadBg(fs.shift()); if(fs.length)await addLayers(fs); }
+  else loadWall(fs[0]);
+});
 
 function busy(lbl,sub,pct){
   const b=$("#busy");
@@ -1072,6 +1382,11 @@ $("#expCfg").onclick=()=>{
     textura:{lineas:+$("#scan").value,grano:+$("#grain").value,
              banda:+$("#sweep").value,parpadeo:+$("#flick").value},
     cinta:{...TICK},
+    modo:MODE,
+    portada:MODE==="scene"||V.bg?{fondo:V.bgName,relleno:V.fill,brillo:V.gain,
+      elementos:V.layers.map(L=>({nombre:L.name,x:+L.x.toFixed(4),y:+L.y.toFixed(4),
+        tamano:L.s,opacidad:L.op,deriva:L.amp,vueltas:L.spd,balanceo:L.rot,
+        respiracion:L.br,epoca:L.aged}))}:null,
     pantallas:S.screens.map(s=>({n:s.i,x:s.cx,y:s.cy,w:s.cw,h:s.ch,rol:s.role,
       archivo:s.media,encuadre:s.fit,epoca:s.aged,brillo:s.gain,color:s.col,
       velocidad:+sRate(s).toFixed(2),
@@ -1088,7 +1403,7 @@ $("#expCfg").onclick=()=>{
 $("#impCfg").onclick=()=>$("#fileCfg").click();
 $("#fileCfg").onchange=async e=>{
   const f=e.target.files[0];e.target.value="";if(!f)return;
-  if(!S.screens.length){alert("Carga primero la imagen de la pared.");return;}
+  if(!S.screens.length&&!V.bg){alert("Carga primero la pared o la portada.");return;}
   let cfg;
   try{ cfg=JSON.parse(await f.text()); }
   catch(err){ alert("Ese archivo no es un JSON de ajustes de besta estudio.");return; }
@@ -1127,6 +1442,16 @@ $("#fileCfg").onchange=async e=>{
     puestas++;
   }
   if(cfg.cinta)Object.assign(TICK,cfg.cinta);
+  if(cfg.portada){                       // los PNG no viajan en el JSON, sí su colocación
+    V.fill=cfg.portada.relleno||V.fill;
+    if(cfg.portada.brillo!=null)V.gain=cfg.portada.brillo;
+    (cfg.portada.elementos||[]).forEach((a,i)=>{
+      const L=V.layers[i];if(!L)return;
+      Object.assign(L,{x:a.x,y:a.y,s:a.tamano,op:a.opacidad,amp:a.deriva,
+        spd:a.vueltas,rot:a.balanceo,br:a.respiracion,aged:a.epoca});
+    });
+    syncLay();renderLays();
+  }
   S.selSet=new Set();S.sel=-1;
   tickUI();updRes();syncPanel();autosave();
   alert(`Ajustes cargados en ${puestas} de ${S.screens.length} pantallas.`+
@@ -1158,6 +1483,9 @@ async function idbPut(k,v){const d=await db();return new Promise((ok,no)=>{
 async function idbGet(k){const d=await db();return new Promise((ok,no)=>{
   const tx=d.transaction("f","readonly"),q=tx.objectStore("f").get(k);
   q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error);});}
+async function idbDel(k){const d=await db();return new Promise((ok,no)=>{
+  const tx=d.transaction("f","readwrite");tx.objectStore("f").delete(k);
+  tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error);});}
 async function idbClear(){const d=await db();return new Promise((ok,no)=>{
   const tx=d.transaction("f","readwrite");tx.objectStore("f").clear();
   tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error);});}
@@ -1165,13 +1493,16 @@ async function idbClear(){const d=await db();return new Promise((ok,no)=>{
 const UIK=["aspect","scale","secs","fps","scan","grain","sweep","flick"];
 function snapshot(){
   const ui={};UIK.forEach(k=>ui[k]=$("#"+k).value);
-  return {v:1,mid:S.mid,ui,tick:{...TICK},
+  return {v:1,mid:S.mid,ui,tick:{...TICK},mode:MODE,
+    scene:{fill:V.fill,gain:V.gain,bgName:V.bgName,bgKey:V.bgKey,lid:V.lid,sel:V.sel,
+      layers:V.layers.map(L=>({name:L.name,mkey:L.mkey,x:L.x,y:L.y,s:L.s,op:L.op,
+        amp:L.amp,spd:L.spd,rot:L.rot,br:L.br,aged:L.aged,ph:L.ph}))},
     screens:S.screens.map(s=>({role:s.role,fit:s.fit,aged:s.aged,gain:s.gain,col:s.col,
       ph:s.ph,k:s.k,rate:s.rate,txt:s.txt,tsize:s.tsize,media:s.media,mkey:s.mkey,
       vdur:s.vdur,vin:s.vin,vlen:s.vlen,vrate:s.vrate}))};
 }
 function autosave(){
-  if(restoring||!canSave||!S.screens.length)return;
+  if(restoring||!canSave||(!S.screens.length&&!V.bg))return;
   clearTimeout(saveT);
   saveT=setTimeout(()=>{
     try{ localStorage.setItem(LS,JSON.stringify(snapshot()));
@@ -1196,17 +1527,18 @@ async function elFromBlob(b){
 async function restore(){
   let cfg=null;
   try{ cfg=JSON.parse(localStorage.getItem(LS)||"null"); }catch(e){}
-  let wall=null;
+  let wall=null,bg=null;
   try{ wall=await idbGet("wall"); }catch(e){}
-  if(!wall)return false;
+  try{ bg=await idbGet("bg"); }catch(e){}
+  if(!wall&&!bg)return false;
   restoring=true;
-  busy("recuperando sesión","pared y archivos guardados");
+  busy("recuperando sesión","imágenes y archivos guardados");
   if(cfg&&cfg.ui){ UIK.forEach(k=>{ if(cfg.ui[k]!=null)$("#"+k).value=cfg.ui[k]; });
     ["scan","grain","sweep","flick"].forEach(k=>$("#"+k+"V").textContent=$("#"+k).value);
     $("#secsV").textContent=$("#secs").value+" s";
     S.mid=cfg.mid||0;
   }
-  await loadWall(wall,true);
+  if(wall)await loadWall(wall,true);
   const A=(cfg&&cfg.screens)||[];
   for(let i=0;i<Math.min(A.length,S.screens.length);i++){
     const a=A[i],s=S.screens[i];
@@ -1222,8 +1554,22 @@ async function restore(){
     if(s.role==="media"&&!s.el){ s.role="logo";s.media=null; }
   }
   if(cfg&&cfg.tick)Object.assign(TICK,cfg.tick);
+  const sc=cfg&&cfg.scene;
+  if(bg&&sc){
+    V.bg=await elFromBlob(bg);
+    Object.assign(V,{bgName:sc.bgName||"",bgKey:"bg",fill:sc.fill||"blur",
+                     gain:sc.gain==null?100:sc.gain,lid:sc.lid||0,layers:[],sel:-1});
+    for(const a of (sc.layers||[])){
+      let blob=null;if(a.mkey){try{blob=await idbGet(a.mkey);}catch(e){}}
+      if(!blob)continue;
+      V.layers.push({...a,el:await elFromBlob(blob)});
+    }
+    V.sel=sc.sel!=null&&sc.sel<V.layers.length?sc.sel:-1;
+  }
   restoring=false;
-  tickUI();renderChans();resize();updRes();draw(0);
+  tickUI();renderChans();
+  setMode((cfg&&cfg.mode)==="scene"&&V.bg?"scene":"wall");
+  resize();updRes();draw(0);
   $("#savedTag").className="ok";$("#savedTag").textContent="sesión recuperada";
   return true;
 }
@@ -1238,7 +1584,8 @@ $("#clearSes").onclick=async()=>{
   location.reload();
 };
 
-addEventListener("resize",()=>{if(S.img)resize();});
+addEventListener("resize",()=>{if(S.PW)resize();});
+buildTiles();          // el grano y la nieve existen desde el primer momento
 updRes();
 (async()=>{
   try{ await restore(); }
