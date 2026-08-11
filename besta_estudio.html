@@ -36,6 +36,7 @@ canvas{max-width:100%;max-height:100%;display:block;box-shadow:0 0 60px rgba(0,0
 .hit{position:absolute;border:1px solid rgba(206,96,42,0);cursor:pointer;transition:border-color .12s}
 .hit:hover{border-color:rgba(206,96,42,.85)}
 .hit.on{border-color:var(--orange);border-width:2px;box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.hit.pri{box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 22px rgba(206,96,42,.45)}
 .hit i{position:absolute;top:0;left:0;background:var(--orange);color:#000;
   font-family:var(--mono);font-size:10px;font-style:normal;padding:1px 4px;
   opacity:0;transition:opacity .12s}
@@ -148,9 +149,10 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
 
   <aside>
     <div class="sec">
-      <h2>Pantalla seleccionada</h2>
+      <h2 id="selHead">Pantalla seleccionada</h2>
       <div id="noSel"><p class="hint">Haz clic en cualquier televisor del muro para cambiar
-        lo que emite.</p></div>
+        lo que emite. Con <b>Ctrl</b> (o <b>⌘</b>) y <b>Mayús</b> pulsados eliges varios a la vez
+        y todo lo que ajustes se aplica a todos ellos.</p></div>
       <div id="sel" style="display:none">
         <div class="row"><label>Emite</label>
           <select id="role">
@@ -195,6 +197,31 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
           <input type="range" id="gain" min="20" max="180" value="100">
           <span class="val" id="gainV">100</span></div>
       </div>
+    </div>
+
+    <div class="sec">
+      <h2>Atajos</h2>
+      <div class="row"><label>Selección</label>
+        <div class="seg" style="flex:1.4">
+          <button id="selAll">Todas</button>
+          <button id="selNone">Ninguna</button>
+          <button id="selInv">Invertir</button>
+        </div></div>
+      <div class="row"><label>Poner <span id="applyTo">todo el muro</span> en</label>
+        <select id="bulkRole">
+          <option value="logo">Logo original</option>
+          <option value="static">Nieve / estática</option>
+          <option value="flat">Color plano</option>
+          <option value="roll">Imagen desenganchada</option>
+          <option value="off">Apagada</option>
+          <option value="mix">Mezcla variada</option>
+        </select></div>
+      <div class="row">
+        <button class="btn" id="bulkApply" style="flex:1">Aplicar</button>
+        <button class="btn" id="bulkMedia" style="flex:1">Mismo archivo</button></div>
+      <div class="row"><button class="btn" id="resetAll" style="flex:1">Restablecer todo</button></div>
+      <p class="hint">«Restablecer todo» devuelve las pantallas y las texturas a como estaban
+        al abrir la imagen, y suelta los archivos cargados.</p>
     </div>
 
     <div class="sec">
@@ -252,7 +279,8 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const cv=$("#cv"), ctx=cv.getContext("2d",{willReadFrequently:false});
 const CREAM=[232,220,197], ORANGE=[206,96,42];
-const S={img:null,plate:null,PW:0,PH:0,PAD:0,screens:[],sel:-1,playing:false,t0:0,mid:0};
+const S={img:null,plate:null,PW:0,PH:0,PAD:0,screens:[],sel:-1,selSet:new Set(),
+         playing:false,t0:0,mid:0};
 
 /* ══ 1. morfología y detección ══════════════════════════════════════ */
 function minF(src,w,h,r){
@@ -376,15 +404,16 @@ async function loadWall(file,keep){
             vdur:0,vin:0,vlen:0,vrate:1,mkey:null};
   });
   // los laterales espejados nunca muestran el logo del revés
-  screens.forEach((s,j)=>{ if(s.wing) s.role=["static","flat","off","static"][j%4]; });
+  screens.forEach((s,j)=>{ if(s.wing) s.role=["static","flat","off","static"][j%4];
+                           s.role0=s.role; });   // estado al que vuelve «Restablecer»
 
-  Object.assign(S,{img,plate,PW,PH,PAD,screens,sel:-1,file});
+  Object.assign(S,{img,plate,PW,PH,PAD,screens,sel:-1,selSet:new Set(),file});
   buildTiles();
   $("#drop").classList.add("hide");
   $$(".btn").forEach(b=>b.disabled=false);
   $("#cnt").textContent="· "+screens.length;
   $("#hstat").innerHTML=`<b>${W}×${H}</b> origen · <b>${screens.length}</b> pantallas`;
-  renderChans();resize();updRes();busy(false);
+  syncPanel();updRes();busy(false);
   draw(0);
   if(!keep)autosave();
 }
@@ -577,10 +606,11 @@ function resize(){
   const hits=$("#hits");hits.innerHTML="";
   S.screens.forEach((s,i)=>{
     const d=document.createElement("div");
-    d.className="hit"+(i===S.sel?" on":"")+(s.role==="media"&&s.el?" has":"");
+    d.className="hit"+(S.selSet.has(i)?" on":"")+(i===S.sel?" pri":"")
+      +(s.role==="media"&&s.el?" has":"");
     d.style.cssText=`left:${s.cx*sc}px;top:${s.cy*sc}px;width:${s.cw*sc}px;height:${s.ch*sc}px`;
     d.innerHTML=`<i>${String(s.i).padStart(2,"0")}</i>`;
-    d.onclick=()=>select(i);
+    d.onclick=e=>select(i,e.ctrlKey||e.metaKey||e.shiftKey);
     hits.appendChild(d);
   });
 }
@@ -589,14 +619,41 @@ function renderChans(){
     const lbl={logo:"Logo original",media:s.media||"Foto o vídeo",static:"Nieve",
       flat:"Color plano",roll:"Desenganchada",off:"Apagada"}[s.role];
     const dot=s.role==="media"?"media":s.role==="logo"?"logo":"";
-    return `<div class="chan${i===S.sel?" on":""}" data-i="${i}">
+    return `<div class="chan${S.selSet.has(i)?" on":""}" data-i="${i}">
       <span class="d ${dot}"></span><span class="n">${String(s.i).padStart(2,"0")}</span>
       <span class="r">${lbl}</span><span class="sz">${s.cw}×${s.ch}</span></div>`;
   }).join("");
-  $$("#chans .chan").forEach(e=>e.onclick=()=>select(+e.dataset.i));
+  $$("#chans .chan").forEach(e=>
+    e.onclick=ev=>select(+e.dataset.i,ev.ctrlKey||ev.metaKey||ev.shiftKey));
 }
-function select(i){
-  S.sel=i;const s=S.screens[i];
+
+/* ── selección múltiple ───────────────────────────────────────────── */
+const selScreens=()=>[...S.selSet].sort((a,b)=>a-b).map(i=>S.screens[i]).filter(Boolean);
+/* aplica el cambio a todas las pantallas elegidas */
+function apply(fn){ selScreens().forEach(fn); }
+function select(i,add){
+  if(add){
+    if(S.selSet.has(i)){ S.selSet.delete(i);
+      if(S.sel===i)S.sel=S.selSet.size?[...S.selSet][S.selSet.size-1]:-1; }
+    else { S.selSet.add(i);S.sel=i; }
+  }else{ S.selSet=new Set([i]);S.sel=i; }
+  syncPanel();
+}
+function setSel(list){
+  S.selSet=new Set(list);
+  S.sel=S.selSet.has(S.sel)?S.sel:(S.selSet.size?[...S.selSet][0]:-1);
+  syncPanel();
+}
+function syncPanel(){
+  const n=S.selSet.size;
+  $("#applyTo").textContent=n?`las ${n} elegidas`:"todo el muro";
+  $("#selHead").textContent=n>1?`${n} pantallas seleccionadas`:"Pantalla seleccionada";
+  if(S.sel<0||!S.screens[S.sel]){
+    $("#noSel").style.display="block";$("#sel").style.display="none";
+    $("#vidBox").style.display="none";
+    renderChans();resize();if(!S.playing)draw(now());return;
+  }
+  const s=S.screens[S.sel];
   $("#noSel").style.display="none";$("#sel").style.display="block";
   $("#role").value=s.role;
   $("#mediaBox").style.display=s.role==="media"?"block":"none";
@@ -629,32 +686,39 @@ function refreshVid(){
 }
 const now=()=>S.playing?((performance.now()-S.t0)/1000/+$("#secs").value)%1:0;
 
-$("#role").onchange=e=>{const s=S.screens[S.sel];s.role=e.target.value;
-  $("#mediaBox").style.display=s.role==="media"?"block":"none";
-  $("#tintRow").style.display=s.role==="flat"?"flex":"none";
-  if(s.role==="media"&&!s.el)$("#fileMedia").click();
+$("#role").onchange=e=>{const v=e.target.value;
+  apply(s=>s.role=v);
+  const s=S.screens[S.sel];
+  $("#mediaBox").style.display=v==="media"?"block":"none";
+  $("#tintRow").style.display=v==="flat"?"flex":"none";
+  if(v==="media"&&s&&!s.el)$("#fileMedia").click();
   refreshVid();renderChans();resize();if(!S.playing)draw(now());};
 $("#mediaPick").onclick=()=>$("#fileMedia").click();
 $$("#mediaBox .seg button").forEach(b=>b.onclick=()=>{
-  S.screens[S.sel].fit=b.dataset.fit;
+  apply(s=>s.fit=b.dataset.fit);
   $$("#mediaBox .seg button").forEach(x=>x.classList.toggle("on",x===b));
   if(!S.playing)draw(now());});
 $$("#tintRow .seg button").forEach(b=>b.onclick=()=>{
-  S.screens[S.sel].col=b.dataset.col;
+  apply(s=>s.col=b.dataset.col);
   $$("#tintRow .seg button").forEach(x=>x.classList.toggle("on",x===b));
   if(!S.playing)draw(now());});
-$("#vin").oninput=e=>{const s=S.screens[S.sel];s.vin=+e.target.value;
-  const d=vDur(s);if(d)s.vlen=Math.min(vLen(s),d-vIn(s));
-  refreshVid();previewSeek(s);if(!S.playing)draw(now());};
-$("#vlen").oninput=e=>{const s=S.screens[S.sel];s.vlen=+e.target.value;
+$("#vin").oninput=e=>{const v=+e.target.value;
+  apply(s=>{ if(!isVid(s))return;
+    s.vin=v;const d=vDur(s);if(d)s.vlen=Math.min(vLen(s),d-vIn(s)); });
+  refreshVid();selScreens().forEach(previewSeek);if(!S.playing)draw(now());};
+$("#vlen").oninput=e=>{const v=+e.target.value;
+  apply(s=>{if(isVid(s))s.vlen=v;});
   refreshVid();if(!S.playing)draw(now());};
-$("#vrate").oninput=e=>{const s=S.screens[S.sel];s.vrate=+e.target.value/100;
-  if(isVid(s))s.el.playbackRate=vRate(s);refreshVid();};
-$("#vfit").onclick=()=>{const s=S.screens[S.sel];
-  s.vrate=Math.max(.1,Math.min(8,vLen(s)/+$("#secs").value));
-  if(isVid(s))s.el.playbackRate=vRate(s);refreshVid();};
+$("#vrate").oninput=e=>{const v=+e.target.value/100;
+  apply(s=>{if(isVid(s)){s.vrate=v;s.el.playbackRate=vRate(s);}});
+  refreshVid();};
+$("#vfit").onclick=()=>{const secs=+$("#secs").value;
+  apply(s=>{if(isVid(s)){s.vrate=Math.max(.1,Math.min(8,vLen(s)/secs));
+    s.el.playbackRate=vRate(s);}});
+  refreshVid();};
 ["aged","gain"].forEach(k=>$("#"+k).oninput=e=>{
-  S.screens[S.sel][k]=+e.target.value;$("#"+k+"V").textContent=e.target.value;
+  const v=+e.target.value;apply(s=>s[k]=v);
+  $("#"+k+"V").textContent=e.target.value;
   if(!S.playing)draw(now());});
 ["scan","grain","sweep","flick"].forEach(k=>$("#"+k).oninput=e=>{
   $("#"+k+"V").textContent=e.target.value;if(!S.playing)draw(now());});
@@ -689,28 +753,69 @@ function loop(){if(!S.playing)return;syncVideos();draw(now());requestAnimationFr
 $("#pick").onclick=()=>$("#fileImg").click();
 $("#fileImg").onchange=e=>e.target.files[0]&&loadWall(e.target.files[0]);
 $("#fileMedia").onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;
-  const s=S.screens[S.sel];
-  const url=URL.createObjectURL(f);
-  if(f.type.startsWith("video")){
-    const v=document.createElement("video");
-    v.src=url;v.loop=true;v.muted=true;v.playsInline=true;
-    await new Promise(r=>{v.onloadeddata=r;v.onerror=r;});
-    const d=isFinite(v.duration)&&v.duration>0?v.duration:0;
-    s.el=v;s.vdur=d;s.vin=0;s.vlen=d||+$("#secs").value;s.vrate=1;
-    v.playbackRate=1;
-    if(S.playing)v.play().catch(()=>{});
-  }else{
-    const im=new Image();im.src=url;await im.decode();
-    s.el=im;s.vdur=0;s.vin=0;s.vlen=0;s.vrate=1;
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  const targets=selScreens();if(!targets.length)return;
+  const vid=f.type.startsWith("video")||/\.(mp4|webm|mov|m4v|ogv)$/i.test(f.name);
+  const key="m"+(++S.mid);
+  let saved=true;await idbPut(key,f).catch(()=>{saved=false;noSave();});
+  let shared=null;
+  for(let j=0;j<targets.length;j++){
+    const s=targets[j];
+    if(targets.length>1)busy("cargando archivo",`pantalla ${j+1} de ${targets.length}`,j/targets.length);
+    // cada vídeo lleva su propio elemento, para que el recorte sea independiente;
+    // las fotos no guardan estado y pueden compartir el mismo
+    const el=vid?await elFromBlob(f):(shared=shared||await elFromBlob(f));
+    const d=vid&&isFinite(el.duration)&&el.duration>0?el.duration:0;
+    Object.assign(s,{el,media:f.name,role:"media",mkey:saved?key:null,
+      vdur:d,vin:0,vlen:d||+$("#secs").value,vrate:1});
+    if(vid){el.playbackRate=1;if(S.playing)el.play().catch(()=>{});}
   }
-  s.media=f.name;s.role="media";
-  s.mkey="m"+(++S.mid);await idbPut(s.mkey,f).catch(()=>{s.mkey=null;noSave();});
+  busy(false);
   $("#mediaName").textContent=f.name;$("#role").value="media";
   $("#mediaBox").style.display="block";refreshVid();
-  e.target.value="";renderChans();resize();if(!S.playing)draw(now());
+  renderChans();resize();if(!S.playing)draw(now());
   autosave();
 };
+
+/* ── atajos de muro ──────────────────────────────────────────────── */
+$("#selAll").onclick =()=>setSel(S.screens.map((_,i)=>i));
+$("#selNone").onclick=()=>setSel([]);
+$("#selInv").onclick =()=>setSel(S.screens.map((_,i)=>i).filter(i=>!S.selSet.has(i)));
+$("#bulkMedia").onclick=()=>{
+  if(!S.screens.length)return;
+  if(!S.selSet.size)setSel(S.screens.map((_,i)=>i));
+  $("#fileMedia").click();
+};
+$("#bulkApply").onclick=()=>{
+  if(!S.screens.length)return;
+  const v=$("#bulkRole").value;
+  const list=S.selSet.size?selScreens():S.screens;
+  list.forEach((s,j)=>{
+    if(v!=="mix"){s.role=v;return;}
+    const pool=s.wing?["static","flat","off"]:["logo","static","flat","off","roll"];
+    s.role=pool[(j*3+s.i)%pool.length];
+  });
+  syncPanel();autosave();
+};
+const DEF={secs:10,scan:42,grain:34,sweep:30,flick:35};
+$("#resetAll").onclick=()=>{
+  if(!S.screens.length)return;
+  if(!confirm("Todas las pantallas vuelven a su estado inicial, se sueltan las fotos y "+
+              "vídeos cargados y las texturas vuelven a los valores de fábrica. ¿Seguir?"))return;
+  S.screens.forEach(s=>Object.assign(s,{role:s.role0,media:null,el:null,mkey:null,
+    fit:"cover",aged:70,gain:100,col:"cream",vdur:0,vin:0,vlen:0,vrate:1}));
+  for(const k in DEF)$("#"+k).value=DEF[k];
+  ["scan","grain","sweep","flick"].forEach(k=>$("#"+k+"V").textContent=$("#"+k).value);
+  $("#secsV").textContent=$("#secs").value+" s";
+  S.selSet=new Set();S.sel=-1;
+  updRes();syncPanel();autosave();
+};
+addEventListener("keydown",e=>{
+  if(!S.screens.length)return;
+  if(e.key==="Escape"){setSel([]);}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a"){
+    e.preventDefault();setSel(S.screens.map((_,i)=>i));}
+});
 const dz=$("#drop");
 ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{
   e.preventDefault();dz.classList.add("over");}));
