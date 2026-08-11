@@ -273,6 +273,22 @@ body:not(.scene) .mode-scene{display:none}
         <div class="row"><label>Brillo</label>
           <input type="range" id="gain" min="20" max="180" value="100">
           <span class="val" id="gainV">100</span></div>
+        <div class="row"><label>Ruido</label>
+          <select id="nz">
+            <option value="no">Ninguno</option>
+            <option value="grano">Grano fino</option>
+            <option value="vhs">Rayas de VHS</option>
+            <option value="both">Grano y rayas</option>
+          </select></div>
+        <div id="nzBox" style="display:none">
+          <div class="row"><label>Cantidad</label>
+            <input type="range" id="nzA" min="5" max="100" value="45">
+            <span class="val" id="nzAV">45</span></div>
+          <p class="hint">El ruido va por encima de lo que emita cada tele, también sobre el
+            <b>logo original</b> y el <b>color plano</b>, que si no se quedan demasiado quietos.
+            El <b>grano</b> hierve en toda la pantalla; las <b>rayas</b> son bandas que suben
+            arrastrando la imagen de lado, como una cinta mal seguida.</p>
+        </div>
       </div>
     </div>
 
@@ -323,6 +339,9 @@ body:not(.scene) .mode-scene{display:none}
       <div class="row"><label>Fotogramas</label>
         <select id="fps"><option>24</option><option selected>30</option><option>25</option>
         <option>50</option><option>60</option></select></div>
+      <div class="row"><label>Formato de vídeo</label>
+        <select id="vfmt"></select></div>
+      <p class="hint" id="vfmtNote"></p>
       <p class="hint" id="resNote"></p>
     </div>
 
@@ -614,6 +633,71 @@ function previewSeek(s){                    // con el muro en pausa
   v.currentTime=vTime(s,now(),+$("#secs").value);
 }
 
+/* ── ruido propio de cada televisor ──────────────────────────────────
+   Dos sabores, que se pueden sumar:
+     · grano  — la emulsión hierve y el tubo respira, para que el logo o
+                el color plano no se queden clavados.
+     · rayas  — bandas de VHS que suben arrastrando la imagen de lado.
+   Todo avanza a saltos enteros dentro de t∈[0,1), así que el bucle
+   exportado sigue encadenando sin salto.                              */
+const nzAmt=s=>s&&s.nz&&s.nz!=="no"?(s.nzA==null?45:s.nzA)/100:0;
+function tvNoise(g,c,w,h,t,s,p,SC){
+  const a=nzAmt(s); if(a<=0)return;
+  const secs=Math.max(1,Math.round(p.secs));
+  // ruido repetible: el mismo fotograma da siempre el mismo grano
+  const R=n=>{const v=Math.sin(n*12.9898+s.ph*78.233+s.i*1.7)*43758.5453;
+              return v-Math.floor(v);};
+
+  if((s.nz==="grano"||s.nz==="both")&&GRAIN.length){
+    const NS=GRAIN.length*secs*2;                 // 12 saltos por segundo
+    const st=Math.floor(t*NS)%NS;
+    const tl=GRAIN[st%GRAIN.length];
+    g.save();
+    g.translate(-Math.round(R(st+1)*tl.width),-Math.round(R(st+7)*tl.height));
+    g.globalCompositeOperation="overlay";
+    g.globalAlpha=Math.min(.85,.36*a);
+    g.fillStyle=g.createPattern(tl,"repeat");
+    g.fillRect(0,0,w+tl.width,h+tl.height);
+    g.restore();
+    const fl=.09*a*Math.sin(6.283*(t*(2+(s.k||1))+s.ph))+.05*a*(R(st+3)-.5);
+    g.globalCompositeOperation=fl>0?"lighter":"multiply";
+    g.globalAlpha=Math.min(.6,Math.abs(fl));
+    g.fillStyle=fl>0?"#FFF4E1":"#6B6259";
+    g.fillRect(0,0,w,h);
+    g.globalAlpha=1;g.globalCompositeOperation="source-over";
+  }
+
+  if(s.nz==="vhs"||s.nz==="both"){
+    const px=Math.max(1,Math.round(SC));
+    const NB=2+Math.round(3*a);                   // más ruido, más bandas
+    const stT=TILES.length?Math.floor(t*TILES.length*secs)%TILES.length:0;
+    for(let i=0;i<NB;i++){
+      const spd=1+((i*2+1)%5);                    // vueltas enteras por bucle
+      const bh=Math.max(2*px,Math.round(h*(.02+.10*R(i+1))*(.4+.8*a)));
+      const yb=Math.round(((t*spd+s.ph*3+i*.37)%1)*(h+bh))-bh;
+      const y0=Math.max(0,yb), y1=Math.min(h,yb+bh);
+      if(y1<=y0)continue;
+      const sh=y1-y0;
+      const dx=Math.round((1+9*a*R(i+9))*SC)*(R(i+5)<.5?-1:1);
+      g.drawImage(c,0,y0,w,sh,dx,y0,w,sh);        // la banda arrastra la imagen
+      g.save();
+      g.beginPath();g.rect(0,y0,w,sh);g.clip();
+      if(TILES.length){                           // nieve dentro de la banda
+        g.globalCompositeOperation="lighter";
+        g.globalAlpha=.08+.20*a;
+        g.fillStyle=g.createPattern(TILES[(stT+i)%TILES.length],"repeat");
+        g.fillRect(0,y0,w,sh);
+      }
+      g.globalCompositeOperation="source-over";
+      g.globalAlpha=1;
+      g.fillStyle=`rgba(255,244,225,${.05+.10*a})`;g.fillRect(0,y0,w,sh);
+      g.restore();
+      g.fillStyle=`rgba(0,0,0,${.22+.34*a})`;     // el corte de arriba de la banda
+      g.fillRect(0,y0,w,px);
+    }
+  }
+}
+
 function screenContent(s,t,SC,p){
   const w=Math.round(s.w*SC),h=Math.round(s.h*SC);
   const c=newCv(w,h),g=c.getContext("2d");
@@ -697,8 +781,12 @@ function screenContent(s,t,SC,p){
     g.globalAlpha=(.10+.05*Math.sin(TAU*(tt*s.k+s.ph))+.55*fl)*gain;
     g.drawImage(S.plate,s.x,s.y,s.w,s.h,0,0,w,h);
     g.globalAlpha=1;vignette(g,w,h,.5);
-  } else return null;                      // 'logo' → se deja la placa original
+  } else if(s.role==="logo"){
+    if(nzAmt(s)<=0)return null;            // sin ruido, se deja la placa original
+    g.drawImage(S.plate,s.x,s.y,s.w,s.h,0,0,w,h);
+  } else return null;
 
+  tvNoise(g,c,w,h,t,s,p,SC);
   g.globalCompositeOperation="destination-in";
   g.drawImage(s.mask,0,0,w,h);
   return c;
