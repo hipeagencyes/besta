@@ -74,6 +74,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border:none;border-ra
 select,input[type=number],input[type=text]{background:var(--panel2);
   border:1px solid var(--line);padding:6px 8px;flex:1.4;min-width:0}
 input[type=text]:focus{outline:none;border-color:var(--orange)}
+input[type=color]{flex:1.4;height:28px;padding:2px;min-width:0;cursor:pointer;
+  background:var(--panel2);border:1px solid var(--line)}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+input[type=color]::-webkit-color-swatch{border:none}
 .seg{display:flex;border:1px solid var(--line)}
 .seg button{flex:1;background:var(--panel2);border:none;border-right:1px solid var(--line);
   padding:7px 4px;cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--muted)}
@@ -175,6 +179,17 @@ body:not(.scene) .mode-scene{display:none}
       <div class="row"><label>Brillo del fondo</label>
         <input type="range" id="bgGain" min="20" max="150" value="100">
         <span class="val" id="bgGainV">100</span></div>
+      <div class="row"><label>Opacidad del fondo</label>
+        <input type="range" id="bgOp" min="0" max="100" value="100">
+        <span class="val" id="bgOpV">100</span></div>
+      <div class="row"><label>Color de debajo</label>
+        <input type="color" id="bgCol" value="#0a0908"></div>
+      <div class="row"><label>&nbsp;</label>
+        <div class="seg" style="flex:1.4">
+          <button data-bgc="#0a0908" title="Negro">Negro</button>
+          <button data-bgc="#e8dcc5" title="Crema">Crema</button>
+          <button data-bgc="#ce602a" title="Naranja">Naranja</button>
+        </div></div>
       <div class="row"><button class="btn pri" id="addLayer" style="flex:1">Añadir elementos PNG</button></div>
       <p class="hint">Arrastra los PNG sobre el lienzo para colocarlos. Cada elemento flota
         por su cuenta y el bucle cierra sin salto.</p>
@@ -419,7 +434,8 @@ const S={img:null,plate:null,PW:0,PH:0,PAD:0,screens:[],sel:-1,selSet:new Set(),
          playing:false,t0:0,mid:0,wallPW:0,wallPH:0};
 /* modo «portada flotante»: un fondo y N elementos PNG a la deriva */
 let MODE="wall";
-const V={bg:null,bgName:"",bgKey:null,fill:"blur",gain:100,layers:[],sel:-1,lid:0};
+const V={bg:null,bgName:"",bgKey:null,fill:"blur",gain:100,op:100,col:"#0a0908",
+         layers:[],sel:-1,lid:0};
 
 /* ══ 1. morfología y detección ══════════════════════════════════════ */
 function minF(src,w,h,r){
@@ -543,7 +559,7 @@ async function loadWall(file,keep){
             role:"logo",media:null,el:null,fit:"cover",aged:70,gain:100,
             col:"cream",ph:Math.random(),k:1+((Math.random()*3)|0),
             vdur:0,vin:0,vlen:0,vrate:1,rate:1,mkey:null,
-            txt:"@besta_oficial",tsize:100};
+            txt:"@besta_oficial",tsize:100,nz:"no",nzA:45};
   });
   // los laterales espejados nunca muestran el logo del revés
   screens.forEach((s,j)=>{ if(s.wing) s.role=["static","flat","off","static"][j%4];
@@ -659,7 +675,7 @@ function tvNoise(g,c,w,h,t,s,p,SC){
     g.fillStyle=g.createPattern(tl,"repeat");
     g.fillRect(0,0,w+tl.width,h+tl.height);
     g.restore();
-    const fl=.09*a*Math.sin(6.283*(t*(2+(s.k||1))+s.ph))+.05*a*(R(st+3)-.5);
+    const fl=.09*a*Math.sin(TAU*(t*(2+(s.k||1))+s.ph))+.05*a*(R(st+3)-.5);
     g.globalCompositeOperation=fl>0?"lighter":"multiply";
     g.globalAlpha=Math.min(.6,Math.abs(fl));
     g.fillStyle=fl>0?"#FFF4E1":"#6B6259";
@@ -850,8 +866,8 @@ function draw(t){
 
   for(const s of S.screens){
     const c=screenContent(s,t,SC,p);
-    if(c){ctx.drawImage(c,Math.round(s.x*SC),Math.round(s.y*SC));}
-    else if(p.flick>0){                      // parpadeo sutil del logo
+    if(c)ctx.drawImage(c,Math.round(s.x*SC),Math.round(s.y*SC));
+    if(s.role==="logo"&&p.flick>0){          // parpadeo sutil del logo
       const f=.028*p.flick*Math.sin(TAU*(t*s.k+s.ph));
       ctx.globalCompositeOperation=f>0?"lighter":"multiply";
       ctx.globalAlpha=Math.abs(f);
@@ -895,23 +911,25 @@ function drawScene(t){
   if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
   ctx.setTransform(1,0,0,1,0,0);
   ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1;ctx.filter="none";
-  ctx.fillStyle="#070605";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=V.col||"#0a0908";ctx.fillRect(0,0,W,H);   // color de debajo
 
-  if(V.bg){
+  if(V.bg&&V.op>0){
     const r=V.bg.naturalWidth/V.bg.naturalHeight, dr=W/H;
-    const bg=V.gain/100;
+    const br=V.gain/100, op=V.op/100;
     if(V.fill==="blur"){                       // los lados, la propia portada difuminada
       let dw,dh; if(r>dr){dh=H;dw=H*r;}else{dw=W;dh=W/r;}
-      ctx.filter=`blur(${Math.max(4,Math.round(28*SC))}px) brightness(${.5*bg}) saturate(.8)`;
+      ctx.globalAlpha=op;
+      ctx.filter=`blur(${Math.max(4,Math.round(28*SC))}px) brightness(${.5*br}) saturate(.8)`;
       ctx.drawImage(V.bg,(W-dw)/2,(H-dh)/2,dw,dh);
-      ctx.filter="none";
+      ctx.filter="none";ctx.globalAlpha=1;
     }
     let dw,dh;
     if(V.fill==="crop"){ if(r>dr){dh=H;dw=H*r;}else{dw=W;dh=W/r;} }   // cubrir
     else { if(r>dr){dw=W;dh=W/r;}else{dh=H;dw=H*r;} }                 // entera
-    ctx.globalAlpha=Math.min(1,bg);
+    ctx.globalAlpha=op;
+    if(br!==1)ctx.filter=`brightness(${br})`;
     ctx.drawImage(V.bg,(W-dw)/2,(H-dh)/2,dw,dh);
-    ctx.globalAlpha=1;
+    ctx.filter="none";ctx.globalAlpha=1;
   }
 
   for(const L of V.layers){
@@ -973,7 +991,8 @@ function renderChans(){
     const dot=s.role==="media"?"media":s.role==="logo"||s.role==="text"?"logo":"";
     return `<div class="chan${S.selSet.has(i)?" on":""}" data-i="${i}">
       <span class="d ${dot}"></span><span class="n">${String(s.i).padStart(2,"0")}</span>
-      <span class="r">${lbl}</span><span class="sz">${s.cw}×${s.ch}</span></div>`;
+      <span class="r">${lbl}${nzAmt(s)>0?(s.nz==="grano"?" · grano":s.nz==="vhs"?" · rayas":" · ruido"):""}</span>
+      <span class="sz">${s.cw}×${s.ch}</span></div>`;
   }).join("");
   $$("#chans .chan").forEach(e=>
     e.onclick=ev=>select(+e.dataset.i,ev.ctrlKey||ev.metaKey||ev.shiftKey));
@@ -1019,6 +1038,9 @@ function syncPanel(){
   $("#mediaName").textContent=s.media||"Sin archivo";
   $("#aged").value=s.aged;$("#agedV").textContent=s.aged;
   $("#gain").value=s.gain;$("#gainV").textContent=s.gain;
+  $("#nz").value=s.nz||"no";
+  $("#nzBox").style.display=nzAmt(s)>0||(s.nz&&s.nz!=="no")?"block":"none";
+  $("#nzA").value=s.nzA==null?45:s.nzA;$("#nzAV").textContent=$("#nzA").value;
   $$("#mediaBox .seg button").forEach(b=>b.classList.toggle("on",b.dataset.fit===s.fit));
   $$("#tintRow .seg button").forEach(b=>b.classList.toggle("on",b.dataset.col===s.col));
   refreshVid();
@@ -1086,6 +1108,13 @@ $("#txt").oninput=e=>{const v=e.target.value;
 $("#txtSize").oninput=e=>{const v=+e.target.value;
   apply(s=>{if(s.role==="text")s.tsize=v;});
   $("#txtSizeV").textContent=v+" %";if(!S.playing)draw(now());};
+$("#nz").onchange=e=>{const v=e.target.value;
+  apply(s=>s.nz=v);
+  $("#nzBox").style.display=v==="no"?"none":"block";
+  renderChans();if(!S.playing)draw(now());};
+$("#nzA").oninput=e=>{const v=+e.target.value;
+  apply(s=>s.nzA=v);
+  $("#nzAV").textContent=v;if(!S.playing)draw(now());};
 
 /* ── cinta del muro ─────────────────────────────────────────────── */
 function tickUI(){
@@ -1116,7 +1145,7 @@ $("#rate").oninput=e=>{const v=+e.target.value/100;
 ["scan","grain","sweep","flick"].forEach(k=>$("#"+k).oninput=e=>{
   $("#"+k+"V").textContent=e.target.value;if(!S.playing)draw(now());});
 $("#secs").oninput=e=>{$("#secsV").textContent=e.target.value+" s";updRes();refreshVid();};
-$("#fps").onchange=updRes;
+$("#fps").onchange=()=>{updRes();fmtUI();};   // el comando de ffmpeg lleva los fps
 $("#scale").onchange=()=>{updRes();if(!S.playing)draw(now());};
 $("#aspect").onchange=()=>{
   if(MODE==="scene"){sceneDims();updRes();resize();if(!S.playing)draw(now());autosave();return;}
@@ -1232,6 +1261,8 @@ function syncLay(){
   $("#bgName").textContent=V.bgName||"Sin fondo";
   $$("[data-fill]").forEach(b=>b.classList.toggle("on",b.dataset.fill===V.fill));
   $("#bgGain").value=V.gain;$("#bgGainV").textContent=V.gain;
+  $("#bgOp").value=V.op;$("#bgOpV").textContent=V.op;
+  $("#bgCol").value=V.col;
   if(!L)return;
   $("#lSize").value=L.s;   $("#lSizeV").textContent=L.s+" %";
   $("#lOp").value=L.op;    $("#lOpV").textContent=L.op;
@@ -1260,6 +1291,11 @@ $$("[data-fill]").forEach(b=>b.onclick=()=>{V.fill=b.dataset.fill;syncLay();
   if(!S.playing)draw(now());});
 $("#bgGain").oninput=e=>{V.gain=+e.target.value;$("#bgGainV").textContent=V.gain;
   if(!S.playing)draw(now());};
+$("#bgOp").oninput=e=>{V.op=+e.target.value;$("#bgOpV").textContent=V.op;
+  if(!S.playing)draw(now());};
+$("#bgCol").oninput=e=>{V.col=e.target.value;if(!S.playing)draw(now());};
+$$("[data-bgc]").forEach(b=>b.onclick=()=>{V.col=b.dataset.bgc;
+  $("#bgCol").value=V.col;if(!S.playing)draw(now());});
 $("#lUp").onclick=()=>{const i=V.sel;if(i<0||i>=V.layers.length-1)return;
   [V.layers[i],V.layers[i+1]]=[V.layers[i+1],V.layers[i]];selectLayer(i+1);autosave();};
 $("#lDown").onclick=()=>{const i=V.sel;if(i<1)return;
@@ -1345,7 +1381,7 @@ $("#resetAll").onclick=()=>{
               "vídeos cargados y las texturas vuelven a los valores de fábrica. ¿Seguir?"))return;
   S.screens.forEach(s=>Object.assign(s,{role:s.role0,media:null,el:null,mkey:null,
     fit:"cover",aged:70,gain:100,col:"cream",rate:1,vdur:0,vin:0,vlen:0,vrate:1,
-    txt:"@besta_oficial",tsize:100}));
+    txt:"@besta_oficial",tsize:100,nz:"no",nzA:45}));
   Object.assign(TICK,{on:false,txt:"@besta_oficial",pos:"bottom",rate:1,h:6,col:"cream"});
   tickUI();
   for(const k in DEF)$("#"+k).value=DEF[k];
@@ -1404,29 +1440,130 @@ function save(blob,name){
   document.body.appendChild(a);a.click();a.remove();
 }
 
-$("#expVid").onclick=async()=>{
-  const p=P(),N=p.secs*p.fps;
-  const wasPlaying=S.playing;S.playing=false;$("#play").textContent="▶ Reproducir";
+/* ── formatos de salida ──────────────────────────────────────────────
+   Lo que hay depende del navegador: Chrome y Safari ya graban MP4 con
+   H.264; el WebM lo traga casi todo. La secuencia PNG no pasa por el
+   grabador, así que sale sin pérdida y sirve de fuente para ffmpeg.   */
+const VFMT=[
+  {id:"mp4",  ext:"mp4", lbl:"MP4 · H.264 — el que traga todo el mundo",
+   t:["video/mp4;codecs=avc1.42E01E","video/mp4;codecs=avc1","video/mp4;codecs=h264","video/mp4"]},
+  {id:"webm9",ext:"webm",lbl:"WebM · VP9 — más nitidez, menos compatible",
+   t:["video/webm;codecs=vp9","video/webm"]},
+  {id:"webm8",ext:"webm",lbl:"WebM · VP8 — el más compatible de los WebM",
+   t:["video/webm;codecs=vp8"]},
+  {id:"png",  ext:"zip", lbl:"Secuencia PNG (ZIP) — sin pérdida, para montar",t:null}
+];
+const recType=f=>f.t&&typeof MediaRecorder!=="undefined"
+  ? f.t.find(x=>{try{return MediaRecorder.isTypeSupported(x);}catch(e){return false;}})
+  : null;
+const VF=VFMT.filter(f=>!f.t||recType(f));
+$("#vfmt").innerHTML=VF.map(f=>`<option value="${f.id}">${f.lbl}</option>`).join("");
+const curFmt=()=>VF.find(f=>f.id===$("#vfmt").value)||VF[0];
+function fmtUI(){
+  const f=curFmt();
+  if($("#vfmt").value!==f.id)$("#vfmt").value=f.id;   // el guardado podía no existir aquí
+  $("#expVid").textContent=f.id==="png"?"Exportar PNG":"Exportar "+f.ext.toUpperCase();
+  $("#vfmtNote").innerHTML=f.id==="png"
+    ? `Un PNG por fotograma dentro de un ZIP, tal cual sale del lienzo. Pesa mucho, pero
+       entra en cualquier montaje y de ahí sacas el MP4 que quieras:
+       <b>ffmpeg -framerate ${P().fps} -i besta-%04d.png -c:v libx264 -pix_fmt yuv420p muro.mp4</b>`
+    : f.ext==="mp4"
+      ? `El MP4 va en H.264 y lo abre cualquier móvil, Instagram incluido. Si algún programa
+         viejo se atraganta, tira de WebM o de la secuencia PNG.`
+      : `WebM: pesa poco y se ve muy limpio en el navegador, pero algunas apps (y varios
+         móviles) no lo reproducen. Para redes, mejor MP4.`;
+}
+$("#vfmt").onchange=fmtUI;
+fmtUI();
+
+/* ZIP sin comprimir: los PNG ya vienen comprimidos por dentro */
+const CRCT=(()=>{const T=new Uint32Array(256);
+  for(let n=0;n<256;n++){let c=n;
+    for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;
+    T[n]=c>>>0;}
+  return T;})();
+function crc32(u8){let c=0xFFFFFFFF;
+  for(let i=0;i<u8.length;i++)c=CRCT[(c^u8[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;}
+function zipStore(files){
+  const te=new TextEncoder(),body=[],dir=[];let off=0,dl=0;
+  for(const f of files){
+    const nm=te.encode(f.name),n=f.data.length,crc=crc32(f.data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,n,true);lh.setUint32(22,n,true);
+    lh.setUint16(26,nm.length,true);
+    body.push(new Uint8Array(lh.buffer),nm,f.data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);
+    ch.setUint32(16,crc,true);ch.setUint32(20,n,true);ch.setUint32(24,n,true);
+    ch.setUint16(28,nm.length,true);ch.setUint32(42,off,true);
+    dir.push(new Uint8Array(ch.buffer),nm);
+    off+=30+nm.length+n; dl+=46+nm.length;
+  }
+  const end=new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true);
+  end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);
+  end.setUint32(12,dl,true);end.setUint32(16,off,true);
+  return new Blob([...body,...dir,new Uint8Array(end.buffer)],{type:"application/zip"});
+}
+
+function stopPlay(){
+  const was=S.playing;S.playing=false;$("#play").textContent="▶ Reproducir";
   S.screens.forEach(s=>{if(s.el&&s.el.tagName==="VIDEO")s.el.pause();});
+  return was;
+}
+$("#expVid").onclick=async()=>{
+  const f=curFmt();
+  if(!f){alert("Este navegador no sabe grabar vídeo desde el lienzo.");return;}
+  if(f.id==="png")return expPNG();
+  const p=P(),N=p.secs*p.fps;
+  const wasPlaying=stopPlay();
   draw(0);
   const stream=cv.captureStream(0),track=stream.getVideoTracks()[0];
-  const type=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"]
-    .find(t=>MediaRecorder.isTypeSupported(t));
+  const type=recType(f);
   const rec=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:60e6});
   const parts=[];rec.ondataavailable=e=>e.data.size&&parts.push(e.data);
   const done=new Promise(r=>rec.onstop=r);
   rec.start();
-  for(let f=0;f<N;f++){
-    const t=f/N;
+  for(let f2=0;f2<N;f2++){
+    const t=f2/N;
     await seekAll(t,p.secs);
     draw(t);
     track.requestFrame();
-    if(f%3===0){busy("grabando vídeo",`fotograma ${f+1} de ${N}`,f/N);await wait(0);}
+    if(f2%3===0){busy("grabando vídeo",`fotograma ${f2+1} de ${N}`,f2/N);await wait(0);}
   }
   await wait(200);rec.stop();await done;busy(false);
-  save(new Blob(parts,{type:"video/webm"}),`besta-muro-${stamp()}.webm`);
+  save(new Blob(parts,{type}),`besta-muro-${stamp()}.${f.ext}`);
   if(wasPlaying)$("#play").click();
 };
+
+/* secuencia de PNG: sin grabador de por medio, calidad intacta */
+async function expPNG(){
+  const p=P(),N=p.secs*p.fps;
+  const wasPlaying=stopPlay();
+  const files=[];let avisado=false;
+  for(let f=0;f<N;f++){
+    const t=f/N;await seekAll(t,p.secs);draw(t);
+    const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+    if(!blob){busy(false);alert("El navegador no ha podido guardar el fotograma.");return;}
+    files.push({name:`besta-${String(f).padStart(4,"0")}.png`,
+                data:new Uint8Array(await blob.arrayBuffer())});
+    if(!avisado&&f===4){                    // con cinco fotogramas ya se sabe lo que pesa
+      avisado=true;
+      const est=Math.round(blob.size*N/1e6);
+      if(est>600&&!confirm(`La secuencia va a pesar unos ${est} MB y hay que tenerla entera `+
+        `en memoria antes de guardarla. Con esto el navegador puede quedarse sin aire: si `+
+        `quieres, cancela y baja la resolución, los segundos o los fotogramas.\n\n¿Sigo?`)){
+        busy(false);if(wasPlaying)$("#play").click();return; }
+    }
+    busy("guardando fotogramas",`${f+1} de ${N}`,f/N*.96);await wait(0);
+  }
+  busy("montando el ZIP",`${files.length} fotogramas`,.98);await wait(0);
+  save(zipStore(files),`besta-muro-${stamp()}-png.zip`);
+  busy(false);
+  if(wasPlaying)$("#play").click();
+}
 
 let gifLib=null;
 async function loadGif(){
@@ -1472,12 +1609,14 @@ $("#expCfg").onclick=()=>{
     cinta:{...TICK},
     modo:MODE,
     portada:MODE==="scene"||V.bg?{fondo:V.bgName,relleno:V.fill,brillo:V.gain,
+      opacidad:V.op,colorDebajo:V.col,
       elementos:V.layers.map(L=>({nombre:L.name,x:+L.x.toFixed(4),y:+L.y.toFixed(4),
         tamano:L.s,opacidad:L.op,deriva:L.amp,vueltas:L.spd,balanceo:L.rot,
         respiracion:L.br,epoca:L.aged}))}:null,
     pantallas:S.screens.map(s=>({n:s.i,x:s.cx,y:s.cy,w:s.cw,h:s.ch,rol:s.role,
       archivo:s.media,encuadre:s.fit,epoca:s.aged,brillo:s.gain,color:s.col,
       velocidad:+sRate(s).toFixed(2),
+      ruido:{tipo:s.nz||"no",cantidad:s.nzA==null?45:s.nzA},
       texto:s.role==="text"?{texto:s.txt,tamano:s.tsize||100}:null,
       video:isVid(s)?{inicio:+vIn(s).toFixed(2),duracion:+vLen(s).toFixed(2),
                       velocidad:+vRate(s).toFixed(2)}:null}))};
@@ -1521,6 +1660,8 @@ $("#fileCfg").onchange=async e=>{
     if(a.brillo!=null)best.gain=a.brillo;
     if(a.color)best.col=a.color;
     if(a.velocidad!=null)best.rate=a.velocidad;
+    if(a.ruido){ best.nz=a.ruido.tipo||"no";
+      if(a.ruido.cantidad!=null)best.nzA=a.ruido.cantidad; }
     if(a.texto){best.txt=a.texto.texto;best.tsize=a.texto.tamano||100;}
     if(a.video){best.vin=a.video.inicio||0;
       best.vlen=a.video.duracion||best.vlen;best.vrate=a.video.velocidad||1;
@@ -1533,6 +1674,8 @@ $("#fileCfg").onchange=async e=>{
   if(cfg.portada){                       // los PNG no viajan en el JSON, sí su colocación
     V.fill=cfg.portada.relleno||V.fill;
     if(cfg.portada.brillo!=null)V.gain=cfg.portada.brillo;
+    if(cfg.portada.opacidad!=null)V.op=cfg.portada.opacidad;
+    if(cfg.portada.colorDebajo)V.col=cfg.portada.colorDebajo;
     (cfg.portada.elementos||[]).forEach((a,i)=>{
       const L=V.layers[i];if(!L)return;
       Object.assign(L,{x:a.x,y:a.y,s:a.tamano,op:a.opacidad,amp:a.deriva,
@@ -1578,15 +1721,17 @@ async function idbClear(){const d=await db();return new Promise((ok,no)=>{
   const tx=d.transaction("f","readwrite");tx.objectStore("f").clear();
   tx.oncomplete=()=>ok();tx.onerror=()=>no(tx.error);});}
 
-const UIK=["aspect","scale","secs","fps","scan","grain","sweep","flick"];
+const UIK=["aspect","scale","secs","fps","scan","grain","sweep","flick","vfmt"];
 function snapshot(){
   const ui={};UIK.forEach(k=>ui[k]=$("#"+k).value);
   return {v:1,mid:S.mid,ui,tick:{...TICK},mode:MODE,
-    scene:{fill:V.fill,gain:V.gain,bgName:V.bgName,bgKey:V.bgKey,lid:V.lid,sel:V.sel,
+    scene:{fill:V.fill,gain:V.gain,op:V.op,col:V.col,
+      bgName:V.bgName,bgKey:V.bgKey,lid:V.lid,sel:V.sel,
       layers:V.layers.map(L=>({name:L.name,mkey:L.mkey,x:L.x,y:L.y,s:L.s,op:L.op,
         amp:L.amp,spd:L.spd,rot:L.rot,br:L.br,aged:L.aged,ph:L.ph}))},
     screens:S.screens.map(s=>({role:s.role,fit:s.fit,aged:s.aged,gain:s.gain,col:s.col,
       ph:s.ph,k:s.k,rate:s.rate,txt:s.txt,tsize:s.tsize,media:s.media,mkey:s.mkey,
+      nz:s.nz,nzA:s.nzA,
       vdur:s.vdur,vin:s.vin,vlen:s.vlen,vrate:s.vrate}))};
 }
 function autosave(){
@@ -1624,6 +1769,7 @@ async function restore(){
   if(cfg&&cfg.ui){ UIK.forEach(k=>{ if(cfg.ui[k]!=null)$("#"+k).value=cfg.ui[k]; });
     ["scan","grain","sweep","flick"].forEach(k=>$("#"+k+"V").textContent=$("#"+k).value);
     $("#secsV").textContent=$("#secs").value+" s";
+    fmtUI();                       // el formato guardado puede no estar en este navegador
     S.mid=cfg.mid||0;
   }
   if(wall)await loadWall(wall,true);
@@ -1633,6 +1779,7 @@ async function restore(){
     Object.assign(s,{role:a.role,fit:a.fit,aged:a.aged,gain:a.gain,col:a.col,
       ph:a.ph,k:a.k,rate:a.rate==null?1:a.rate,media:a.media,mkey:a.mkey||null,
       txt:a.txt==null?"@besta_oficial":a.txt,tsize:a.tsize||100,
+      nz:a.nz||"no",nzA:a.nzA==null?45:a.nzA,
       vdur:a.vdur||0,vin:a.vin||0,vlen:a.vlen||0,vrate:a.vrate||1});
     if(s.mkey){
       let blob=null;try{ blob=await idbGet(s.mkey); }catch(e){}
@@ -1646,7 +1793,8 @@ async function restore(){
   if(bg&&sc){
     V.bg=await elFromBlob(bg);
     Object.assign(V,{bgName:sc.bgName||"",bgKey:"bg",fill:sc.fill||"blur",
-                     gain:sc.gain==null?100:sc.gain,lid:sc.lid||0,layers:[],sel:-1});
+                     gain:sc.gain==null?100:sc.gain,op:sc.op==null?100:sc.op,
+                     col:sc.col||"#0a0908",lid:sc.lid||0,layers:[],sel:-1});
     for(const a of (sc.layers||[])){
       let blob=null;if(a.mkey){try{blob=await idbGet(a.mkey);}catch(e){}}
       if(!blob)continue;
