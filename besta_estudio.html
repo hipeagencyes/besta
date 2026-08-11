@@ -518,9 +518,11 @@ function screenContent(s,t,SC,p){
       vignette(g,w,h,.34+.16*a);
     }
   } else if(s.role==="static"){
-    const tt=t*sRate(s);
-    const k=(tt*TILES.length*3)%TILES.length|0;
-    const tile=TILES[k], ox=(tt*997)%1*tile.width, oy=(tt*613)%1*tile.height;
+    // el grano avanza a saltos: a menos velocidad, cada grano aguanta más
+    // fotogramas en pantalla. 12 saltos por segundo a 1×, 0 = congelada.
+    const st=Math.floor(t*p.secs*12*sRate(s));
+    const tile=TILES[st%TILES.length];
+    const ox=((st*.37)%1)*tile.width, oy=((st*.71)%1)*tile.height;
     g.globalAlpha=Math.min(1,(s.lum/150)*gain);
     for(let y=-1;y<=Math.ceil(h/tile.height);y++)
       for(let x=-1;x<=Math.ceil(w/tile.width);x++)
