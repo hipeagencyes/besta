@@ -578,9 +578,9 @@ async function loadWall(file,keep){
 }
 
 /* ══ 3. texturas cíclicas ═══════════════════════════════════════════ */
-let TILES=[],GRAIN=[];
+let TILES=[],GRAIN=[],SPECK=[];
 function buildTiles(){
-  TILES=[];GRAIN=[];
+  TILES=[];GRAIN=[];SPECK=[];
   for(let n=0;n<12;n++){
     const c=newCv(192,144),g=c.getContext("2d");
     const im=g.createImageData(192,144);
@@ -598,6 +598,17 @@ function buildTiles(){
       im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255;
     }
     g.putImageData(im,0,0);GRAIN.push(c);
+  }
+  // chispas: casi todo negro con algún punto encendido. Sumadas al grano son
+  // lo único que se ve hervir en las zonas oscuras, como el logo del muro.
+  for(let n=0;n<6;n++){
+    const c=newCv(220,220),g=c.getContext("2d");
+    const im=g.createImageData(220,220);
+    for(let i=0;i<220*220;i++){
+      const v=Math.random()<.045?60+Math.random()*195:0;
+      im.data[i*4]=v;im.data[i*4+1]=v*.95;im.data[i*4+2]=v*.86;im.data[i*4+3]=255;
+    }
+    g.putImageData(im,0,0);SPECK.push(c);
   }
 }
 function vignette(g,w,h,amt){
@@ -675,6 +686,16 @@ function tvNoise(g,c,w,h,t,s,p,SC){
     g.fillStyle=g.createPattern(tl,"repeat");
     g.fillRect(0,0,w+tl.width,h+tl.height);
     g.restore();
+    if(SPECK.length){                             // chispas sobre los negros
+      const sp=SPECK[(st+2)%SPECK.length];
+      g.save();
+      g.translate(-Math.round(R(st+11)*sp.width),-Math.round(R(st+5)*sp.height));
+      g.globalCompositeOperation="lighter";
+      g.globalAlpha=Math.min(.8,.55*a);
+      g.fillStyle=g.createPattern(sp,"repeat");
+      g.fillRect(0,0,w+sp.width,h+sp.height);
+      g.restore();
+    }
     const fl=.09*a*Math.sin(TAU*(t*(2+(s.k||1))+s.ph))+.05*a*(R(st+3)-.5);
     g.globalCompositeOperation=fl>0?"lighter":"multiply";
     g.globalAlpha=Math.min(.6,Math.abs(fl));
@@ -1144,7 +1165,8 @@ $("#rate").oninput=e=>{const v=+e.target.value/100;
   if(!S.playing)draw(now());};
 ["scan","grain","sweep","flick"].forEach(k=>$("#"+k).oninput=e=>{
   $("#"+k+"V").textContent=e.target.value;if(!S.playing)draw(now());});
-$("#secs").oninput=e=>{$("#secsV").textContent=e.target.value+" s";updRes();refreshVid();};
+$("#secs").oninput=e=>{$("#secsV").textContent=e.target.value+" s";
+  updRes();refreshVid();fmtUI();};
 $("#fps").onchange=()=>{updRes();fmtUI();};   // el comando de ffmpeg lleva los fps
 $("#scale").onchange=()=>{updRes();if(!S.playing)draw(now());};
 $("#aspect").onchange=()=>{
@@ -1467,11 +1489,14 @@ function fmtUI(){
     ? `Un PNG por fotograma dentro de un ZIP, tal cual sale del lienzo. Pesa mucho, pero
        entra en cualquier montaje y de ahí sacas el MP4 que quieras:
        <b>ffmpeg -framerate ${P().fps} -i besta-%04d.png -c:v libx264 -pix_fmt yuv420p muro.mp4</b>`
-    : f.ext==="mp4"
-      ? `El MP4 va en H.264 y lo abre cualquier móvil, Instagram incluido. Si algún programa
-         viejo se atraganta, tira de WebM o de la secuencia PNG.`
-      : `WebM: pesa poco y se ve muy limpio en el navegador, pero algunas apps (y varios
-         móviles) no lo reproducen. Para redes, mejor MP4.`;
+    : (f.ext==="mp4"
+        ? `El MP4 va en H.264 y lo abre cualquier móvil, Instagram incluido. Si algún programa
+           viejo se atraganta, tira de WebM o de la secuencia PNG. `
+        : `WebM: pesa poco y se ve muy limpio en el navegador, pero algunas apps (y varios
+           móviles) no lo reproducen. Para redes, mejor MP4. `)+
+      `<b>La grabación va a ritmo real</b>: el grabador del navegador pone la hora del reloj
+       a cada fotograma, así que un muro de ${P().secs} s tarda ${P().secs} s en salir. Al
+       terminar se comprueba la duración del archivo.`;
 }
 $("#vfmt").onchange=fmtUI;
 fmtUI();
@@ -1513,28 +1538,86 @@ function stopPlay(){
   S.screens.forEach(s=>{if(s.el&&s.el.tagName==="VIDEO")s.el.pause();});
   return was;
 }
+/* El grabador del navegador le pone a cada fotograma la hora del reloj, y
+   pasa de las marcas de tiempo que le demos: si el muro se dibuja más
+   rápido que el vídeo, 30 s salían en 2 s y por el camino se perdían
+   fotogramas. Así que grabamos a ritmo real, esperando a que toque cada
+   fotograma; la exportación tarda lo que dura el vídeo, pero sale con la
+   duración exacta. Para ir rápido y sin pérdida está la secuencia PNG.   */
+const esperaHasta=async ms=>{let d=ms-performance.now();
+  while(d>0){await wait(Math.min(d,40));d=ms-performance.now();}};
+function medirDur(blob){                 // cuánto dura de verdad lo exportado
+  return new Promise(r=>{
+    const v=document.createElement("video"),url=URL.createObjectURL(blob);
+    let fin=d=>{fin=()=>{};URL.revokeObjectURL(url);r(d);};
+    v.preload="metadata";v.muted=true;
+    v.onloadedmetadata=()=>{
+      if(isFinite(v.duration)&&v.duration>0)return fin(v.duration);
+      v.ontimeupdate=()=>{v.ontimeupdate=null;fin(isFinite(v.duration)?v.duration:0);};
+      v.currentTime=1e6;                 // truco viejo: obliga a calcular la duración
+    };
+    v.onerror=()=>fin(0);
+    setTimeout(()=>fin(0),5000);
+    v.src=url;
+  });
+}
 $("#expVid").onclick=async()=>{
   const f=curFmt();
   if(!f){alert("Este navegador no sabe grabar vídeo desde el lienzo.");return;}
   if(f.id==="png")return expPNG();
-  const p=P(),N=p.secs*p.fps;
+  const p=P(),N=Math.round(p.secs*p.fps),per=1000/p.fps;   // ms por fotograma
   const wasPlaying=stopPlay();
   draw(0);
+  // tanteo: si el muro tarda más en dibujarse de lo que dura el fotograma,
+  // el vídeo sale a cámara lenta y más largo. Mejor decirlo antes de grabar.
+  busy("midiendo el muro","");await wait(0);
+  const t1=performance.now();
+  for(let i=0;i<3;i++){await seekAll(i/N,p.secs);draw(i/N);}
+  const porFot=(performance.now()-t1)/3, fpsMax=Math.max(1,Math.floor(1000/porFot));
+  busy(false);
+  if(porFot>per*.85&&!confirm(       // *.85: grabar por encima también cuesta lo suyo
+      `A ${cv.width}×${cv.height} el muro tarda ${Math.round(porFot)} ms en dibujar cada `+
+      `fotograma, y a ${p.fps} fps tocarían ${Math.round(per)} ms. El grabador del navegador `+
+      `va con el reloj, así que el vídeo saldría a cámara lenta y más largo de lo que pides.\n\n`+
+      `Baja la resolución, o pon los fotogramas en ${fpsMax}, o exporta la secuencia PNG, `+
+      `que sale siempre con la duración exacta.\n\n¿Lo grabo igualmente?`)){
+    if(wasPlaying)$("#play").click();return;
+  }
   const stream=cv.captureStream(0),track=stream.getVideoTracks()[0];
   const type=recType(f);
   const rec=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:60e6});
   const parts=[];rec.ondataavailable=e=>e.data.size&&parts.push(e.data);
   const done=new Promise(r=>rec.onstop=r);
   rec.start();
-  for(let f2=0;f2<N;f2++){
-    const t=f2/N;
+  const t0=performance.now();
+  let tarde=0;
+  for(let i=0;i<N;i++){
+    const t=i/N;
     await seekAll(t,p.secs);
     draw(t);
+    const meta=t0+i*per;                 // el instante en que le toca a este fotograma
+    if(performance.now()-meta>per)tarde++;   // el dibujo no llega: el vídeo se alargará
+    await esperaHasta(meta);
     track.requestFrame();
-    if(f2%3===0){busy("grabando vídeo",`fotograma ${f2+1} de ${N}`,f2/N);await wait(0);}
+    busy("grabando vídeo",`fotograma ${i+1} de ${N} · a ritmo real, `+
+      `quedan ${Math.max(0,Math.ceil((N-i)*per/1000))} s`,i/N);
+    await wait(0);
   }
-  await wait(200);rec.stop();await done;busy(false);
-  save(new Blob(parts,{type}),`besta-muro-${stamp()}.${f.ext}`);
+  await esperaHasta(t0+N*per);           // el último fotograma también dura lo suyo
+  const real=(performance.now()-t0)/1000;    // lo que ha tardado = lo que dura
+  rec.stop();await done;
+  busy("comprobando el archivo","",1);
+  const blob=new Blob(parts,{type});
+  save(blob,`besta-muro-${stamp()}.${f.ext}`);
+  const dur=(await medirDur(blob))||real;    // si el archivo no lo dice, vale el reloj
+  busy(false);
+  if(Math.abs(dur-p.secs)>Math.max(.6,p.secs*.15))
+    alert(`Ojo: el archivo ha salido de ${fmt(dur)} s en vez de los ${p.secs} s que pediste.\n\n`+
+      (tarde?`El muro no da abasto a esta resolución: ${tarde} de ${N} fotogramas llegaron `+
+             `tarde. Baja la resolución, o pon los fotogramas en ${fpsMax}, o exporta la `+
+             `secuencia PNG, que sale siempre exacta.`
+            :`Prueba con otro formato de vídeo, o exporta la secuencia PNG, que sale `+
+             `siempre con la duración exacta.`));
   if(wasPlaying)$("#play").click();
 };
 
