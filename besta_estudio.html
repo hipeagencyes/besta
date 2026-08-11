@@ -71,8 +71,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   border-radius:50%;background:var(--orange);cursor:pointer}
 input[type=range]::-moz-range-thumb{width:12px;height:12px;border:none;border-radius:50%;
   background:var(--orange);cursor:pointer}
-select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
-  padding:6px 8px;flex:1.4;min-width:0}
+select,input[type=number],input[type=text]{background:var(--panel2);
+  border:1px solid var(--line);padding:6px 8px;flex:1.4;min-width:0}
+input[type=text]:focus{outline:none;border-color:var(--orange)}
 .seg{display:flex;border:1px solid var(--line)}
 .seg button{flex:1;background:var(--panel2);border:none;border-right:1px solid var(--line);
   padding:7px 4px;cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--muted)}
@@ -159,6 +160,7 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
           <select id="role">
             <option value="logo">Logo original</option>
             <option value="media">Foto o vídeo…</option>
+            <option value="text">Rótulo con texto</option>
             <option value="static">Nieve / estática</option>
             <option value="flat">Color plano</option>
             <option value="roll">Imagen desenganchada</option>
@@ -189,6 +191,13 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
             <input type="range" id="aged" min="0" max="100" value="70">
             <span class="val" id="agedV">70</span></div>
         </div>
+        <div id="textBox" style="display:none">
+          <div class="row"><label>Texto</label>
+            <input type="text" id="txt" value="@besta_oficial" spellcheck="false"></div>
+          <div class="row"><label>Tamaño</label>
+            <input type="range" id="txtSize" min="25" max="115" value="100">
+            <span class="val" id="txtSizeV">100 %</span></div>
+        </div>
         <div class="row" id="tintRow" style="display:none"><label>Color</label>
           <div class="seg" style="flex:1.4">
             <button data-col="cream" class="on">Crema</button>
@@ -214,6 +223,7 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
       <div class="row"><label>Poner <span id="applyTo">todo el muro</span> en</label>
         <select id="bulkRole">
           <option value="logo">Logo original</option>
+          <option value="text">Rótulo con texto</option>
           <option value="static">Nieve / estática</option>
           <option value="flat">Color plano</option>
           <option value="roll">Imagen desenganchada</option>
@@ -250,6 +260,37 @@ select,input[type=number]{background:var(--panel2);border:1px solid var(--line);
         <select id="fps"><option>24</option><option selected>30</option><option>25</option>
         <option>50</option><option>60</option></select></div>
       <p class="hint" id="resNote"></p>
+    </div>
+
+    <div class="sec">
+      <h2>Cinta del muro</h2>
+      <div class="row"><label>Mostrar</label>
+        <div class="seg" style="flex:1.4">
+          <button data-tick="0" class="on">No</button>
+          <button data-tick="1">Sí</button>
+        </div></div>
+      <div id="tickBox" style="display:none">
+        <div class="row"><label>Texto</label>
+          <input type="text" id="tickTxt" value="@besta_oficial" spellcheck="false"></div>
+        <div class="row"><label>Posición</label>
+          <div class="seg" style="flex:1.4">
+            <button data-pos="bottom" class="on">Abajo</button>
+            <button data-pos="top">Arriba</button>
+          </div></div>
+        <div class="row"><label>Vueltas por bucle</label>
+          <input type="range" id="tickRate" min="0" max="400" step="25" value="100">
+          <span class="val" id="tickRateV">1,00×</span></div>
+        <div class="row"><label>Altura</label>
+          <input type="range" id="tickH" min="3" max="14" value="6">
+          <span class="val" id="tickHV">6 %</span></div>
+        <div class="row"><label>Color</label>
+          <div class="seg" style="flex:1.4">
+            <button data-tcol="cream" class="on">Crema</button>
+            <button data-tcol="orange">Naranja</button>
+          </div></div>
+        <p class="hint">A <b>1,00×</b> el texto da una vuelta exacta por bucle, así que el
+          vídeo exportado encadena sin salto.</p>
+      </div>
     </div>
 
     <div class="sec">
@@ -406,7 +447,8 @@ async function loadWall(file,keep){
             lum:n?sum/n:120, wing:(b.x<PAD-8||b.x+b.w>PAD+W+8),
             role:"logo",media:null,el:null,fit:"cover",aged:70,gain:100,
             col:"cream",ph:Math.random(),k:1+((Math.random()*3)|0),
-            vdur:0,vin:0,vlen:0,vrate:1,rate:1,mkey:null};
+            vdur:0,vin:0,vlen:0,vrate:1,rate:1,mkey:null,
+            txt:"@besta_oficial",tsize:100};
   });
   // los laterales espejados nunca muestran el logo del revés
   screens.forEach((s,j)=>{ if(s.wing) s.role=["static","flat","off","static"][j%4];
@@ -467,7 +509,9 @@ const P=()=>({scan:+$("#scan").value/100,grain:+$("#grain").value/100,
 /* recorte y velocidad de los vídeos ------------------------------- */
 const fmt=(v,n=1)=>(isFinite(v)?v:0).toFixed(n).replace(".",",");
 /* velocidad de la nieve, la desenganchada, la banda y el parpadeo */
-const RATED=["static","flat","roll","off"];
+const RATED=["static","flat","roll","off","text"];
+/* cinta de teletipo sobre todo el muro */
+const TICK={on:false,txt:"@besta_oficial",pos:"bottom",rate:1,h:6,col:"cream"};
 const sRate=s=>Math.max(0,s.rate==null?1:s.rate);   // 0 = imagen congelada
 const isVid=s=>!!(s&&s.el&&s.el.tagName==="VIDEO");
 const vDur =s=>s.vdur>0?s.vdur:0;
@@ -517,6 +561,27 @@ function screenContent(s,t,SC,p){
       lines(g,w,h,lin,.20*a+.06);
       vignette(g,w,h,.34+.16*a);
     }
+  } else if(s.role==="text"){
+    const c3=s.col==="orange"?ORANGE:CREAM;
+    const txt=(s.txt==null?"@besta_oficial":s.txt).trim();
+    if(txt){
+      const r=sRate(s);
+      const pulso=r?(.84+.16*Math.sin(6.283*(t*r*4+s.ph))):1;   // latido de tubo
+      // 100 % = el texto llena el ancho de la pantalla; el resto es proporción
+      const F=n=>`700 ${n}px ui-monospace,"SF Mono",Menlo,Consolas,monospace`;
+      g.font=F(100);
+      const w100=g.measureText(txt).width||1;
+      const lleno=Math.min(w*.88*100/w100, h*.62);
+      const fs=Math.max(6,Math.round(lleno*(s.tsize||100)/100));
+      g.font=F(fs);
+      g.textAlign="center";g.textBaseline="middle";
+      g.globalAlpha=Math.min(1,gain*pulso);
+      g.shadowColor=`rgba(${c3.join(",")},.8)`;g.shadowBlur=fs*.55;
+      g.fillStyle=`rgb(${c3.join(",")})`;
+      g.fillText(txt,w/2,h/2);g.fillText(txt,w/2,h/2);      // dos pasadas: más brasa
+      g.shadowBlur=0;g.globalAlpha=1;
+    }
+    lines(g,w,h,lin,.20);vignette(g,w,h,.44);
   } else if(s.role==="static"){
     // el grano avanza a saltos: a menos velocidad, cada grano aguanta más
     // fotogramas en pantalla. 12 saltos por segundo a 1×, 0 = congelada.
@@ -562,7 +627,35 @@ function screenContent(s,t,SC,p){
   return c;
 }
 
+/* cinta de teletipo por delante de los televisores */
+function ticker(W,H,t,SC){
+  if(!TICK.on)return;
+  const txt=(TICK.txt||"").trim();if(!txt)return;
+  const bh=Math.max(8,Math.round(H*TICK.h/100));
+  const y=TICK.pos==="top"?0:H-bh;
+  const c3=TICK.col==="orange"?ORANGE:CREAM;
+  const px=Math.max(1,Math.round(SC));
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,y,W,bh);ctx.clip();
+  ctx.fillStyle="rgba(8,7,6,.88)";ctx.fillRect(0,y,W,bh);
+  const fs=Math.round(bh*.58);
+  ctx.font=`700 ${fs}px ui-monospace,"SF Mono",Menlo,Consolas,monospace`;
+  ctx.textBaseline="middle";ctx.textAlign="left";
+  const unit=txt+"   ·   ";
+  const uw=Math.max(1,ctx.measureText(unit).width);
+  const off=((t*TICK.rate)%1+1)%1*uw;          // a 1× da una vuelta exacta por bucle
+  ctx.shadowColor=`rgba(${c3.join(",")},.7)`;ctx.shadowBlur=fs*.4;
+  ctx.fillStyle=`rgb(${c3.join(",")})`;
+  for(let x=-uw-off;x<W+uw;x+=uw)ctx.fillText(unit,x,y+bh/2);
+  ctx.shadowBlur=0;
+  lines(ctx,W,H,Math.max(1,Math.round(1.6*SC)),.22);
+  ctx.fillStyle="rgba(0,0,0,.55)";
+  ctx.fillRect(0,y,W,px);ctx.fillRect(0,y+bh-px,W,px);
+  ctx.restore();
+}
+
 function draw(t){
+  if(!S.plate)return;                        // aún no hay pared cargada
   const p=P(),SC=p.sc;
   const W=Math.round(S.PW*SC),H=Math.round(S.PH*SC);
   if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
@@ -591,6 +684,7 @@ function draw(t){
     g2.addColorStop(0,"rgba(0,0,0,.94)");g2.addColorStop(1,"rgba(0,0,0,.30)");
     ctx.fillStyle=g2;ctx.fillRect(W-P2,0,P2,H);
   }
+  ticker(W,H,t,SC);
   if(p.scan>0)lines(ctx,W,H,Math.max(1,Math.round(1.6*SC)),.09*p.scan);
   if(p.sweep>0){
     const yb=((t)%1)*H*1.3-H*.15;
@@ -629,8 +723,9 @@ function resize(){
 function renderChans(){
   $("#chans").innerHTML=S.screens.map((s,i)=>{
     const lbl={logo:"Logo original",media:s.media||"Foto o vídeo",static:"Nieve",
-      flat:"Color plano",roll:"Desenganchada",off:"Apagada"}[s.role];
-    const dot=s.role==="media"?"media":s.role==="logo"?"logo":"";
+      flat:"Color plano",roll:"Desenganchada",off:"Apagada",
+      text:s.txt||"Rótulo"}[s.role];
+    const dot=s.role==="media"?"media":s.role==="logo"||s.role==="text"?"logo":"";
     return `<div class="chan${S.selSet.has(i)?" on":""}" data-i="${i}">
       <span class="d ${dot}"></span><span class="n">${String(s.i).padStart(2,"0")}</span>
       <span class="r">${lbl}</span><span class="sz">${s.cw}×${s.ch}</span></div>`;
@@ -669,7 +764,10 @@ function syncPanel(){
   $("#noSel").style.display="none";$("#sel").style.display="block";
   $("#role").value=s.role;
   $("#mediaBox").style.display=s.role==="media"?"block":"none";
-  $("#tintRow").style.display=s.role==="flat"?"flex":"none";
+  $("#tintRow").style.display=(s.role==="flat"||s.role==="text")?"flex":"none";
+  $("#textBox").style.display=s.role==="text"?"block":"none";
+  $("#txt").value=s.txt==null?"@besta_oficial":s.txt;
+  $("#txtSize").value=s.tsize||100;$("#txtSizeV").textContent=(s.tsize||100)+" %";
   $("#rateRow").style.display=RATED.includes(s.role)?"flex":"none";
   $("#rate").value=Math.round(sRate(s)*100);
   $("#rateV").textContent=sRate(s)?fmt(sRate(s),2)+"×":"quieta";
@@ -705,7 +803,8 @@ $("#role").onchange=e=>{const v=e.target.value;
   apply(s=>s.role=v);
   const s=S.screens[S.sel];
   $("#mediaBox").style.display=v==="media"?"block":"none";
-  $("#tintRow").style.display=v==="flat"?"flex":"none";
+  $("#tintRow").style.display=(v==="flat"||v==="text")?"flex":"none";
+  $("#textBox").style.display=v==="text"?"block":"none";
   $("#rateRow").style.display=RATED.includes(v)?"flex":"none";
   if(v==="media"&&s&&!s.el)$("#fileMedia").click();
   refreshVid();renderChans();resize();if(!S.playing)draw(now());};
@@ -736,6 +835,35 @@ $("#vfit").onclick=()=>{const secs=+$("#secs").value;
   const v=+e.target.value;apply(s=>s[k]=v);
   $("#"+k+"V").textContent=e.target.value;
   if(!S.playing)draw(now());});
+$("#txt").oninput=e=>{const v=e.target.value;
+  apply(s=>{if(s.role==="text")s.txt=v;});
+  renderChans();if(!S.playing)draw(now());};
+$("#txtSize").oninput=e=>{const v=+e.target.value;
+  apply(s=>{if(s.role==="text")s.tsize=v;});
+  $("#txtSizeV").textContent=v+" %";if(!S.playing)draw(now());};
+
+/* ── cinta del muro ─────────────────────────────────────────────── */
+function tickUI(){
+  $("#tickBox").style.display=TICK.on?"block":"none";
+  $$("[data-tick]").forEach(b=>b.classList.toggle("on",(b.dataset.tick==="1")===TICK.on));
+  $$("[data-pos]").forEach(b=>b.classList.toggle("on",b.dataset.pos===TICK.pos));
+  $$("[data-tcol]").forEach(b=>b.classList.toggle("on",b.dataset.tcol===TICK.col));
+  $("#tickTxt").value=TICK.txt;
+  $("#tickRate").value=Math.round(TICK.rate*100);
+  $("#tickRateV").textContent=TICK.rate?fmt(TICK.rate,2)+"×":"quieta";
+  $("#tickH").value=TICK.h;$("#tickHV").textContent=TICK.h+" %";
+  if(!S.playing)draw(now());
+}
+$$("[data-tick]").forEach(b=>b.onclick=()=>{TICK.on=b.dataset.tick==="1";tickUI();});
+$$("[data-pos]").forEach(b=>b.onclick=()=>{TICK.pos=b.dataset.pos;tickUI();});
+$$("[data-tcol]").forEach(b=>b.onclick=()=>{TICK.col=b.dataset.tcol;tickUI();});
+$("#tickTxt").oninput=e=>{TICK.txt=e.target.value;if(!S.playing)draw(now());};
+$("#tickRate").oninput=e=>{TICK.rate=+e.target.value/100;
+  $("#tickRateV").textContent=TICK.rate?fmt(TICK.rate,2)+"×":"quieta";
+  if(!S.playing)draw(now());};
+$("#tickH").oninput=e=>{TICK.h=+e.target.value;
+  $("#tickHV").textContent=TICK.h+" %";if(!S.playing)draw(now());};
+
 $("#rate").oninput=e=>{const v=+e.target.value/100;
   apply(s=>{if(RATED.includes(s.role))s.rate=v;});
   $("#rateV").textContent=v?fmt(v,2)+"×":"quieta";
@@ -823,7 +951,10 @@ $("#resetAll").onclick=()=>{
   if(!confirm("Todas las pantallas vuelven a su estado inicial, se sueltan las fotos y "+
               "vídeos cargados y las texturas vuelven a los valores de fábrica. ¿Seguir?"))return;
   S.screens.forEach(s=>Object.assign(s,{role:s.role0,media:null,el:null,mkey:null,
-    fit:"cover",aged:70,gain:100,col:"cream",rate:1,vdur:0,vin:0,vlen:0,vrate:1}));
+    fit:"cover",aged:70,gain:100,col:"cream",rate:1,vdur:0,vin:0,vlen:0,vrate:1,
+    txt:"@besta_oficial",tsize:100}));
+  Object.assign(TICK,{on:false,txt:"@besta_oficial",pos:"bottom",rate:1,h:6,col:"cream"});
+  tickUI();
   for(const k in DEF)$("#"+k).value=DEF[k];
   ["scan","grain","sweep","flick"].forEach(k=>$("#"+k+"V").textContent=$("#"+k).value);
   $("#secsV").textContent=$("#secs").value+" s";
@@ -832,6 +963,8 @@ $("#resetAll").onclick=()=>{
 };
 addEventListener("keydown",e=>{
   if(!S.screens.length)return;
+  const el=e.target;                       // no robar el teclado a los campos de texto
+  if(el&&(el.tagName==="TEXTAREA"||(el.tagName==="INPUT"&&el.type==="text")))return;
   if(e.key==="Escape"){setSel([]);}
   else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a"){
     e.preventDefault();setSel(S.screens.map((_,i)=>i));}
@@ -938,9 +1071,11 @@ $("#expCfg").onclick=()=>{
     segundos:p.secs,fps:p.fps,
     textura:{lineas:+$("#scan").value,grano:+$("#grain").value,
              banda:+$("#sweep").value,parpadeo:+$("#flick").value},
+    cinta:{...TICK},
     pantallas:S.screens.map(s=>({n:s.i,x:s.cx,y:s.cy,w:s.cw,h:s.ch,rol:s.role,
       archivo:s.media,encuadre:s.fit,epoca:s.aged,brillo:s.gain,color:s.col,
       velocidad:+sRate(s).toFixed(2),
+      texto:s.role==="text"?{texto:s.txt,tamano:s.tsize||100}:null,
       video:isVid(s)?{inicio:+vIn(s).toFixed(2),duracion:+vLen(s).toFixed(2),
                       velocidad:+vRate(s).toFixed(2)}:null}))};
   save(new Blob([JSON.stringify(cfg,null,1)],{type:"application/json"}),
@@ -983,6 +1118,7 @@ $("#fileCfg").onchange=async e=>{
     if(a.brillo!=null)best.gain=a.brillo;
     if(a.color)best.col=a.color;
     if(a.velocidad!=null)best.rate=a.velocidad;
+    if(a.texto){best.txt=a.texto.texto;best.tsize=a.texto.tamano||100;}
     if(a.video){best.vin=a.video.inicio||0;
       best.vlen=a.video.duracion||best.vlen;best.vrate=a.video.velocidad||1;
       if(isVid(best))best.el.playbackRate=vRate(best);}
@@ -990,8 +1126,9 @@ $("#fileCfg").onchange=async e=>{
     else if(a.rol) best.role=a.rol;
     puestas++;
   }
+  if(cfg.cinta)Object.assign(TICK,cfg.cinta);
   S.selSet=new Set();S.sel=-1;
-  updRes();syncPanel();autosave();
+  tickUI();updRes();syncPanel();autosave();
   alert(`Ajustes cargados en ${puestas} de ${S.screens.length} pantallas.`+
     (sinArchivo?`\n\n${sinArchivo} tenían una foto o un vídeo asignado: el JSON solo guarda `+
       `el nombre del archivo, no el archivo, así que esas han quedado con el logo y hay que `+
@@ -1028,9 +1165,9 @@ async function idbClear(){const d=await db();return new Promise((ok,no)=>{
 const UIK=["aspect","scale","secs","fps","scan","grain","sweep","flick"];
 function snapshot(){
   const ui={};UIK.forEach(k=>ui[k]=$("#"+k).value);
-  return {v:1,mid:S.mid,ui,
+  return {v:1,mid:S.mid,ui,tick:{...TICK},
     screens:S.screens.map(s=>({role:s.role,fit:s.fit,aged:s.aged,gain:s.gain,col:s.col,
-      ph:s.ph,k:s.k,rate:s.rate,media:s.media,mkey:s.mkey,
+      ph:s.ph,k:s.k,rate:s.rate,txt:s.txt,tsize:s.tsize,media:s.media,mkey:s.mkey,
       vdur:s.vdur,vin:s.vin,vlen:s.vlen,vrate:s.vrate}))};
 }
 function autosave(){
@@ -1075,6 +1212,7 @@ async function restore(){
     const a=A[i],s=S.screens[i];
     Object.assign(s,{role:a.role,fit:a.fit,aged:a.aged,gain:a.gain,col:a.col,
       ph:a.ph,k:a.k,rate:a.rate==null?1:a.rate,media:a.media,mkey:a.mkey||null,
+      txt:a.txt==null?"@besta_oficial":a.txt,tsize:a.tsize||100,
       vdur:a.vdur||0,vin:a.vin||0,vlen:a.vlen||0,vrate:a.vrate||1});
     if(s.mkey){
       let blob=null;try{ blob=await idbGet(s.mkey); }catch(e){}
@@ -1083,8 +1221,9 @@ async function restore(){
     }
     if(s.role==="media"&&!s.el){ s.role="logo";s.media=null; }
   }
+  if(cfg&&cfg.tick)Object.assign(TICK,cfg.tick);
   restoring=false;
-  renderChans();resize();updRes();draw(0);
+  tickUI();renderChans();resize();updRes();draw(0);
   $("#savedTag").className="ok";$("#savedTag").textContent="sesión recuperada";
   return true;
 }
