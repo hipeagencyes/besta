@@ -521,6 +521,9 @@ button { font-family: inherit; cursor: pointer; }
   border-bottom: 1px solid var(--line);
   background: var(--bg-2);
 }
+/* + Lista · setlist · Seleccionar: los tres en una fila */
+.sidebar-actions { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sidebar-actions .sidebar-mini-btn { padding: 8px 6px; letter-spacing: 0.05em; }
 .selection-actions {
   display: none;
   grid-template-columns: 1fr;
@@ -2389,6 +2392,32 @@ body.editing .sidebar::after {
 .live-song-lead .t { font-size: clamp(34px, 7vw, 80px); font-weight: 800; line-height: 1.1; }
 .live-song-lead .a { color: var(--muted); font-size: clamp(18px, 3vw, 30px); font-weight: 600; }
 
+/* Acordes en directo */
+.live-topbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.live-chords-btn {
+  background: transparent; border: 1px solid var(--line-strong); color: var(--muted);
+  height: 44px; padding: 0 14px; border-radius: 12px;
+  font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.live-chords-btn.on { border-color: var(--accent); color: var(--accent); background: rgba(var(--accent-rgb), 0.08); }
+.live-chords-line {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent); font-weight: 700; letter-spacing: 0.04em;
+  white-space: pre-wrap; word-break: break-word;
+  font-size: clamp(18px, 3.2vw, 34px);
+}
+.live-lyrics .chord {
+  display: inline-block; position: relative; top: -0.85em;
+  color: var(--accent); font-weight: 700;
+  font-size: 0.48em; line-height: 1;
+  margin-right: 0.1em; white-space: nowrap; vertical-align: baseline;
+}
+.live-lyrics.with-chords { line-height: 1.75; }
+@media (max-width: 560px) {
+  .live-chords-btn { padding: 0 10px; font-size: 12px; }
+}
+
 /* zonas táctiles (iPad): izquierda = atrás, derecha = siguiente */
 .live-tap {
   position: absolute; top: 66px; bottom: 92px; z-index: 2;
@@ -2419,6 +2448,272 @@ body.editing .sidebar::after {
 #live-autoplay.on { border-color: var(--accent); color: var(--accent); background: rgba(var(--accent-rgb), 0.08); }
 @media (max-width: 560px) {
   .live-speed { order: 5; }
+}
+
+/* =========================================================
+   setlist / setlist imprimible (A4)
+   ========================================================= */
+body.setlist-open { overflow: hidden; }
+
+.setlist-overlay {
+  position: fixed; inset: 0; z-index: 4500;
+  background: var(--bg); color: var(--fg);
+  display: flex; flex-direction: column;
+}
+.setlist-overlay[hidden] { display: none; }
+
+.sl-topbar {
+  display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+  padding: 10px 16px; border-bottom: 1px solid var(--line);
+}
+.sl-topbar h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.sl-topbar .sl-sub {
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.sl-spacer { flex: 1 1 auto; }
+.sl-status { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.sl-topbar .btn { padding: 8px 13px; font-size: 12px; }
+.sl-close {
+  background: transparent; border: 1px solid var(--line-strong); color: var(--fg);
+  width: 38px; height: 34px; border-radius: 9px; font-size: 16px; cursor: pointer; flex: none;
+}
+.sl-close:hover { border-color: var(--accent); color: var(--accent); }
+
+.sl-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(330px, 36%) 1fr; }
+.sl-pane { min-height: 0; overflow-y: auto; padding: 16px 18px 70px; }
+.sl-pane-edit { border-right: 1px solid var(--line); }
+.sl-pane-view { background: var(--bg-3); }
+
+/* Cabecera editable */
+.sl-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sl-field { display: grid; gap: 4px; min-width: 0; }
+.sl-field.wide { grid-column: 1 / -1; }
+.sl-field label {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.sl-field input, .sl-field textarea {
+  font-family: inherit; font-size: 13px; color: var(--fg);
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; width: 100%;
+}
+.sl-field textarea { min-height: 58px; resize: vertical; line-height: 1.45; }
+.sl-field input:focus, .sl-field textarea:focus { outline: none; border-color: var(--accent); }
+
+.sl-section-title {
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); margin: 20px 0 8px;
+}
+
+/* Filas de la setlist */
+.sl-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.sl-empty { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.sl-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+}
+.sl-row.dragging { opacity: 0.4; }
+.sl-row.drag-over-above { box-shadow: 0 -3px 0 var(--accent); }
+.sl-row.drag-over-below { box-shadow: 0 3px 0 var(--accent); }
+.sl-row-cue { border-left: 3px solid var(--all); }
+.sl-row-block { border-left: 3px solid var(--accent); background: rgba(var(--accent-rgb), 0.09); }
+.sl-grip {
+  cursor: grab; color: var(--muted); font-size: 14px; line-height: 1.7;
+  -webkit-user-select: none; user-select: none;
+}
+.sl-row-main { min-width: 0; display: grid; gap: 6px; }
+.sl-row-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.sl-row-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: var(--accent); font-weight: 600; flex: none;
+}
+.sl-row-title { font-weight: 600; font-size: 14px; }
+.sl-row-artist { font-size: 12px; color: var(--muted); }
+.sl-row-meta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted); }
+/* Aviso de dato que falta en la ficha de la canción (no se imprime) */
+.sl-row-missing {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: rgba(244, 211, 94, 0.75); border: 1px dashed rgba(244, 211, 94, 0.35);
+  border-radius: 5px; padding: 1px 5px; cursor: help;
+}
+.sl-inline {
+  font-family: inherit; font-size: 13px; width: 100%; color: var(--fg);
+  background: transparent; border: 1px dashed var(--line-strong);
+  border-radius: 6px; padding: 5px 7px;
+}
+textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-height: 1.4; }
+.sl-inline:focus { outline: none; border-color: var(--accent); border-style: solid; }
+.sl-row-actions { display: flex; flex-direction: column; gap: 3px; }
+/* Los bloques no llevan anotación: los botones van en fila para no dejar hueco muerto */
+.sl-row-block .sl-row-actions { flex-direction: row; }
+.sl-mini {
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 6px; width: 27px; height: 23px; font-size: 11px; line-height: 1; cursor: pointer;
+}
+.sl-mini:hover { border-color: var(--accent); color: var(--accent); }
+.sl-mini.danger:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
+.sl-add-song { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-top: 10px; }
+.sl-add-song select {
+  font-family: inherit; font-size: 12px; color: var(--fg); background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px; min-width: 0;
+}
+.sl-add-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.sl-add-row .btn, .sl-add-song .btn { font-size: 12px; padding: 8px 12px; }
+
+.sl-opts { display: flex; flex-wrap: wrap; gap: 7px 16px; }
+.sl-opts label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--muted); cursor: pointer;
+}
+.sl-opts input { accent-color: var(--accent); }
+
+/* ---- La hoja A4 ---- */
+.sl-sheet-wrap { display: flex; justify-content: center; }
+.sl-sheet {
+  zoom: var(--sl-zoom, 1);
+  width: 210mm; min-height: 297mm; padding: 14mm 15mm;
+  background: #ffffff; color: #14121a;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  display: flex; flex-direction: column;
+}
+/* Cabecera: fila de marca arriba, título grande + datos abajo, cifras a la derecha */
+.sl-head { display: block; }
+.sl-head-brand {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  min-height: 11mm;
+}
+/* El PNG del logo es cuadrado con mucho aire: se recorta a la palabra */
+.sl-logo { width: 34mm; height: 10.9mm; overflow: hidden; position: relative; flex: none; }
+.sl-logo img { position: absolute; width: 40mm; left: -3.5mm; top: -12.9mm; }
+.sl-eyebrow {
+  font-size: 7.5pt; font-weight: 700; letter-spacing: 0.34em;
+  text-transform: uppercase; color: #b9b4c2; white-space: nowrap;
+}
+.sl-head-main {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: flex-end;
+  margin-top: 7mm;
+}
+.sl-title {
+  margin: 0; font-size: 26pt; font-weight: 700;
+  line-height: 1; letter-spacing: -0.015em; overflow-wrap: anywhere;
+}
+.sl-head-meta {
+  margin-top: 5px; font-size: 8.5pt; color: #6b6675;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+.sl-stats { display: flex; gap: 13px; align-items: flex-end; }
+.sl-stat { text-align: right; line-height: 1; }
+.sl-stat-num {
+  display: block; font-family: 'JetBrains Mono', monospace;
+  font-size: 15pt; font-weight: 700; color: #14121a;
+}
+.sl-stat-label {
+  display: block; margin-top: 3px; font-size: 6.5pt; font-weight: 600;
+  letter-spacing: 0.22em; text-transform: uppercase; color: #9a95a4;
+}
+.sl-rule { margin-top: 9px; border-top: 3px solid #db7f4e; }
+.sl-rule::after { content: ""; display: block; height: 1px; margin-top: 2.5px; background: #e6e3ea; }
+.sl-sheet-notes {
+  margin-top: 9px; padding-left: 8px; border-left: 3px solid rgba(219, 127, 78, 0.5);
+  font-size: 9.5pt; line-height: 1.45; color: #3a3540; white-space: pre-wrap;
+}
+.sl-list { list-style: none; margin: 11px 0 0; padding: 0; flex: 1; }
+.sl-item {
+  display: grid; grid-template-columns: 9mm 1fr auto; gap: 3px 8px; align-items: baseline;
+  padding: 4px 0; border-bottom: 1px solid #eceaf0;
+  break-inside: avoid; page-break-inside: avoid;
+}
+.sl-item-num {
+  font-family: 'JetBrains Mono', monospace; font-weight: 700;
+  font-size: 13pt; color: #db7f4e;
+}
+.sl-item-title { font-size: 13pt; font-weight: 600; min-width: 0; }
+.sl-item-artist { font-size: 9pt; font-weight: 400; color: #6b6675; }
+.sl-item-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 9pt;
+  color: #6b6675; white-space: nowrap;
+}
+.sl-item-note {
+  grid-column: 2 / -1; font-size: 9.5pt; line-height: 1.35;
+  color: #4a4552; white-space: pre-wrap;
+}
+.sl-item-note::before { content: "↳ "; color: #db7f4e; }
+.sl-item.cue { border-bottom-style: dashed; }
+.sl-item.cue .sl-item-num { color: #b9b4c2; font-size: 11pt; }
+.sl-item.cue .sl-item-title {
+  font-size: 10.5pt; font-weight: 600; font-style: italic;
+  text-transform: uppercase; letter-spacing: 0.04em; color: #4a4552;
+}
+.sl-item.block { display: block; border-bottom: none; margin: 11px 0 1px; padding: 0; }
+.sl-block-label {
+  display: block; font-size: 9.5pt; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.2em; color: #db7f4e;
+  border-bottom: 2px solid #db7f4e; padding-bottom: 2px;
+}
+.sl-foot {
+  margin-top: 12px; padding-top: 7px; border-top: 1px solid #eceaf0;
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 7.5pt; color: #9a95a4; letter-spacing: 0.12em; text-transform: uppercase;
+}
+/* Variante letra grande (para leer desde el suelo del escenario) */
+.sl-sheet.big .sl-item { padding: 9px 0; grid-template-columns: 13mm 1fr auto; }
+.sl-sheet.big .sl-item-num, .sl-sheet.big .sl-item-title { font-size: 22pt; }
+.sl-sheet.big .sl-item-artist { font-size: 11pt; }
+.sl-sheet.big .sl-item.cue .sl-item-title { font-size: 15pt; }
+.sl-sheet.big .sl-item-note { font-size: 12pt; }
+.sl-sheet.big .sl-item-meta { font-size: 12pt; }
+.sl-sheet.big .sl-block-label { font-size: 12pt; }
+/* Variante fondo negro (para leer en tablet/móvil, no para imprimir) */
+.sl-sheet.dark { background: #0d0b11; color: #f5f7ff; }
+.sl-sheet.dark .sl-item { border-bottom-color: rgba(255, 255, 255, 0.1); }
+.sl-sheet.dark .sl-item-artist,
+.sl-sheet.dark .sl-item-meta,
+.sl-sheet.dark .sl-head-meta { color: rgba(245, 247, 255, 0.55); }
+.sl-sheet.dark .sl-stat-num { color: #f5f7ff; }
+.sl-sheet.dark .sl-stat-label, .sl-sheet.dark .sl-eyebrow { color: rgba(245, 247, 255, 0.4); }
+.sl-sheet.dark .sl-rule::after { background: rgba(255, 255, 255, 0.12); }
+.sl-sheet.dark .sl-item-note { color: rgba(245, 247, 255, 0.75); }
+.sl-sheet.dark .sl-sheet-notes { color: rgba(245, 247, 255, 0.82); }
+.sl-sheet.dark .sl-item.cue .sl-item-title { color: rgba(245, 247, 255, 0.8); }
+.sl-sheet.dark .sl-item.cue .sl-item-num { color: rgba(245, 247, 255, 0.35); }
+.sl-sheet.dark .sl-foot { color: rgba(245, 247, 255, 0.4); border-top-color: rgba(255, 255, 255, 0.1); }
+
+#sl-toggle-view { display: none; }
+@media (max-width: 900px) {
+  .sl-main { grid-template-columns: 1fr; }
+  .sl-pane-view { display: none; }
+  .sl-main.show-preview .sl-pane-edit { display: none; }
+  .sl-main.show-preview .sl-pane-view { display: block; }
+  #sl-toggle-view { display: inline-block; }
+}
+
+/* ---- Impresión: solo la hoja ---- */
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  body.printing-setlist { background: #fff !important; overflow: visible !important; }
+  body.printing-setlist > *:not(#setlist-overlay) { display: none !important; }
+  body.printing-setlist #setlist-overlay {
+    position: static !important; display: block !important;
+    background: transparent !important; height: auto !important;
+  }
+  body.printing-setlist .sl-topbar, body.printing-setlist .sl-pane-edit { display: none !important; }
+  body.printing-setlist .sl-main { display: block !important; }
+  body.printing-setlist .sl-pane-view { display: block !important; }
+  body.printing-setlist .sl-pane {
+    overflow: visible !important; padding: 0 !important; background: transparent !important;
+  }
+  /* En pantalla la hoja va centrada en un flex; al imprimir tiene que ocupar todo el ancho */
+  body.printing-setlist .sl-sheet-wrap { display: block !important; }
+  body.printing-setlist .sl-sheet {
+    zoom: 1 !important; width: auto !important; min-height: 0 !important;
+    padding: 0 !important; box-shadow: none !important;
+  }
+  body.printing-setlist .sl-sheet,
+  body.printing-setlist .sl-sheet * {
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+  }
 }
 </style>
 </head>
@@ -2545,7 +2840,10 @@ body.editing .sidebar::after {
   <div class="live-overlay" id="live-overlay" hidden>
     <div class="live-topbar">
       <div class="live-song-title" id="live-song-title"></div>
-      <button class="live-exit" id="live-exit" aria-label="Salir del modo directo" title="Salir (Esc)">✕</button>
+      <div class="live-topbar-actions">
+        <button class="live-chords-btn on" id="live-chords" aria-pressed="true" title="Mostrar u ocultar los acordes (A)">Letra+Acordes</button>
+        <button class="live-exit" id="live-exit" aria-label="Salir del modo directo" title="Salir (Esc)">✕</button>
+      </div>
     </div>
     <div class="live-tap live-tap-prev" id="live-tap-prev" aria-hidden="true"></div>
     <div class="live-tap live-tap-next" id="live-tap-next" aria-hidden="true"></div>
@@ -2653,6 +2951,7 @@ body.editing .sidebar::after {
       <div class="folder-filters" id="folder-filters" aria-label="Carpetas de canciones"></div>
       <div class="sidebar-actions">
         <button class="sidebar-mini-btn" id="new-list-btn" type="button">+ Lista</button>
+        <button class="sidebar-mini-btn" id="setlist-btn" type="button" title="setlist imprimible de la lista activa">setlist</button>
         <button class="sidebar-mini-btn" id="selection-mode-btn" type="button">Seleccionar</button>
       </div>
       <div class="selection-actions" id="selection-actions">
@@ -2701,6 +3000,78 @@ body.editing .sidebar::after {
       </form>
     </aside>
     <div class="comments-backdrop" id="comments-backdrop"></div>
+  </div>
+</div>
+
+<!-- ===== setlist / setlist imprimible (fuera de #app para poder imprimirlo solo) ===== -->
+<div class="setlist-overlay" id="setlist-overlay" hidden>
+  <header class="sl-topbar">
+    <div>
+      <h2 id="sl-list-name">setlist</h2>
+      <div class="sl-sub" id="sl-list-sub"></div>
+    </div>
+    <div class="sl-spacer"></div>
+    <span class="sl-status" id="sl-status"></span>
+    <button class="btn btn-secondary" id="sl-toggle-view" type="button">Ver hoja</button>
+    <button class="btn btn-secondary" id="sl-sync" type="button" title="Añadir a la setlist las canciones de la lista que aún no estén">Traer canciones</button>
+    <button class="btn btn-primary" id="sl-print" type="button">Imprimir / PDF</button>
+    <button class="sl-close" id="sl-close" type="button" aria-label="Cerrar setlist">✕</button>
+  </header>
+
+  <div class="sl-main" id="sl-main">
+    <div class="sl-pane sl-pane-edit">
+      <div class="sl-fields">
+        <div class="sl-field wide">
+          <label for="sl-f-title">Título de la hoja</label>
+          <input id="sl-f-title" type="text" placeholder="Nombre del bolo">
+        </div>
+        <div class="sl-field">
+          <label for="sl-f-date">Fecha</label>
+          <input id="sl-f-date" type="date">
+        </div>
+        <div class="sl-field">
+          <label for="sl-f-time">Hora</label>
+          <input id="sl-f-time" type="text" placeholder="21:00 – 21:30">
+        </div>
+        <div class="sl-field wide">
+          <label for="sl-f-venue">Lugar</label>
+          <input id="sl-f-venue" type="text" placeholder="Sala, ciudad">
+        </div>
+        <div class="sl-field wide">
+          <label for="sl-f-notes">Notas generales</label>
+          <textarea id="sl-f-notes" placeholder="Backline, horarios, quién presenta, qué llevar…"></textarea>
+        </div>
+      </div>
+
+      <div class="sl-section-title">setlist</div>
+      <ul class="sl-rows" id="sl-rows"></ul>
+      <div class="sl-add-song">
+        <select id="sl-add-select" aria-label="Canción a añadir"></select>
+        <button class="btn btn-secondary" id="sl-add-song" type="button">+ Canción</button>
+      </div>
+      <div class="sl-add-row">
+        <button class="btn btn-secondary" id="sl-add-cue" type="button">+ Momento</button>
+        <button class="btn btn-secondary" id="sl-add-block" type="button">+ Bloque</button>
+      </div>
+
+      <div class="sl-section-title">Qué sale en la hoja</div>
+      <div class="sl-opts" id="sl-opts">
+        <label><input type="checkbox" data-opt="logo"> Logo</label>
+        <label><input type="checkbox" data-opt="artist"> Artista</label>
+        <label><input type="checkbox" data-opt="key"> Tono</label>
+        <label><input type="checkbox" data-opt="bpm"> BPM</label>
+        <label><input type="checkbox" data-opt="duration"> Duración</label>
+        <label><input type="checkbox" data-opt="notes"> Anotaciones</label>
+        <label><input type="checkbox" data-opt="big"> Letra grande</label>
+        <label><input type="checkbox" data-opt="dark"> Fondo negro</label>
+      </div>
+    </div>
+
+    <div class="sl-pane sl-pane-view" id="sl-pane-view">
+      <div class="sl-sheet-wrap">
+        <article class="sl-sheet" id="sl-sheet"></article>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3088,10 +3459,10 @@ function transposeChordName(chord, semitones) {
   });
 }
 
-function convertChordToken(chord) {
+function convertChordToken(chord, semis = transposeAmount) {
   if (!chord) return chord;
   let c = chord;
-  if (transposeAmount) c = transposeChordName(c, transposeAmount);
+  if (semis) c = transposeChordName(c, semis);
   if (currentNotation === "abc") return c;
   return c.replace(/([^a-zA-Z]|^)([CDEFGAB])([b#]?)/g, (_, prev, note, acc) => {
     return prev + ABC_TO_DOREMI[note] + (acc || "");
@@ -3590,6 +3961,7 @@ async function initApp() {
 
   document.getElementById("new-list-btn")?.addEventListener("click", () => openListModal());
   document.getElementById("selection-mode-btn")?.addEventListener("click", toggleSelectionMode);
+  wireSetlistOverlay();
   document.getElementById("add-selection-btn")?.addEventListener("click", openAddToListModal);
   document.getElementById("clear-selection-btn")?.addEventListener("click", clearSelection);
 
@@ -3674,11 +4046,12 @@ async function initApp() {
   document.getElementById("live-exit")?.addEventListener("click", closeLiveMode);
   document.getElementById("live-prev")?.addEventListener("click", () => liveGo(-1));
   document.getElementById("live-next")?.addEventListener("click", () => liveGo(1));
-  document.getElementById("live-tap-prev")?.addEventListener("click", () => liveGo(-1));
-  document.getElementById("live-tap-next")?.addEventListener("click", () => liveGo(1));
+  document.getElementById("live-tap-prev")?.addEventListener("click", () => { if (!liveJustSwiped()) liveGo(-1); });
+  document.getElementById("live-tap-next")?.addEventListener("click", () => { if (!liveJustSwiped()) liveGo(1); });
   document.getElementById("live-autoplay")?.addEventListener("click", () => liveSetAutoplay(!liveAutoplay));
   document.getElementById("live-slower")?.addEventListener("click", () => liveSetSpeed(-1));
   document.getElementById("live-faster")?.addEventListener("click", () => liveSetSpeed(1));
+  document.getElementById("live-chords")?.addEventListener("click", () => liveSetChords(!liveShowChords, true));
   document.addEventListener("keydown", (e) => {
     if (!liveActive) return;
     if (e.target.matches?.("input, textarea, select")) return;
@@ -3688,8 +4061,33 @@ async function initApp() {
       case "ArrowLeft": case "PageUp": e.preventDefault(); liveGo(-1); break;
       case "Home": e.preventDefault(); liveIndex = 0; renderLiveSlide(); if (liveAutoplay) liveScheduleNext(); break;
       case "End": e.preventDefault(); liveIndex = liveSlides.length - 1; renderLiveSlide(); if (liveAutoplay) liveScheduleNext(); break;
+      case "a": case "A": e.preventDefault(); liveSetChords(!liveShowChords, true); break;
     }
   });
+
+  // Swipe horizontal para pasar de estrofa (iPad/móvil en atril).
+  const liveOverlayEl = document.getElementById("live-overlay");
+  if (liveOverlayEl) {
+    let liveTouch = null;
+    liveOverlayEl.addEventListener("touchstart", (e) => {
+      // Los controles y la barra superior mandan: ahí no se navega por gesto.
+      if (e.touches.length !== 1 || e.target.closest(".live-controls, .live-topbar")) { liveTouch = null; return; }
+      liveTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+    }, { passive: true });
+    liveOverlayEl.addEventListener("touchend", (e) => {
+      if (!liveTouch || !liveActive) { liveTouch = null; return; }
+      const t = e.changedTouches[0];
+      const dx = t.clientX - liveTouch.x;
+      const dy = t.clientY - liveTouch.y;
+      const dt = Date.now() - liveTouch.t;
+      liveTouch = null;
+      if (dt > 900) return;
+      if (Math.abs(dx) < 55) return;                   // por debajo de esto es un toque
+      if (Math.abs(dy) > Math.abs(dx) * 0.7) return;   // gesto claramente horizontal
+      liveSwipedAt = Date.now();                       // evita el click de las zonas táctiles
+      liveGo(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  }
 
   // Wire theme toggle (and re-aplicar para asegurar el icono correcto)
   document.getElementById("theme-btn")?.addEventListener("click", toggleTheme);
@@ -4029,7 +4427,12 @@ function normalizeListsMeta(raw) {
       name,
       date: String(item?.date || "").trim(),
       notes: String(item?.notes || "").trim(),
-      order: Array.isArray(item?.order) ? item.order.filter(x => typeof x === "string") : []
+      order: Array.isArray(item?.order) ? item.order.filter(x => typeof x === "string") : [],
+      // Datos de la setlist imprimible (ver openSetlistOverlay)
+      venue: String(item?.venue || "").trim(),
+      time: String(item?.time || "").trim(),
+      sheetTitle: String(item?.sheetTitle || "").trim(),
+      items: normalizeSetlistItems(item?.items)
     };
   });
   return out;
@@ -4048,7 +4451,12 @@ function upsertListMeta({ name, date = "", notes = "" }) {
     name: cleanName,
     date: String(date || "").trim(),
     notes: String(notes || "").trim(),
-    order: Array.isArray(prev.order) ? prev.order : []
+    order: Array.isArray(prev.order) ? prev.order : [],
+    // Se conservan los datos de la setlist al editar nombre/fecha/notas
+    venue: String(prev.venue || ""),
+    time: String(prev.time || ""),
+    sheetTitle: String(prev.sheetTitle || ""),
+    items: Array.isArray(prev.items) ? prev.items : []
   };
   return listsMeta[key];
 }
@@ -5266,6 +5674,29 @@ function liveStripChords(text) {
   return String(text || "").replace(/\[[^\]]+\]/g, "");
 }
 
+/* Acordes en directo: mismo par de opciones que en la vista normal
+   (Letra+Acordes / Letra), pero con su propio interruptor porque la
+   barra de modo no está visible a pantalla completa. */
+const LIVE_CHORDS_KEY = "besta_ensayos_live_chords";
+let liveShowChords = localStorage.getItem(LIVE_CHORDS_KEY) !== "0";
+
+function liveTransposeFor(songId) {
+  const v = parseInt(localStorage.getItem(transposeKey(songId)) || "0", 10);
+  return isNaN(v) ? 0 : Math.max(-11, Math.min(11, v));
+}
+
+function liveSetChords(on, persist) {
+  liveShowChords = !!on;
+  if (persist) localStorage.setItem(LIVE_CHORDS_KEY, liveShowChords ? "1" : "0");
+  const btn = document.getElementById("live-chords");
+  if (btn) {
+    btn.classList.toggle("on", liveShowChords);
+    btn.setAttribute("aria-pressed", liveShowChords ? "true" : "false");
+    btn.textContent = liveShowChords ? "Letra+Acordes" : "Letra";
+  }
+  if (liveActive) renderLiveSlide();
+}
+
 // Construye la secuencia de "slides" desde las canciones visibles (respeta el filtro/orden de la lista):
 // por cada canción, una portada + una diapositiva por sección (letra grande, o cue si es instrumental).
 function buildLiveSlides() {
@@ -5282,19 +5713,32 @@ function buildLiveSlides() {
       setNum: getSetlistNumber(song)
     });
     (Array.isArray(song.sections) ? song.sections : []).forEach(sec => {
-      const lyrics = liveStripChords(sec.lyrics).trim();
+      const raw = String(sec.lyrics || "");
+      const lyrics = liveStripChords(raw).trim();
       const type = sec.type || inferSectionType(sec.name);
       const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
       const name = sec.name || typeLabel || "Sección";
+      // Acordes de la sección: inline en la letra ([Am]hola) o línea aparte.
+      const hasInlineChords = /\[[^\]]+\]/.test(raw);
+      const chordsLine = String(sec.chords || "").trim();
+      const base = {
+        songId: id, title: song.title || "", artist: song.artist || "",
+        sectionName: name, lyricsRaw: raw, hasInlineChords, chordsLine
+      };
       if (lyrics) {
-        slides.push({ songId: id, kind: "lyrics", title: song.title || "", artist: song.artist || "", sectionName: name, lyrics });
+        slides.push({ ...base, kind: "lyrics", lyrics });
       } else {
-        slides.push({ songId: id, kind: "cue", title: song.title || "", artist: song.artist || "", sectionName: name, cue: typeLabel || name });
+        slides.push({ ...base, kind: "cue", cue: typeLabel || name });
       }
     });
   });
   return slides;
 }
+
+/* Tras un swipe el navegador emite además un click en la zona táctil:
+   sin esto se avanzarían dos diapositivas de una vez. */
+let liveSwipedAt = 0;
+function liveJustSwiped() { return Date.now() - liveSwipedAt < 400; }
 
 function liveSlideIndexForSong(songId) {
   const i = liveSlides.findIndex(s => s.songId === songId);
@@ -5308,6 +5752,14 @@ function renderLiveSlide() {
   const progEl = document.getElementById("live-progress");
   if (!slide || !stage) return;
 
+  // La transposición es por canción: en directo se pasa por varias, así que
+  // se lee la de la canción de esta diapositiva, no la del tema seleccionado.
+  const semis = liveTransposeFor(slide.songId);
+  const withChords = liveShowChords;
+  const chordsLineHtml = (withChords && slide.chordsLine)
+    ? `<div class="live-chords-line">${escapeHtml(convertChordsString(slide.chordsLine, semis))}</div>`
+    : "";
+
   if (slide.kind === "intro") {
     stage.innerHTML = `
       <div class="live-song-lead">
@@ -5318,11 +5770,16 @@ function renderLiveSlide() {
   } else if (slide.kind === "cue") {
     stage.innerHTML = `
       <div class="live-section-name">${escapeHtml(slide.sectionName)}</div>
-      <div class="live-cue">${escapeHtml(slide.cue)}</div>`;
+      <div class="live-cue">${escapeHtml(slide.cue)}</div>
+      ${chordsLineHtml}`;
   } else {
+    const lyricsHtml = (withChords && slide.hasInlineChords)
+      ? `<div class="live-lyrics with-chords">${renderLyrics(slide.lyricsRaw.trim(), semis)}</div>`
+      : `<div class="live-lyrics">${escapeHtml(slide.lyrics)}</div>`;
     stage.innerHTML = `
       <div class="live-section-name">${escapeHtml(slide.sectionName)}</div>
-      <div class="live-lyrics">${escapeHtml(slide.lyrics)}</div>`;
+      ${chordsLineHtml}
+      ${lyricsHtml}`;
   }
   stage.scrollTop = 0;
 
@@ -5370,6 +5827,7 @@ async function openLiveMode() {
   const spd = document.getElementById("live-speed-display");
   if (spd) spd.textContent = liveAutoplaySeconds + "s";
   liveSetAutoplay(false);
+  liveSetChords(liveShowChords, false);
   renderLiveSlide();
   const overlay = document.getElementById("live-overlay");
   if (overlay) overlay.hidden = false;
@@ -5849,6 +6307,7 @@ function renderActiveListInfo() {
         <h2>${escapeHtml(activeFolderFilter)}</h2>
         <div class="list-info-actions">
           <button class="btn btn-secondary" type="button" onclick="openListModal('${escapeAttr(activeFolderFilter)}')">Añadir fecha/notas</button>
+          <button class="btn btn-secondary" type="button" onclick="openSetlistOverlay('${escapeAttr(activeFolderFilter)}')">setlist / PDF</button>
         </div>
       </div>
     `;
@@ -5860,11 +6319,611 @@ function renderActiveListInfo() {
       ${meta.notes ? `<div class="list-info-notes">${escapeHtml(meta.notes)}</div>` : ""}
       <div class="list-info-actions">
         <button class="btn btn-secondary" type="button" onclick="openListModal('${escapeAttr(meta.name)}')">Editar lista</button>
+        <button class="btn btn-secondary" type="button" onclick="openSetlistOverlay('${escapeAttr(meta.name)}')">setlist / PDF</button>
       </div>
     </div>
   `;
 }
 window.openListModal = openListModal;
+
+/* =========================================================
+   setlist imprimible (setlist A4)
+   -----------------------------------------------------------
+   La setlist vive dentro de la lista (listsMeta[key].items) y es una
+   secuencia de bloques ordenables:
+     { uid, type: "song",  songId, note }   → canción de verdad (título, tono, BPM…)
+     { uid, type: "cue",   title, note }    → momento: vídeo, presentación, cambio de guitarra
+     { uid, type: "block", title }          → separador: "PRIMER PASE", "BIS"
+   La primera vez se genera a partir del orden de la lista; a partir de ahí es libre.
+   Al guardar, el orden de las canciones se devuelve también al orden de la lista.
+   ========================================================= */
+// v2: el BPM pasa a salir por defecto (sube la versión para reestrenar los valores por defecto)
+const SETLIST_OPTS_KEY = "besta_setlist_opts_v2";
+const SETLIST_ITEM_TYPES = ["song", "cue", "block"];
+
+let setlistDraft = null;      // copia de trabajo mientras el overlay está abierto
+let setlistSaveTimer = null;
+let setlistDirty = false;
+let setlistDragUid = null;
+let setlistUidSeq = 0;
+let setlistOpts = loadSetlistOpts();
+
+function loadSetlistOpts() {
+  const def = {
+    logo: true, artist: true, key: true, bpm: true,
+    duration: true, notes: true, big: false, dark: false
+  };
+  try {
+    const stored = JSON.parse(localStorage.getItem(SETLIST_OPTS_KEY) || "{}");
+    return { ...def, ...(stored && typeof stored === "object" ? stored : {}) };
+  } catch (_) {
+    return def;
+  }
+}
+
+function saveSetlistOpts() {
+  try { localStorage.setItem(SETLIST_OPTS_KEY, JSON.stringify(setlistOpts)); } catch (_) {}
+}
+
+function setlistUid() {
+  setlistUidSeq += 1;
+  return `i${Date.now().toString(36)}${setlistUidSeq.toString(36)}`;
+}
+
+function normalizeSetlistItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  raw.forEach(item => {
+    const type = SETLIST_ITEM_TYPES.includes(item?.type) ? item.type : null;
+    if (!type) return;
+    const base = {
+      uid: String(item?.uid || "").trim() || setlistUid(),
+      type,
+      note: String(item?.note || "")
+    };
+    if (type === "song") {
+      const songId = String(item?.songId || "").trim();
+      if (!songId) return;
+      out.push({ ...base, songId });
+    } else {
+      out.push({ ...base, title: String(item?.title || "") });
+    }
+  });
+  return out;
+}
+
+function setlistSongById(id) {
+  return songs.find(s => s.id === id) || null;
+}
+
+function buildSetlistItemsFromList(listName) {
+  return getListOrder(listName).map(songId => ({
+    uid: setlistUid(), type: "song", songId, note: ""
+  }));
+}
+
+/** "3:20" → 200 s. Un número suelto se interpreta como minutos. */
+function parseDurationSeconds(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return 0;
+  const mmss = raw.match(/^(\d{1,2}):([0-5]?\d)$/);
+  if (mmss) return Number(mmss[1]) * 60 + Number(mmss[2]);
+  const num = parseFloat(raw.replace(",", "."));
+  return Number.isFinite(num) ? Math.round(num * 60) : 0;
+}
+
+/** En la hoja la fecha va larga: "sáb, 15 ago 2026" (formatDate da 15/8/26). */
+function formatSheetDate(iso) {
+  const raw = String(iso || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return formatDate(raw);
+  const [year, month, day] = raw.split("-").map(Number);
+  return new Date(year, month - 1, day)
+    .toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+    .replace(/\./g, "");
+}
+
+function formatMinutes(totalSeconds) {
+  const mins = Math.round(totalSeconds / 60);
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h} h ${String(m).padStart(2, "0")} min` : `${h} h`;
+}
+
+function setSetlistStatus(text) {
+  const el = document.getElementById("sl-status");
+  if (el) el.textContent = text;
+}
+
+function setlistTouched() {
+  setlistDirty = true;
+  setSetlistStatus("Sin guardar…");
+  clearTimeout(setlistSaveTimer);
+  setlistSaveTimer = setTimeout(() => { saveSetlistNow(); }, 1200);
+}
+
+async function saveSetlistNow() {
+  if (!setlistDraft) return;
+  clearTimeout(setlistSaveTimer);
+  setlistSaveTimer = null;
+  const name = setlistDraft.listName;
+  upsertListMeta({ name, date: setlistDraft.date, notes: setlistDraft.notes });
+  const meta = listsMeta[normalizeText(name)];
+  meta.venue = setlistDraft.venue;
+  meta.time = setlistDraft.time;
+  meta.sheetTitle = setlistDraft.sheetTitle;
+  meta.items = deepClone(setlistDraft.items);
+
+  // El orden de la setlist manda también en el orden de la lista
+  const inList = new Set(getListOrder(name));
+  const fromSheet = setlistDraft.items
+    .filter(it => it.type === "song" && inList.has(it.songId))
+    .map(it => it.songId);
+  const seen = new Set(fromSheet);
+  setListOrder(name, [...fromSheet, ...getListOrder(name).filter(id => !seen.has(id))]);
+
+  setSetlistStatus("Guardando…");
+  try {
+    await persistListsMeta();
+    setlistDirty = false;
+    setSetlistStatus("Guardado");
+  } catch (err) {
+    console.warn("[setlist] save failed", err);
+    setSetlistStatus("Error al guardar");
+  }
+}
+
+function openSetlistOverlay(listName) {
+  const name = String(listName || "").trim();
+  if (!name || name === ALL_FOLDERS || name === NO_FOLDER) {
+    alert("Elige primero una lista concreta en la barra lateral: la setlist se monta sobre una lista.");
+    return;
+  }
+  const meta = getListMeta(name);
+  const stored = normalizeSetlistItems(meta?.items)
+    .filter(it => it.type !== "song" || setlistSongById(it.songId));
+  setlistDraft = {
+    listName: meta?.name || name,
+    sheetTitle: meta?.sheetTitle || "",
+    date: meta?.date || "",
+    venue: meta?.venue || "",
+    time: meta?.time || "",
+    notes: meta?.notes || "",
+    items: stored.length ? stored : buildSetlistItemsFromList(name)
+  };
+  setlistDirty = false;
+
+  const overlay = document.getElementById("setlist-overlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  document.body.classList.add("setlist-open");
+  document.getElementById("sl-main")?.classList.remove("show-preview");
+  document.getElementById("sl-list-name").textContent = setlistDraft.listName;
+
+  document.getElementById("sl-f-title").value = setlistDraft.sheetTitle;
+  document.getElementById("sl-f-title").placeholder = setlistDraft.listName;
+  document.getElementById("sl-f-date").value = setlistDraft.date;
+  document.getElementById("sl-f-time").value = setlistDraft.time;
+  document.getElementById("sl-f-venue").value = setlistDraft.venue;
+  document.getElementById("sl-f-notes").value = setlistDraft.notes;
+  document.querySelectorAll("#sl-opts input[data-opt]").forEach(input => {
+    input.checked = !!setlistOpts[input.dataset.opt];
+  });
+
+  setSetlistStatus("");
+  renderSetlistEditor();
+  renderSetlistSheet();
+  requestAnimationFrame(fitSetlistPreview);
+}
+window.openSetlistOverlay = openSetlistOverlay;
+
+async function closeSetlistOverlay() {
+  if (!setlistDraft) return;
+  if (setlistDirty) await saveSetlistNow();
+  document.getElementById("setlist-overlay").hidden = true;
+  document.body.classList.remove("setlist-open");
+  setlistDraft = null;
+  renderFolderFilters();
+  renderSongList();
+  if (activeSongId) {
+    const song = songs.find(s => s.id === activeSongId);
+    if (song) renderSong(song);
+  }
+}
+
+function renderSetlistEditor() {
+  const wrap = document.getElementById("sl-rows");
+  if (!wrap || !setlistDraft) return;
+  wrap.innerHTML = "";
+
+  if (!setlistDraft.items.length) {
+    const li = document.createElement("li");
+    li.className = "sl-empty";
+    li.textContent = "La setlist está vacía. Añade canciones de la lista, momentos (vídeo, presentación…) o bloques.";
+    wrap.appendChild(li);
+    renderSetlistAddSelect();
+    return;
+  }
+
+  let num = 0;
+  setlistDraft.items.forEach(item => {
+    const li = document.createElement("li");
+    li.className = "sl-row" + (item.type === "cue" ? " sl-row-cue" : item.type === "block" ? " sl-row-block" : "");
+    li.dataset.uid = item.uid;
+    li.draggable = true;
+
+    let head = "";
+    if (item.type === "song") {
+      const song = setlistSongById(item.songId);
+      num += 1;
+      const bits = [
+        song?.key ? `Tono ${convertChordToken(song.key, 0)}` : "",
+        song?.bpm ? `${song.bpm} BPM` : "",
+        song?.duration || ""
+      ].filter(Boolean).join(" · ");
+      // Aviso solo en el editor (nunca se imprime): la ficha de la canción no tiene el dato
+      const missing = [
+        setlistOpts.bpm && !song?.bpm ? "BPM" : "",
+        setlistOpts.duration && !song?.duration ? "duración" : ""
+      ].filter(Boolean).join(" y ");
+      head = `
+        <div class="sl-row-head">
+          <span class="sl-row-num">${num}</span>
+          <span class="sl-row-title">${escapeHtml(song?.title || "(canción no encontrada)")}</span>
+          ${song?.artist ? `<span class="sl-row-artist">${escapeHtml(song.artist)}</span>` : ""}
+          ${bits ? `<span class="sl-row-meta">${escapeHtml(bits)}</span>` : ""}
+          ${missing ? `<span class="sl-row-missing" title="Rellénalo en la ficha de la canción (Editar) y aparecerá en la hoja">sin ${escapeHtml(missing)}</span>` : ""}
+        </div>`;
+    } else if (item.type === "block") {
+      head = `
+        <div class="sl-row-head">
+          <input class="sl-inline" data-field="title" placeholder="Nombre del bloque (p. ej. SEGUNDO PASE)" value="${escapeAttr(item.title || "")}">
+        </div>`;
+    } else {
+      head = `
+        <div class="sl-row-head">
+          <span class="sl-row-num">▸</span>
+          <input class="sl-inline" data-field="title" placeholder="Momento: vídeo, presentación, cambio de guitarra…" value="${escapeAttr(item.title || "")}">
+        </div>`;
+    }
+
+    const noteHtml = item.type === "block"
+      ? ""
+      : `<textarea class="sl-inline" data-field="note" placeholder="Anotación…" rows="1">${escapeHtml(item.note || "")}</textarea>`;
+
+    li.innerHTML = `
+      <div class="sl-grip" title="Arrastra para mover">⠿</div>
+      <div class="sl-row-main">${head}${noteHtml}</div>
+      <div class="sl-row-actions">
+        <button class="sl-mini" type="button" data-act="up" title="Subir" aria-label="Subir">↑</button>
+        <button class="sl-mini" type="button" data-act="down" title="Bajar" aria-label="Bajar">↓</button>
+        <button class="sl-mini danger" type="button" data-act="del" title="Quitar" aria-label="Quitar">✕</button>
+      </div>`;
+    wrap.appendChild(li);
+  });
+
+  renderSetlistAddSelect();
+}
+
+function renderSetlistAddSelect() {
+  const select = document.getElementById("sl-add-select");
+  if (!select || !setlistDraft) return;
+  const used = new Set(setlistDraft.items.filter(it => it.type === "song").map(it => it.songId));
+  const inList = new Set(getListOrder(setlistDraft.listName));
+  const option = song => `<option value="${escapeAttr(song.id)}">${escapeHtml(song.title || "Sin título")}${song.artist ? ` — ${escapeHtml(song.artist)}` : ""}</option>`;
+  const mine = songs.filter(s => inList.has(s.id) && !used.has(s.id));
+  const others = songs
+    .filter(s => !inList.has(s.id) && !used.has(s.id))
+    .sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), "es"));
+
+  select.innerHTML =
+    (mine.length ? `<optgroup label="De esta lista">${mine.map(option).join("")}</optgroup>` : "") +
+    (others.length ? `<optgroup label="Otras canciones">${others.map(option).join("")}</optgroup>` : "");
+  if (!mine.length && !others.length) {
+    select.innerHTML = `<option value="">Ya están todas las canciones</option>`;
+  }
+}
+
+function renderSetlistSheet() {
+  const sheet = document.getElementById("sl-sheet");
+  if (!sheet || !setlistDraft) return;
+  const opt = setlistOpts;
+
+  let num = 0;
+  let songCount = 0;
+  let seconds = 0;
+
+  const rows = setlistDraft.items.map(item => {
+    // Un momento/bloque sin escribir no ensucia la hoja (sigue en el editor)
+    if (item.type !== "song" && !String(item.title || "").trim() && !String(item.note || "").trim()) return "";
+    if (item.type === "block") {
+      return `<li class="sl-item block"><span class="sl-block-label">${escapeHtml(item.title)}</span></li>`;
+    }
+    const noteHtml = (opt.notes && item.note)
+      ? `<div class="sl-item-note">${escapeHtml(item.note)}</div>`
+      : "";
+    if (item.type === "cue") {
+      return `
+        <li class="sl-item cue">
+          <span class="sl-item-num">▸</span>
+          <span class="sl-item-title">${escapeHtml(item.title)}</span>
+          <span class="sl-item-meta"></span>
+          ${noteHtml}
+        </li>`;
+    }
+    const song = setlistSongById(item.songId);
+    if (!song) return "";
+    num += 1;
+    songCount += 1;
+    seconds += parseDurationSeconds(song.duration);
+    const meta = [
+      opt.key && song.key ? convertChordToken(song.key, 0) : "",
+      opt.bpm && song.bpm ? `${song.bpm} BPM` : "",
+      opt.duration && song.duration ? song.duration : ""
+    ].filter(Boolean).join(" · ");
+    return `
+      <li class="sl-item song">
+        <span class="sl-item-num">${num}</span>
+        <span class="sl-item-title">${escapeHtml(song.title || "Sin título")}${
+          opt.artist && song.artist ? ` <span class="sl-item-artist">${escapeHtml(song.artist)}</span>` : ""
+        }</span>
+        <span class="sl-item-meta">${escapeHtml(meta)}</span>
+        ${noteHtml}
+      </li>`;
+  }).join("");
+
+  const headMeta = [
+    setlistDraft.date ? formatSheetDate(setlistDraft.date) : "",
+    setlistDraft.venue,
+    setlistDraft.time
+  ].filter(Boolean).join(" · ");
+  const stat = (value, label) => `
+    <div class="sl-stat">
+      <span class="sl-stat-num">${escapeHtml(String(value))}</span>
+      <span class="sl-stat-label">${escapeHtml(label)}</span>
+    </div>`;
+  const stats = [
+    songCount ? stat(songCount, songCount === 1 ? "tema" : "temas") : "",
+    seconds ? stat(Math.round(seconds / 60), "min aprox") : ""
+  ].join("");
+  const logoSrc = opt.dark ? "assets/images/besta_color.png" : "assets/images/besta.png";
+
+  sheet.className = "sl-sheet" + (opt.big ? " big" : "") + (opt.dark ? " dark" : "");
+  sheet.innerHTML = `
+    <header class="sl-head">
+      <div class="sl-head-brand">
+        ${opt.logo ? `<div class="sl-logo"><img src="${logoSrc}" alt="BESTA"></div>` : `<span class="sl-eyebrow">BESTA</span>`}
+        <span class="sl-eyebrow">Setlist</span>
+      </div>
+      <div class="sl-head-main">
+        <div>
+          <h1 class="sl-title">${escapeHtml(setlistDraft.sheetTitle || setlistDraft.listName)}</h1>
+          ${headMeta ? `<div class="sl-head-meta">${escapeHtml(headMeta)}</div>` : ""}
+        </div>
+        <div class="sl-stats">${stats}</div>
+      </div>
+      <div class="sl-rule"></div>
+    </header>
+    ${setlistDraft.notes ? `<div class="sl-sheet-notes">${escapeHtml(setlistDraft.notes)}</div>` : ""}
+    <ol class="sl-list">${rows}</ol>
+    <footer class="sl-foot">
+      <span>BESTA</span>
+      <span>${escapeHtml(setlistDraft.listName)}</span>
+      <span>@besta_oficial</span>
+    </footer>`;
+}
+
+/** Encaja el A4 en el ancho disponible de la vista previa. */
+function fitSetlistPreview() {
+  const pane = document.getElementById("sl-pane-view");
+  const sheet = document.getElementById("sl-sheet");
+  if (!pane || !sheet || !setlistDraft) return;
+  const available = pane.clientWidth - 40;
+  if (available <= 0) return;
+  const a4 = (210 * 96) / 25.4; // 210 mm en px CSS
+  const zoom = Math.max(0.32, Math.min(1, available / a4));
+  sheet.style.setProperty("--sl-zoom", zoom.toFixed(3));
+}
+
+function printSetlist() {
+  renderSetlistSheet();
+  document.body.classList.add("printing-setlist");
+  const cleanup = () => {
+    document.body.classList.remove("printing-setlist");
+    window.removeEventListener("afterprint", cleanup);
+  };
+  window.addEventListener("afterprint", cleanup);
+  setTimeout(() => {
+    window.print();
+    setTimeout(cleanup, 800);   // por si afterprint no llega (Safari iOS)
+  }, 60);
+}
+
+/** Añade a la setlist las canciones de la lista que aún no estén. */
+function syncSetlistWithList() {
+  if (!setlistDraft) return;
+  const used = new Set(setlistDraft.items.filter(it => it.type === "song").map(it => it.songId));
+  const missing = getListOrder(setlistDraft.listName).filter(id => !used.has(id));
+  if (!missing.length) {
+    setSetlistStatus("Ya estaban todas");
+    return;
+  }
+  missing.forEach(songId => {
+    setlistDraft.items.push({ uid: setlistUid(), type: "song", songId, note: "" });
+  });
+  setlistTouched();
+  renderSetlistEditor();
+  renderSetlistSheet();
+}
+
+function addSetlistItem(item, { focus = false } = {}) {
+  if (!setlistDraft) return;
+  setlistDraft.items.push(item);
+  setlistTouched();
+  renderSetlistEditor();
+  renderSetlistSheet();
+  if (focus) {
+    const row = document.querySelector(`.sl-row[data-uid="${item.uid}"] input[data-field="title"]`);
+    row?.focus();
+    row?.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function moveSetlistItem(uid, targetUid, position) {
+  if (!setlistDraft || uid === targetUid) return;
+  const from = setlistDraft.items.findIndex(it => it.uid === uid);
+  if (from < 0) return;
+  const [moved] = setlistDraft.items.splice(from, 1);
+  let to = setlistDraft.items.findIndex(it => it.uid === targetUid);
+  if (to < 0) to = setlistDraft.items.length - 1;
+  if (position === "after") to += 1;
+  setlistDraft.items.splice(to, 0, moved);
+  setlistTouched();
+  renderSetlistEditor();
+  renderSetlistSheet();
+}
+
+function wireSetlistOverlay() {
+  const overlay = document.getElementById("setlist-overlay");
+  if (!overlay) return;
+
+  document.getElementById("setlist-btn")?.addEventListener("click", () => openSetlistOverlay(activeFolderFilter));
+  document.getElementById("sl-close")?.addEventListener("click", closeSetlistOverlay);
+  document.getElementById("sl-print")?.addEventListener("click", printSetlist);
+  document.getElementById("sl-sync")?.addEventListener("click", syncSetlistWithList);
+  document.getElementById("sl-toggle-view")?.addEventListener("click", () => {
+    const main = document.getElementById("sl-main");
+    const showing = main.classList.toggle("show-preview");
+    document.getElementById("sl-toggle-view").textContent = showing ? "Editar" : "Ver hoja";
+    if (showing) requestAnimationFrame(fitSetlistPreview);
+  });
+
+  // Cabecera de la hoja
+  const fields = [
+    ["sl-f-title", "sheetTitle"],
+    ["sl-f-date", "date"],
+    ["sl-f-time", "time"],
+    ["sl-f-venue", "venue"],
+    ["sl-f-notes", "notes"]
+  ];
+  fields.forEach(([id, key]) => {
+    document.getElementById(id)?.addEventListener("input", e => {
+      if (!setlistDraft) return;
+      setlistDraft[key] = e.target.value;
+      setlistTouched();
+      renderSetlistSheet();
+    });
+  });
+
+  // Opciones de impresión
+  document.getElementById("sl-opts")?.addEventListener("change", e => {
+    const opt = e.target.dataset.opt;
+    if (!opt) return;
+    setlistOpts[opt] = e.target.checked;
+    saveSetlistOpts();
+    renderSetlistSheet();
+    if (opt === "bpm" || opt === "duration") renderSetlistEditor();   // avisos de "sin BPM"
+  });
+
+  // Añadir bloques
+  document.getElementById("sl-add-song")?.addEventListener("click", () => {
+    const songId = document.getElementById("sl-add-select")?.value;
+    if (!songId) return;
+    addSetlistItem({ uid: setlistUid(), type: "song", songId, note: "" });
+  });
+  document.getElementById("sl-add-cue")?.addEventListener("click", () => {
+    addSetlistItem({ uid: setlistUid(), type: "cue", title: "", note: "" }, { focus: true });
+  });
+  document.getElementById("sl-add-block")?.addEventListener("click", () => {
+    addSetlistItem({ uid: setlistUid(), type: "block", title: "", note: "" }, { focus: true });
+  });
+
+  // Filas: mover, quitar y editar
+  const rows = document.getElementById("sl-rows");
+  rows?.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn || !setlistDraft) return;
+    const uid = btn.closest(".sl-row")?.dataset.uid;
+    const idx = setlistDraft.items.findIndex(it => it.uid === uid);
+    if (idx < 0) return;
+    const act = btn.dataset.act;
+    if (act === "del") {
+      setlistDraft.items.splice(idx, 1);
+    } else if (act === "up" && idx > 0) {
+      setlistDraft.items.splice(idx - 1, 0, setlistDraft.items.splice(idx, 1)[0]);
+    } else if (act === "down" && idx < setlistDraft.items.length - 1) {
+      setlistDraft.items.splice(idx + 1, 0, setlistDraft.items.splice(idx, 1)[0]);
+    } else {
+      return;
+    }
+    setlistTouched();
+    renderSetlistEditor();
+    renderSetlistSheet();
+  });
+  rows?.addEventListener("input", e => {
+    const field = e.target.dataset.field;
+    if (!field || !setlistDraft) return;
+    const uid = e.target.closest(".sl-row")?.dataset.uid;
+    const item = setlistDraft.items.find(it => it.uid === uid);
+    if (!item) return;
+    item[field] = e.target.value;
+    setlistTouched();
+    renderSetlistSheet();   // solo la hoja: el editor no se re-renderiza para no perder el foco
+  });
+
+  // Arrastrar filas (ratón/trackpad; en táctil están las flechas ↑ ↓)
+  rows?.addEventListener("dragstart", e => {
+    const row = e.target.closest(".sl-row[data-uid]");
+    if (!row) return;
+    setlistDragUid = row.dataset.uid;
+    row.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    try { e.dataTransfer.setData("text/plain", setlistDragUid); } catch (_) {}
+  });
+  rows?.addEventListener("dragend", () => {
+    rows.querySelectorAll(".sl-row").forEach(r => r.classList.remove("dragging", "drag-over-above", "drag-over-below"));
+    setlistDragUid = null;
+  });
+  rows?.addEventListener("dragover", e => {
+    if (!setlistDragUid) return;
+    const row = e.target.closest(".sl-row[data-uid]");
+    if (!row) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const rect = row.getBoundingClientRect();
+    const above = (e.clientY - rect.top) < rect.height / 2;
+    rows.querySelectorAll(".sl-row").forEach(r => r.classList.remove("drag-over-above", "drag-over-below"));
+    row.classList.add(above ? "drag-over-above" : "drag-over-below");
+  });
+  rows?.addEventListener("drop", e => {
+    if (!setlistDragUid) return;
+    const row = e.target.closest(".sl-row[data-uid]");
+    if (!row) return;
+    e.preventDefault();
+    const rect = row.getBoundingClientRect();
+    const above = (e.clientY - rect.top) < rect.height / 2;
+    moveSetlistItem(setlistDragUid, row.dataset.uid, above ? "before" : "after");
+    setlistDragUid = null;
+  });
+
+  window.addEventListener("resize", fitSetlistPreview);
+  document.addEventListener("keydown", e => {
+    if (!setlistDraft) return;
+    if (e.key === "Escape" && !e.target.matches?.("input, textarea, select")) {
+      e.preventDefault();
+      closeSetlistOverlay();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "p") {
+      e.preventDefault();
+      printSetlist();
+    }
+  });
+  window.addEventListener("beforeunload", e => {
+    if (!setlistDirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+}
 
 function renderSongList() {
   const list = document.getElementById("song-list");
@@ -6493,18 +7552,23 @@ function renderSection(sec, idx) {
   `;
 }
 
-function convertChordsString(s) {
-  if (!s || currentNotation === "abc") return s;
-  return s.replace(/([^a-zA-Z]|^)([CDEFGAB])([b#]?)/g, (_, prev, note, acc) => {
+function convertChordsString(s, semis = 0) {
+  if (!s) return s;
+  // Cada token es un acorde; se respetan espacios y barras de compás.
+  const out = semis
+    ? s.replace(/[^\s|]+/g, tok => transposeChordName(tok, semis))
+    : s;
+  if (currentNotation === "abc") return out;
+  return out.replace(/([^a-zA-Z]|^)([CDEFGAB])([b#]?)/g, (_, prev, note, acc) => {
     return prev + ABC_TO_DOREMI[note] + (acc || "");
   });
 }
 
-function renderLyrics(text) {
+function renderLyrics(text, semis = transposeAmount) {
   // ChordPro inline: [Am]hola [F]mundo
   // Convertimos cada [chord] a un span con la notación actual aplicada
   return escapeHtml(text).replace(/\[([^\]]+)\]/g, (_, chord) =>
-    `<span class="chord">${escapeHtml(convertChordToken(chord))}</span>`
+    `<span class="chord">${escapeHtml(convertChordToken(chord, semis))}</span>`
   );
 }
 
