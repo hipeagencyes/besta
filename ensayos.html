@@ -937,6 +937,12 @@ body.role-voice         .note:not([data-role="voice"]):not([data-role="all"])   
 }
 .video-search a:hover { transform: translateY(-1px); box-shadow: var(--glow); }
 
+/* ============ MATERIAL (audios + links) ============ */
+.song-material { margin-bottom: 22px; }
+.song-material > * + * { margin-top: 12px; }
+.song-material .audio-block,
+.song-material .song-links { margin-bottom: 0; }
+
 /* ============ AUDIO PLAYER ============ */
 .audio-block {
   margin-bottom: 22px;
@@ -975,7 +981,6 @@ body.role-voice         .note:not([data-role="voice"]):not([data-role="all"])   
 .audio-edit-info audio { width: 100%; height: 38px; margin-top: 4px; }
 
 /* Audio manager inside edit form */
-.audio-edit-list { display: flex; flex-direction: column; gap: 10px; }
 .audio-edit-row {
   display: flex;
   align-items: center;
@@ -1045,13 +1050,28 @@ body:not(.diagrams-on) .chord-strip { display: none; }
   text-align: center;
   padding: 0 4px;
 }
-/* hide guitar/piano diagrams based on role */
-body.role-piano         .chord-card.instrument-guitar { display: none; }
-body.role-guitar_rhythm .chord-card.instrument-piano  { display: none; }
-body.role-guitar_lead   .chord-card.instrument-piano  { display: none; }
-body.role-bass          .chord-card.instrument-piano  { display: none; }
+/* Cada miembro ve el diagrama de SU instrumento, no los tres.
+   "Todos" es la vista de la banda: ahí sí salen los tres. */
+body.role-piano         .chord-card:not(.instrument-piano)  { display: none; }
+body.role-bass          .chord-card:not(.instrument-bass)   { display: none; }
+body.role-guitar_rhythm .chord-card:not(.instrument-guitar) { display: none; }
+body.role-guitar_lead   .chord-card:not(.instrument-guitar) { display: none; }
+/* Maxim canta pero también toca la guitarra */
+body.role-voice         .chord-card:not(.instrument-guitar) { display: none; }
+/* Víctor toca la batería: la armonía no le aporta nada y la tira ocupa
+   media pantalla, así que no se le enseña ni con el interruptor activado. */
 body.role-drums         .chord-strip { display: none; }
-body.role-voice         .chord-strip { display: none; }
+
+/* bass fretboard */
+.bass-svg .string { stroke: var(--fg); stroke-width: 0.7; opacity: 0.55; }
+.bass-svg .fret   { stroke: var(--fg); stroke-width: 0.7; opacity: 0.35; }
+.bass-svg .nut    { stroke: var(--fg); stroke-width: 2.4; }
+.bass-svg .dot.root  { fill: var(--accent); }
+.bass-svg .dot.fifth { fill: none; stroke: var(--accent); stroke-width: 1.3; }
+.bass-svg .fret-label {
+  fill: var(--muted); font-size: 7px; font-family: 'JetBrains Mono', monospace;
+  text-anchor: start; dominant-baseline: middle;
+}
 
 /* piano keyboard */
 .piano-svg .key-white { fill: #f5f7ff; stroke: #14121a; stroke-width: 1; }
@@ -1638,11 +1658,27 @@ body.editing .sidebar::after {
   transition: border-color 0.15s, color 0.15s;
 }
 .metro-control button:not(.metro-toggle):hover { border-color: var(--accent); color: var(--accent); }
+/* El BPM es editable: los ± van de 5 en 5, pero se puede escribir cualquier número */
 #metro-bpm-display {
   min-width: 30px;
+  width: 44px;
   text-align: center;
   font-weight: 600;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 3px 0;
+  cursor: text;
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
+#metro-bpm-display::-webkit-outer-spin-button,
+#metro-bpm-display::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#metro-bpm-display:hover { border-color: var(--line-strong); }
+#metro-bpm-display:focus { outline: none; border-color: var(--accent); background: var(--bg); }
 #metro-bpm-display.custom { color: var(--accent); }
 
 @media (max-width: 540px) {
@@ -1807,6 +1843,20 @@ body.editing .sidebar::after {
   color: var(--fg);
   font-weight: 600;
 }
+/* El aclarativo no va en mayúsculas: se leía pegado al título */
+.edit-block-head h3 .hint {
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  font-weight: 400;
+  font-style: italic;
+  margin-left: 6px;
+}
+
+.material-list { display: flex; flex-direction: column; gap: 10px; }
+.material-list .link-edit { margin-bottom: 0; }
+.material-empty { color: var(--muted); font-size: 13px; margin: 0; }
 
 .link-edit {
   display: grid;
@@ -1818,6 +1868,14 @@ body.editing .sidebar::after {
 .link-edit input {
   background: var(--bg-2);
 }
+.link-url-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.link-url-wrap input { flex: 1; min-width: 0; }
+.link-yt-badge {
+  flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 4px 8px; border-radius: 999px; white-space: nowrap;
+}
+.link-yt-badge.ok   { color: var(--accent); background: rgba(var(--accent-rgb), 0.12); }
+.link-yt-badge.warn { color: var(--muted);  background: var(--bg-2); border: 1px solid var(--line); }
 
 .section-edit {
   background: var(--bg-2);
@@ -1985,6 +2043,42 @@ body.editing .sidebar::after {
 .note-panes { position: relative; }
 .note-textarea { background: var(--bg); }
 .note-textarea.hidden { display: none; }
+
+/* Acordes propios de cada miembro */
+.chords-owner {
+  display: inline-block; vertical-align: middle;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: none;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--bg-2); color: var(--muted);
+  border: 1px solid var(--line);
+}
+.chords-owner[data-role-color="drums"]         { color: var(--drums);         border-color: var(--drums); }
+.chords-owner[data-role-color="piano"]         { color: var(--piano);         border-color: var(--piano); }
+.chords-owner[data-role-color="guitar_rhythm"] { color: var(--guitar-rhythm); border-color: var(--guitar-rhythm); }
+.chords-owner[data-role-color="guitar_lead"]   { color: var(--guitar-lead);   border-color: var(--guitar-lead); }
+.chords-owner[data-role-color="bass"]          { color: var(--bass);          border-color: var(--bass); }
+.chords-owner[data-role-color="voice"]         { color: var(--voice);         border-color: var(--voice); }
+.chords-stale {
+  font-size: 12px; line-height: 1.5; color: var(--fg);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: 8px; padding: 8px 10px; margin: 8px 0;
+}
+.my-chords { border-top: 1px dashed var(--line); padding-top: 12px; }
+.my-chords.active { border-color: var(--accent); }
+.my-chords .edit-input { margin-top: 8px; }
+.my-chords-hint, .my-chords-others {
+  font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.6;
+}
+.my-chords-actions { margin-top: 8px; }
+.btn-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  text-decoration: underline; font-family: inherit;
+}
+.btn-link.danger { color: var(--muted); }
+.btn-link.danger:hover { color: #ff8b8b; }
 
 /* Menú "+ Añadir sección" */
 .edit-block-actions {
@@ -2821,7 +2915,8 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
     <div class="metro-control" title="Claqueta / metrónomo — usa el BPM de la canción (acento en el 1)">
       <button class="metro-toggle" id="metro-toggle" title="Claqueta on/off">♩</button>
       <button id="metro-slower" title="−5 BPM">−</button>
-      <span id="metro-bpm-display">100</span>
+      <input id="metro-bpm-display" type="number" min="30" max="300" step="1" inputmode="numeric"
+             aria-label="BPM de la claqueta" title="BPM — pulsa y escribe el que quieras" value="100">
       <button id="metro-faster" title="+5 BPM">+</button>
     </div>
     <div class="transpose-control" title="Transposición (no modifica los datos guardados)">
@@ -3166,13 +3261,57 @@ function defaultSectionNameFor(type) {
 }
 
 function normalizeSection(sec) {
-  return {
+  const out = {
     name: sec?.name || "",
     type: SECTION_TYPE_IDS.has(sec?.type) ? sec.type : inferSectionType(sec?.name),
     lyrics: sec?.lyrics || "",
     chords: sec?.chords || "",
     notes: normalizeSectionNotes(sec?.notes)
   };
+  const byRole = normalizeChordsByRole(sec?.chordsByRole);
+  if (Object.keys(byRole).length) out.chordsByRole = byRole;
+  return out;
+}
+
+/* Acordes propios de cada miembro para una sección.
+   Vacío = sin versión propia; se usa la de la banda. */
+function normalizeChordsByRole(raw) {
+  const out = {};
+  const src = raw || {};
+  for (const role of ROLES) {
+    if (role === "all") continue;            // "Todos" ES la versión de la banda
+    const v = src[role];
+    if (!v || typeof v !== "object") continue;
+    const lyrics = typeof v.lyrics === "string" ? v.lyrics : "";
+    const chords = typeof v.chords === "string" ? v.chords : "";
+    if (!lyrics.trim() && !chords.trim()) continue;
+    const entry = { lyrics, chords };
+    // Letra de la banda cuando se creó la versión: sirve para avisar si cambia.
+    if (typeof v.baseLyrics === "string") entry.baseLyrics = v.baseLyrics;
+    out[role] = entry;
+  }
+  return out;
+}
+
+/* Resuelve qué acordes ve un miembro en una sección:
+   su versión si la tiene, y si no la de la banda. */
+function sectionChordsFor(sec, role) {
+  const ov = (role && role !== "all") ? sec?.chordsByRole?.[role] : null;
+  const ovLyrics = (ov?.lyrics || "").trim();
+  const ovChords = (ov?.chords || "").trim();
+  if (!ovLyrics && !ovChords) {
+    return { lyrics: sec?.lyrics || "", chords: sec?.chords || "", ownerRole: null, stale: false };
+  }
+  return {
+    lyrics: ovLyrics ? ov.lyrics : (sec?.lyrics || ""),
+    chords: ovChords ? ov.chords : (sec?.chords || ""),
+    ownerRole: role,
+    stale: !!(ovLyrics && typeof ov.baseLyrics === "string" && ov.baseLyrics !== (sec?.lyrics || ""))
+  };
+}
+
+function rolesWithOwnChords(sec) {
+  return ROLES.filter(r => r !== "all" && sec?.chordsByRole?.[r]);
 }
 
 let supa = null;
@@ -3354,6 +3493,7 @@ async function logout() {
 let songs = [];
 let activeSongId = null;
 let currentNotation = "abc";
+let currentRole = "all";
 let searchQuery = "";
 let activeFolderFilter = ALL_FOLDERS;
 let listsMeta = {};
@@ -3586,25 +3726,82 @@ function renderPianoChord(chord) {
 }
 
 /* =========================================================
-   Guitar diagrams (using SVGuitar lib + a chord database)
-   String numbers: 1 = high E (thin), 6 = low E (thick)
+   Bass fretboard (Lars)
+   Un bajista no lee posturas: lee dónde cae la tónica y dónde tiene
+   la quinta y la octava alrededor. Dibujamos 4 cuerdas (Mi La Re Sol,
+   la grave a la izquierda como en los diagramas de guitarra) y una
+   ventana de 5 trastes centrada en la tónica más grave.
    ========================================================= */
-const GUITAR_CHORDS = {
+const BASS_OPEN_STRINGS = [4, 9, 2, 7];   // Mi La Re Sol, de grave a aguda
+const BASS_FRET_WINDOW = 5;
+
+function renderBassChord(chord) {
+  const parsed = parseChordTheory(chord);
+  if (!parsed) return '<div class="chord-card-missing">—</div>';
+
+  const root = parsed.root % 12;
+  const fifth = (root + 7) % 12;
+
+  // La tónica más grave alcanzable en Mi o La manda dónde empieza la ventana.
+  const rootFretOn = (openSemi) => ((root - openSemi) % 12 + 12) % 12;
+  const lowest = Math.min(rootFretOn(BASS_OPEN_STRINGS[0]), rootFretOn(BASS_OPEN_STRINGS[1]));
+  const startFret = lowest === 0 ? 0 : Math.max(1, lowest - 1);
+
+  const W = 54, H = 68, padX = 9, padTop = 10;
+  const stringGap = (W - padX * 2) / (BASS_OPEN_STRINGS.length - 1);
+  const fretGap = (H - padTop - 4) / BASS_FRET_WINDOW;
+
+  let svg = `<svg class="bass-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Cejuela gruesa solo si la ventana empieza al aire
+  svg += `<line class="${startFret === 0 ? 'nut' : 'fret'}" x1="${padX}" y1="${padTop}" x2="${W - padX}" y2="${padTop}" />`;
+  for (let f = 1; f <= BASS_FRET_WINDOW; f++) {
+    const y = padTop + f * fretGap;
+    svg += `<line class="fret" x1="${padX}" y1="${y}" x2="${W - padX}" y2="${y}" />`;
+  }
+  BASS_OPEN_STRINGS.forEach((_, i) => {
+    const x = padX + i * stringGap;
+    svg += `<line class="string" x1="${x}" y1="${padTop}" x2="${x}" y2="${padTop + BASS_FRET_WINDOW * fretGap}" />`;
+  });
+
+  BASS_OPEN_STRINGS.forEach((openSemi, i) => {
+    const x = padX + i * stringGap;
+    for (let f = startFret; f <= startFret + BASS_FRET_WINDOW; f++) {
+      const semi = (openSemi + f) % 12;
+      const isRoot = semi === root;
+      const isFifth = semi === fifth;
+      if (!isRoot && !isFifth) continue;
+      // Al aire el punto va encima de la cejuela; pisado, en medio del traste.
+      const y = f === 0 ? padTop - 5 : padTop + (f - startFret - 0.5) * fretGap;
+      if (f === 0 && startFret !== 0) continue;
+      svg += `<circle class="dot ${isRoot ? 'root' : 'fifth'}" cx="${x}" cy="${y}" r="${isRoot ? 4.2 : 3.4}" />`;
+    }
+  });
+
+  if (startFret > 0) {
+    svg += `<text class="fret-label" x="${W - padX + 2}" y="${padTop + fretGap * 0.75}">${startFret}</text>`;
+  }
+  svg += '</svg>';
+  return svg;
+}
+
+/* =========================================================
+   Guitar diagrams (SVGuitar + posiciones abiertas y móviles)
+   Cuerdas: 1 = mi agudo (fina), 6 = mi grave (gorda).
+   OJO: para SVGuitar los trastes de dedos y cejillas son RELATIVOS
+   a `position` (1 = primer traste dibujado), nunca absolutos.
+   ========================================================= */
+
+/* Posiciones abiertas: se usan tal cual porque suenan mejor que la cejilla. */
+const OPEN_CHORDS = {
   "C":     { fingers: [[5,3,'3'],[4,2,'2'],[2,1,'1'],[1,0],[3,0],[6,'x']], barres: [] },
   "D":     { fingers: [[6,'x'],[5,'x'],[4,0],[3,2,'1'],[1,2,'2'],[2,3,'3']], barres: [] },
   "E":     { fingers: [[6,0],[5,2,'2'],[4,2,'3'],[3,1,'1'],[2,0],[1,0]], barres: [] },
-  "F":     { fingers: [[3,2,'3'],[2,1,'2']], barres: [{fromString:6,toString:1,fret:1}], position: 1 },
   "G":     { fingers: [[6,3,'2'],[5,2,'1'],[4,0],[3,0],[2,0],[1,3,'3']], barres: [] },
   "A":     { fingers: [[6,'x'],[5,0],[4,2,'1'],[3,2,'2'],[2,2,'3'],[1,0]], barres: [] },
-  "B":     { fingers: [[6,'x'],[4,4,'4'],[3,4,'3'],[2,4,'2']], barres: [{fromString:5,toString:1,fret:2}], position: 2 },
-  "Cm":    { fingers: [[6,'x'],[4,5,'4'],[3,5,'3'],[2,4,'2']], barres: [{fromString:5,toString:1,fret:3}], position: 3 },
   "Dm":    { fingers: [[6,'x'],[5,'x'],[4,0],[3,2,'2'],[2,3,'3'],[1,1,'1']], barres: [] },
   "Em":    { fingers: [[6,0],[5,2,'2'],[4,2,'3'],[3,0],[2,0],[1,0]], barres: [] },
-  "Fm":    { fingers: [[3,1,'1'],[2,1,'1']], barres: [{fromString:6,toString:1,fret:1}], position: 1 },
-  "Gm":    { fingers: [[3,3,'3'],[2,3,'4']], barres: [{fromString:6,toString:1,fret:3}], position: 3 },
   "Am":    { fingers: [[6,'x'],[5,0],[4,2,'2'],[3,2,'3'],[2,1,'1'],[1,0]], barres: [] },
-  "Bm":    { fingers: [[6,'x'],[3,4,'4'],[2,3,'2']], barres: [{fromString:5,toString:1,fret:2}], position: 2 },
-  "F#m":   { fingers: [[3,2,'3'],[2,2,'4']], barres: [{fromString:6,toString:1,fret:2}], position: 2 },
   "C7":    { fingers: [[6,'x'],[5,3,'3'],[4,2,'2'],[3,3,'4'],[2,1,'1'],[1,0]], barres: [] },
   "D7":    { fingers: [[6,'x'],[5,'x'],[4,0],[3,2,'2'],[2,1,'1'],[1,2,'3']], barres: [] },
   "E7":    { fingers: [[6,0],[5,2,'2'],[4,0],[3,1,'1'],[2,0],[1,0]], barres: [] },
@@ -3621,16 +3818,130 @@ const GUITAR_CHORDS = {
   "Dsus4": { fingers: [[6,'x'],[5,'x'],[4,0],[3,2,'1'],[2,3,'2'],[1,3,'3']], barres: [] },
   "Asus4": { fingers: [[6,'x'],[5,0],[4,2,'1'],[3,2,'2'],[2,3,'3'],[1,0]], barres: [] },
   "Esus4": { fingers: [[6,0],[5,2,'2'],[4,2,'3'],[3,2,'4'],[2,0],[1,0]], barres: [] },
-  "Bb":    { fingers: [[6,'x'],[4,3,'3'],[3,3,'4'],[2,3,'2']], barres: [{fromString:5,toString:1,fret:1}], position: 1 }
+  "Dsus2": { fingers: [[6,'x'],[5,'x'],[4,0],[3,2,'1'],[2,3,'3'],[1,0]], barres: [] },
+  "Asus2": { fingers: [[6,'x'],[5,0],[4,2,'1'],[3,2,'2'],[2,0],[1,0]], barres: [] },
+  "Em6":   { fingers: [[6,0],[5,2,'2'],[4,2,'3'],[3,0],[2,2,'4'],[1,0]], barres: [] },
+  "A5":    { fingers: [[6,'x'],[5,0],[4,2,'1'],[3,2,'2'],[2,'x'],[1,'x']], barres: [] },
+  "E5":    { fingers: [[6,0],[5,2,'1'],[4,2,'2'],[3,'x'],[2,'x'],[1,'x']], barres: [] }
 };
+
+/* Formas móviles con cejilla: los trastes van relativos a la cejilla
+   (1 = cejilla). La misma forma sirve para cualquier tónica; solo cambia
+   `position`, que es el traste donde se pone la cejilla.
+   SHAPE_E: tónica en la 6ª cuerda. SHAPE_A: tónica en la 5ª. */
+const BARRE_6 = { fromString: 6, toString: 1, fret: 1 };
+const BARRE_5 = { fromString: 5, toString: 1, fret: 1 };
+
+const SHAPE_E = {
+  maj:  { barres: [BARRE_6], fingers: [[5,3,'3'],[4,3,'4'],[3,2,'2']] },
+  m:    { barres: [BARRE_6], fingers: [[5,3,'3'],[4,3,'4']] },
+  7:    { barres: [BARRE_6], fingers: [[5,3,'3'],[3,2,'2']] },
+  m7:   { barres: [BARRE_6], fingers: [[5,3,'3']] },
+  maj7: { barres: [BARRE_6], fingers: [[5,3,'4'],[4,2,'2'],[3,2,'3']] },
+  sus4: { barres: [BARRE_6, { fromString: 5, toString: 3, fret: 3 }], fingers: [] },
+  aug:  { mute: [2,1], fingers: [[6,1,'1'],[5,4,'4'],[4,3,'3'],[3,2,'2']] },
+  5:    { mute: [3,2,1], fingers: [[6,1,'1'],[5,3,'3'],[4,3,'4']] }
+};
+
+const SHAPE_A = {
+  maj:  { mute: [6], barres: [BARRE_5], fingers: [[4,3,'2'],[3,3,'3'],[2,3,'4']] },
+  m:    { mute: [6], barres: [BARRE_5], fingers: [[4,3,'3'],[3,3,'4'],[2,2,'2']] },
+  7:    { mute: [6], barres: [BARRE_5], fingers: [[4,3,'3'],[2,3,'4']] },
+  m7:   { mute: [6], barres: [BARRE_5], fingers: [[4,3,'3'],[2,2,'2']] },
+  maj7: { mute: [6,1], fingers: [[5,1,'1'],[4,3,'3'],[3,2,'2'],[2,3,'4']] },
+  6:    { mute: [6], barres: [BARRE_5, { fromString: 4, toString: 1, fret: 3 }], fingers: [] },
+  m6:   { mute: [6], fingers: [[5,1,'1'],[4,3,'3'],[3,3,'4'],[2,2,'2'],[1,3,'4']] },
+  sus4: { mute: [6], barres: [BARRE_5], fingers: [[4,3,'2'],[3,3,'3'],[2,4,'4']] },
+  sus2: { mute: [6], barres: [BARRE_5], fingers: [[4,3,'3'],[3,3,'4']] },
+  dim:  { mute: [6,1], fingers: [[5,1,'1'],[4,2,'2'],[3,3,'4'],[2,2,'3']] },
+  m7b5: { mute: [6,1], fingers: [[5,1,'1'],[4,2,'2'],[3,1,'1'],[2,2,'3']] },
+  aug:  { mute: [6], fingers: [[5,1,'1'],[4,4,'4'],[3,3,'3'],[2,3,'2'],[1,2,'1']] },
+  9:    { mute: [6], barres: [BARRE_5], fingers: [[4,3,'3'],[3,2,'2'],[2,3,'4']] },
+  5:    { mute: [6,3,2,1], fingers: [[5,1,'1'],[4,3,'3']] }
+};
+
+/* Cualquier sufijo raro cae en la familia más parecida:
+   Cadd9 → mayor, Am9 → m7, G13 → 7… Mejor un diagrama aproximado que ninguno. */
+function chordFamily(quality) {
+  const q = (quality || "").trim();
+  const exact = {
+    "": "maj", "M": "maj", "maj": "maj", "major": "maj", "add9": "maj", "add2": "maj",
+    "6/9": "6", "69": "6",
+    "m": "m", "min": "m", "-": "m",
+    "7": "7", "dom7": "7", "9": "9", "11": "7", "13": "7", "7b9": "7", "7#9": "7", "7b5": "7", "7#5": "aug",
+    "M7": "maj7", "maj7": "maj7", "Maj7": "maj7", "maj9": "maj7", "M9": "maj7",
+    "m7": "m7", "min7": "m7", "m9": "m7", "m11": "m7", "m7add11": "m7",
+    "6": "6", "M6": "6", "m6": "m6", "min6": "m6",
+    "sus4": "sus4", "sus": "sus4", "4": "sus4", "7sus4": "sus4", "7sus": "sus4", "sus2": "sus2", "2": "sus2",
+    "dim": "dim", "dim7": "dim", "o": "dim", "°": "dim",
+    "m7b5": "m7b5", "ø": "m7b5", "halfdim": "m7b5",
+    "aug": "aug", "+": "aug", "aug7": "aug",
+    "5": "5", "no3": "5"
+  };
+  if (exact[q] !== undefined) return exact[q];
+  // Heurística para sufijos no listados
+  const isMinor = /^(m|min|-)(?![a])/.test(q);
+  if (/maj7|M7|Δ/.test(q)) return isMinor ? "m7" : "maj7";
+  if (/7|9|11|13/.test(q)) return isMinor ? "m7" : "7";
+  if (/sus2/.test(q)) return "sus2";
+  if (/sus/.test(q)) return "sus4";
+  if (/dim|°/.test(q)) return "dim";
+  if (/aug|\+/.test(q)) return "aug";
+  return isMinor ? "m" : "maj";
+}
+
+/* Devuelve la forma a dibujar para cualquier acorde: abierta si la hay,
+   y si no la cejilla más cercana al clavijero (forma de E o de A). */
+function guitarShapeFor(chord) {
+  if (!chord) return null;
+  if (OPEN_CHORDS[chord]) return OPEN_CHORDS[chord];
+
+  const parsed = parseChordTheory(chord);
+  if (!parsed) return null;
+  const family = chordFamily(parsed.quality);
+
+  // Tónica al aire de cada cuerda: 6ª = Mi (4), 5ª = La (9)
+  const candidates = [];
+  const addCandidate = (table, openSemi) => {
+    const shape = table[family];
+    if (!shape) return;
+    let position = ((parsed.root - openSemi) % 12 + 12) % 12;
+    if (position === 0) position = 12;
+    candidates.push({ position, shape });
+  };
+  addCandidate(SHAPE_E, 4);
+  addCandidate(SHAPE_A, 9);
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b) => a.position - b.position);
+  const best = candidates[0];
+  return {
+    position: best.position,
+    fingers: [...(best.shape.mute || []).map(s => [s, 'x']), ...best.shape.fingers],
+    barres: (best.shape.barres || []).map(b => ({ ...b }))
+  };
+}
 
 function renderGuitarChord(chord, container) {
   if (!container) return;
+  // La librería viene por CDN con `defer`: si aún no está, reintentamos
+  // en vez de dejar el hueco en "cargando…" para siempre.
   if (!window.svguitar) {
     container.innerHTML = '<div class="chord-card-missing">cargando…</div>';
+    if (!container.dataset.svgRetry) {
+      container.dataset.svgRetry = "1";
+      const wait = setInterval(() => {
+        if (!window.svguitar) return;
+        clearInterval(wait);
+        if (!container.isConnected) return;
+        delete container.dataset.svgRetry;
+        renderGuitarChord(chord, container);
+      }, 250);
+      setTimeout(() => clearInterval(wait), 15000);
+    }
     return;
   }
-  const data = GUITAR_CHORDS[chord];
+  const data = guitarShapeFor(chord);
   if (!data) {
     container.innerHTML = '<div class="chord-card-missing">sin diagrama</div>';
     return;
@@ -3715,16 +4026,35 @@ function parseYouTubeId(url) {
   return m ? m[1] : null;
 }
 
-function renderVideoBlock(song) {
-  if (!song.video) return '';
-  const url = String(song.video).trim();
+function isYouTubeUrl(url) {
+  return /(^|\/\/|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)\//.test(String(url || "").trim());
+}
+
+/* Los links de YouTube se incrustan como reproductor; el resto son chips.
+   `song.video` es el campo antiguo: se sigue leyendo como un link más hasta
+   que se guarde la canción (ahí se migra a la lista de links). */
+function getSongLinks(song) {
+  const links = (song?.links || [])
+    .filter(l => (l?.url || "").trim())
+    .map(l => ({ label: (l.label || "").trim(), url: l.url.trim() }));
+  const legacy = String(song?.video || "").trim();
+  if (legacy && !links.some(l => l.url === legacy)) {
+    links.unshift({ label: "Referencia YouTube", url: legacy });
+  }
+  return links;
+}
+
+function renderVideoBlock(link) {
+  const url = String(link?.url || "").trim();
+  if (!url) return '';
+  const title = (link.label || "").trim() || "Referencia YouTube";
   const id = parseYouTubeId(url);
   if (id) {
     return `
       <div class="video-block">
         <div class="video-thumb" data-id="${id}" onclick="playYouTube(this)" role="button" tabindex="0" aria-label="Reproducir vídeo">
           <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${id}/0.jpg'">
-          <span class="video-thumb-title">▶ Referencia YouTube</span>
+          <span class="video-thumb-title">▶ ${escapeHtml(title)}</span>
           <button class="video-play-btn" type="button" aria-label="Reproducir">▶</button>
         </div>
         <div class="video-open">
@@ -3733,11 +4063,11 @@ function renderVideoBlock(song) {
       </div>
     `;
   }
-  // Fallback: la URL guardada no es un vídeo concreto (probablemente búsqueda, playlist o canal)
+  // Es de YouTube pero no apunta a un vídeo concreto (búsqueda, lista o canal)
   const isSearch = /youtube\.com\/results/.test(url);
   const msg = isSearch
-    ? `Hay guardada una URL de <strong>búsqueda</strong>, no de un vídeo específico. Para incrustar el reproductor pulsa <strong>Editar</strong> y pega la URL del vídeo que vais a tocar (formato <code>https://youtu.be/XXXX</code> o <code>https://www.youtube.com/watch?v=XXXX</code>).`
-    : `La URL guardada no es un vídeo de YouTube reconocido. Pulsa <strong>Editar</strong> y pega una URL tipo <code>https://youtu.be/XXXX</code> o <code>https://www.youtube.com/watch?v=XXXX</code>.`;
+    ? `Este link es una <strong>búsqueda</strong> de YouTube, no un vídeo concreto. Para incrustar el reproductor pulsa <strong>Editar</strong> y cambia el link por el del vídeo que vais a tocar (<code>https://youtu.be/XXXX</code> o <code>https://www.youtube.com/watch?v=XXXX</code>).`
+    : `Este link de YouTube no apunta a un vídeo concreto, así que no se puede incrustar el reproductor.`;
   return `
     <div class="video-block">
       <div class="video-search">
@@ -3775,9 +4105,10 @@ function sanitizeAudioName(name) {
 }
 
 // Reproductores en la vista normal de la canción
-function renderAudioBlock(song) {
+/* Material de la canción: audios subidos y links externos, juntos.
+   Los vídeos de YouTube van aparte porque se incrustan con reproductor. */
+function renderMaterialBlock(song, chipLinks) {
   const list = Array.isArray(song.audio) ? song.audio : [];
-  if (!list.length) return "";
   const tracks = list.map(a => `
     <div class="audio-track">
       <div class="audio-track-head">
@@ -3786,7 +4117,15 @@ function renderAudioBlock(song) {
       </div>
       <audio controls preload="none" src="${escapeAttr(audioPublicUrl(a.path))}"></audio>
     </div>`).join("");
-  return `<div class="audio-block">${tracks}</div>`;
+  const chips = (chipLinks || []).map(l =>
+    `<a class="song-link" href="${escapeAttr(l.url)}" target="_blank" rel="noreferrer">${escapeHtml(l.label || l.url)}</a>`
+  ).join("");
+  if (!tracks && !chips) return "";
+  return `
+    <div class="song-material">
+      ${tracks ? `<div class="audio-block">${tracks}</div>` : ""}
+      ${chips ? `<div class="song-links">${chips}</div>` : ""}
+    </div>`;
 }
 
 // Subida desde el formulario de edición
@@ -3801,7 +4140,8 @@ async function uploadAudioFiles(inputEl) {
   if (!editDraft.id) editDraft.id = generateSongId(editDraft.artist, editDraft.title || "song");
   const songId = editDraft.id;
 
-  const listEl = document.querySelector(".audio-edit-list");
+  const listEl = document.querySelector(".material-list");
+  document.querySelector(".material-empty")?.remove();
   for (const file of files) {
     if (file.size > AUDIO_MAX_BYTES) {
       alert(`"${file.name}" es demasiado grande (${(file.size / 1048576).toFixed(1)} MB). Máximo 40 MB.`);
@@ -3812,7 +4152,7 @@ async function uploadAudioFiles(inputEl) {
       status = document.createElement("div");
       status.className = "audio-edit-row uploading";
       status.innerHTML = `<span class="audio-track-icon">↑</span><div class="audio-edit-info"><div class="audio-edit-name">Subiendo ${escapeHtml(file.name)}…</div></div>`;
-      listEl.prepend(status);
+      listEl.appendChild(status);
     }
     const key = `${songId}/${Date.now()}-${sanitizeAudioName(file.name)}`;
     try {
@@ -4030,6 +4370,22 @@ async function initApp() {
   document.getElementById("metro-toggle")?.addEventListener("click", toggleMetronome);
   document.getElementById("metro-slower")?.addEventListener("click", () => adjustMetroBpm(-5));
   document.getElementById("metro-faster")?.addEventListener("click", () => adjustMetroBpm(5));
+  // El número se puede editar a mano (los ± siguen yendo de 5 en 5)
+  const metroDisplay = document.getElementById("metro-bpm-display");
+  metroDisplay?.addEventListener("focus", () => metroDisplay.select());
+  metroDisplay?.addEventListener("input", () => {
+    const n = parseInt(metroDisplay.value, 10);
+    if (!Number.isFinite(n) || n < 30 || n > 300) return;   // aún se está escribiendo
+    metroBpmOverride = (n === getCurrentBpm()) ? null : n;
+    metroDisplay.classList.toggle("custom", metroBpmOverride !== null);
+  });
+  metroDisplay?.addEventListener("blur", () => setMetroBpm(metroDisplay.value));
+  metroDisplay?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); metroDisplay.blur(); }
+    else if (e.key === "Escape") { e.preventDefault(); metroDisplay.blur(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); adjustMetroBpm(1); metroDisplay.value = String(metroGetBpm()); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); adjustMetroBpm(-1); metroDisplay.value = String(metroGetBpm()); }
+  });
   updateMetroUi();
 
   // Wire transpose
@@ -4573,7 +4929,6 @@ function emptySong() {
     key: "",
     bpm: "",
     duration: "",
-    video: "",
     audio: [],
     links: [],
     notes: "",
@@ -4597,11 +4952,42 @@ async function loadMemberCount() {
 }
 
 // ---- Enter / exit edit mode ----
+function updateLinkBadge(input) {
+  const wrap = input.closest(".link-url-wrap");
+  if (!wrap) return;
+  wrap.querySelector(".link-yt-badge")?.remove();
+  const url = input.value;
+  if (!isYouTubeUrl(url)) return;
+  const badge = document.createElement("span");
+  if (parseYouTubeId(url)) {
+    badge.className = "link-yt-badge ok";
+    badge.textContent = "▶ vídeo";
+    badge.title = "Se incrustará el reproductor";
+  } else {
+    badge.className = "link-yt-badge warn";
+    badge.textContent = "▶ no es un vídeo";
+    badge.title = "No es un vídeo concreto: no se puede incrustar";
+  }
+  wrap.appendChild(badge);
+}
+
+/* El vídeo de referencia era un campo aparte; ahora es un link más.
+   Al editar se pasa a la lista para que al guardar quede migrado. */
+function migrateVideoToLinks(draft) {
+  const legacy = String(draft?.video || "").trim();
+  delete draft.video;
+  if (!legacy) return;
+  draft.links = draft.links || [];
+  if (draft.links.some(l => (l?.url || "").trim() === legacy)) return;
+  draft.links.unshift({ label: "Referencia YouTube", url: legacy });
+}
+
 function enterEdit(songId) {
   const song = songs.find(s => s.id === songId);
   if (!song) return;
   if (autoscrollPlaying) stopAutoscroll();
   editDraft = deepClone(song);
+  migrateVideoToLinks(editDraft);
   editMode = true;
   editIsNew = false;
   editDirty = false;
@@ -5307,18 +5693,24 @@ function toggleMetronome() {
   metroPlaying ? stopMetronome() : startMetronome();
 }
 
-function adjustMetroBpm(delta) {
-  const base = metroGetBpm();
-  const next = Math.max(30, Math.min(300, base + delta));
+function setMetroBpm(value) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) { updateMetroUi(); return; }
+  const next = Math.max(30, Math.min(300, n));
   // Si coincide con el BPM de la canción, volvemos a "seguir canción"
   metroBpmOverride = (next === getCurrentBpm()) ? null : next;
   updateMetroUi();
 }
 
+function adjustMetroBpm(delta) {
+  setMetroBpm(metroGetBpm() + delta);
+}
+
 function updateMetroUi() {
   const disp = document.getElementById("metro-bpm-display");
   if (!disp) return;
-  disp.textContent = String(metroGetBpm());
+  // Mientras se escribe no se pisa lo tecleado
+  if (document.activeElement !== disp) disp.value = String(metroGetBpm());
   disp.classList.toggle("custom", metroBpmOverride !== null);
 }
 
@@ -5713,14 +6105,16 @@ function buildLiveSlides() {
       setNum: getSetlistNumber(song)
     });
     (Array.isArray(song.sections) ? song.sections : []).forEach(sec => {
-      const raw = String(sec.lyrics || "");
+      // Respeta la versión de acordes del miembro seleccionado, si la tiene.
+      const res = sectionChordsFor(sec, currentRole);
+      const raw = String(res.lyrics || "");
       const lyrics = liveStripChords(raw).trim();
       const type = sec.type || inferSectionType(sec.name);
       const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
       const name = sec.name || typeLabel || "Sección";
       // Acordes de la sección: inline en la letra ([Am]hola) o línea aparte.
       const hasInlineChords = /\[[^\]]+\]/.test(raw);
-      const chordsLine = String(sec.chords || "").trim();
+      const chordsLine = String(res.chords || "").trim();
       const base = {
         songId: id, title: song.title || "", artist: song.artist || "",
         sectionName: name, lyricsRaw: raw, hasInlineChords, chordsLine
@@ -5854,12 +6248,22 @@ async function closeLiveMode() {
 
 function setRole(role, persist) {
   if (!VALID_ROLES_SET.has(role)) role = "all";
+  const changed = role !== currentRole;
+  currentRole = role;
   document.body.classList.remove(...ROLES.map(r => "role-" + r));
   document.body.classList.add("role-" + role);
   document.querySelectorAll(".toggle-group.role button").forEach(b => {
     b.classList.toggle("active", b.dataset.role === role);
   });
   if (persist) localStorage.setItem(ROLE_KEY, role);
+  // Los acordes pueden ser distintos para cada miembro: hay que repintar.
+  if (changed) {
+    if (editMode) renderEditForm();
+    else if (activeSongId) {
+      const song = songs.find(s => s.id === activeSongId);
+      if (song) renderSong(song);
+    }
+  }
 }
 
 function setMode(mode, persist) {
@@ -7048,18 +7452,17 @@ function renderSong(song) {
          Pulsa <strong>Editar</strong> para añadir letras, acordes y notas.
        </div>`;
 
-  const linksHtml = (song.links && song.links.length)
-    ? `<div class="song-links">${song.links.map(l =>
-        `<a class="song-link" href="${escapeAttr(l.url)}" target="_blank" rel="noreferrer">${escapeHtml(l.label || l.url)}</a>`
-      ).join("")}</div>`
-    : "";
+  const allLinks = getSongLinks(song);
+  const videoLinks = allLinks.filter(l => isYouTubeUrl(l.url));
+  const otherLinks = allLinks.filter(l => !isYouTubeUrl(l.url));
+
+  const materialHtml = renderMaterialBlock(song, otherLinks);
 
   const notesHtml = song.notes
     ? `<div class="song-notes">${escapeHtml(song.notes)}</div>`
     : "";
 
-  const videoHtml = renderVideoBlock(song);
-  const audioHtml = renderAudioBlock(song);
+  const videoHtml = videoLinks.map(renderVideoBlock).join("");
   const listInfoHtml = renderActiveListInfo();
   const deleteBannerHtml = renderDeleteBanner(song);
 
@@ -7086,19 +7489,24 @@ function renderSong(song) {
     ${listInfoHtml}
     ${deleteBannerHtml}
     ${videoHtml}
-    ${audioHtml}
+    ${materialHtml}
     ${notesHtml}
-    ${linksHtml}
     <div class="sections">${sectionsHtml}</div>
   `;
   content.scrollTop = savedScroll;
   lastRenderedSongId = song?.id ?? null;
 
-  // After DOM is in place, render guitar chord SVGs (SVGuitar paints into existing nodes)
-  requestAnimationFrame(() => {
-    document.querySelectorAll(".chord-card-diagram.guitar[data-chord]").forEach(el => {
-      renderGuitarChord(el.dataset.chord, el);
-    });
+  // Los nodos ya existen (innerHTML es síncrono), así que pintamos los
+  // diagramas aquí mismo. Nada de requestAnimationFrame: si la pestaña no
+  // está pintando (segundo plano, pantalla apagada, iPad al volver) el
+  // callback no llega nunca y las tarjetas se quedan en blanco.
+  renderChordDiagrams(content);
+}
+
+/* Pinta los diagramas de guitarra de un contenedor ya montado en el DOM. */
+function renderChordDiagrams(root) {
+  (root || document).querySelectorAll(".chord-card-diagram.guitar[data-chord]").forEach(el => {
+    renderGuitarChord(el.dataset.chord, el);
   });
 }
 window.enterEdit = enterEdit;
@@ -7185,6 +7593,8 @@ function renderEditForm(opts = {}) {
           renderEditForm();
         }
       }
+      // Aviso en vivo de si el link es un vídeo incrustable
+      if (/^links\.\d+\.url$/.test(path)) updateLinkBadge(e.target);
     };
     form.addEventListener("input", onChange);
     form.addEventListener("change", onChange);
@@ -7277,13 +7687,24 @@ function renderEditForm(opts = {}) {
 function renderEditFormHtml(draft) {
   const setlistNumber = getSetlistNumber(draft);
   const foldersValue = normalizeSongFolders(draft.folders).join(", ");
-  const linksHtml = (draft.links || []).map((l, i) => `
+  const linksHtml = (draft.links || []).map((l, i) => {
+    const isYt = isYouTubeUrl(l.url);
+    const badge = isYt
+      ? (parseYouTubeId(l.url)
+          ? '<span class="link-yt-badge ok" title="Se incrustará el reproductor">▶ vídeo</span>'
+          : '<span class="link-yt-badge warn" title="No es un vídeo concreto: no se puede incrustar">▶ no es un vídeo</span>')
+      : "";
+    return `
     <div class="link-edit">
-      <input class="edit-input" data-field="links.${i}.label" value="${escapeAttr(l.label || '')}" placeholder="Etiqueta (ej. Spotify)">
-      <input class="edit-input" data-field="links.${i}.url" value="${escapeAttr(l.url || '')}" placeholder="https://...">
+      <input class="edit-input" data-field="links.${i}.label" value="${escapeAttr(l.label || '')}" placeholder="Etiqueta (ej. YouTube, Spotify)">
+      <div class="link-url-wrap">
+        <input class="edit-input" data-field="links.${i}.url" value="${escapeAttr(l.url || '')}" placeholder="https://...">
+        ${badge}
+      </div>
       <button class="btn btn-danger" onclick="removeLink(${i})" type="button">×</button>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   const sectionsHtml = (draft.sections || []).map((sec, i) => renderSectionEditHtml(sec, i, draft.sections.length)).join("");
 
@@ -7296,7 +7717,7 @@ function renderEditFormHtml(draft) {
       </div>
       <button class="btn btn-danger" type="button" onclick="removeAudio(${i})" aria-label="Quitar audio">×</button>
     </div>
-  `).join("") || '<p style="color:var(--muted);font-size:13px;margin:0;">Aún no hay audios. Sube un MP3/M4A y quedará aquí, en el tema, para todos.</p>';
+  `).join("");
 
   return `
     <div class="edit-form">
@@ -7339,11 +7760,6 @@ function renderEditFormHtml(draft) {
         </div>
 
         <div class="edit-field full">
-          <label>Vídeo de referencia <span class="hint">YouTube — usa una URL específica (youtu.be/...) para que se incruste el reproductor</span></label>
-          <input class="edit-input" data-field="video" value="${escapeAttr(draft.video || '')}" placeholder="https://www.youtube.com/watch?v=...">
-        </div>
-
-        <div class="edit-field full">
           <label>Notas generales</label>
           <textarea class="edit-textarea" data-field="notes" rows="3" placeholder="Notas para todos los miembros sobre la canción">${escapeHtml(draft.notes || '')}</textarea>
         </div>
@@ -7351,21 +7767,20 @@ function renderEditFormHtml(draft) {
 
       <div class="edit-block">
         <div class="edit-block-head">
-          <h3>Links externos</h3>
-          <button class="btn btn-secondary" type="button" onclick="addLink()">+ Añadir link</button>
+          <h3>Material <span class="hint">links y audios de la canción, para todos</span></h3>
+          <div class="edit-block-actions">
+            <button class="btn btn-secondary" type="button" onclick="addLink()">+ Añadir link</button>
+            <label class="btn btn-secondary audio-upload-label">
+              + Subir audio
+              <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" multiple onchange="uploadAudioFiles(this)">
+            </label>
+          </div>
         </div>
-        <div class="links-list">${linksHtml || '<p style="color:var(--muted);font-size:13px;margin:0;">Aún no hay links. Añade Spotify, partituras, etc.</p>'}</div>
-      </div>
-
-      <div class="edit-block">
-        <div class="edit-block-head">
-          <h3>Audios <span class="hint">MP3, M4A, WAV… se guardan en el tema para todos</span></h3>
-          <label class="btn btn-secondary audio-upload-label">
-            + Subir audio
-            <input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" multiple onchange="uploadAudioFiles(this)">
-          </label>
+        <div class="material-list">
+          ${linksHtml}
+          ${audioEditHtml}
+          ${(linksHtml || audioEditHtml) ? "" : '<p class="material-empty">Aún no hay nada. Añade el vídeo de YouTube, Spotify, partituras… o sube un MP3 de referencia.</p>'}
         </div>
-        <div class="audio-edit-list">${audioEditHtml}</div>
       </div>
 
       <div class="edit-block">
@@ -7459,6 +7874,7 @@ function renderSectionEditHtml(sec, i, total) {
           <label>Línea de acordes <span class="hint">si la sección es solo instrumental</span></label>
           <input class="edit-input" data-field="sections.${i}.chords" value="${escapeAttr(sec.chords || '')}" placeholder="Am | F | C | G">
         </div>
+        ${renderMyChordsEditHtml(sec, i)}
         <div class="edit-field">
           <label>Notas por rol <span class="hint">elige el rol, escribe debajo. El punto naranja indica que el rol tiene contenido.</span></label>
           <div class="note-tabs" data-section="${i}">${noteTabs}</div>
@@ -7468,6 +7884,101 @@ function renderSectionEditHtml(sec, i, total) {
     </div>
   `;
 }
+
+/* Bloque "mis acordes" del editor de sección: solo para el miembro
+   seleccionado arriba. Para escribir los de otro, se cambia de miembro. */
+function renderMyChordsEditHtml(sec, i) {
+  const others = rolesWithOwnChords(sec).filter(r => r !== currentRole);
+  const othersHtml = others.length
+    ? `<p class="my-chords-others">Con versión propia: ${others.map(r =>
+        `<span class="chords-owner" data-role-color="${r}">${escapeHtml(roleLabel(r))}</span>`).join(" ")}</p>`
+    : "";
+
+  if (currentRole === "all") {
+    return `
+      <div class="edit-field my-chords">
+        <label>Acordes propios</label>
+        <p class="my-chords-hint">Estás como <strong>Todos</strong>, que es la versión de la banda. Elige tu instrumento en la barra de arriba para guardar tus propios acordes en esta sección.</p>
+        ${othersHtml}
+      </div>`;
+  }
+
+  const ov = sec?.chordsByRole?.[currentRole];
+  const me = escapeHtml(roleLabel(currentRole));
+  if (!ov) {
+    return `
+      <div class="edit-field my-chords">
+        <label>Acordes propios <span class="hint">solo los verás tú (${me}); el resto sigue viendo los de la banda</span></label>
+        <button class="btn btn-secondary" type="button" onclick="useMyChords(${i})">Usar mis acordes en esta sección</button>
+        ${othersHtml}
+      </div>`;
+  }
+
+  const stale = typeof ov.baseLyrics === "string" && ov.baseLyrics !== (sec.lyrics || "");
+  return `
+    <div class="edit-field my-chords active">
+      <label>
+        Mis acordes <span class="chords-owner" data-role-color="${currentRole}">${me}</span>
+        <span class="hint">reemplazan a los de la banda solo para ti</span>
+      </label>
+      ${stale ? `<div class="chords-stale">
+          La letra de la banda ha cambiado desde que guardaste esto.
+          <button class="btn-link" type="button" onclick="resyncMyChords(${i})">Regenerar desde la de la banda</button>
+          <span class="hint">(perderás tus cambios en esta sección)</span>
+        </div>` : ""}
+      <textarea class="edit-textarea" data-field="sections.${i}.chordsByRole.${currentRole}.lyrics" rows="6" placeholder="Tu letra con tus [acordes]…">${escapeHtml(ov.lyrics || '')}</textarea>
+      <input class="edit-input" data-field="sections.${i}.chordsByRole.${currentRole}.chords" value="${escapeAttr(ov.chords || '')}" placeholder="Tu línea de acordes (si la sección es instrumental)">
+      <div class="my-chords-actions">
+        <button class="btn-link danger" type="button" onclick="clearMyChords(${i})">Quitar mis acordes y volver a los de la banda</button>
+      </div>
+      ${othersHtml}
+    </div>`;
+}
+
+function useMyChords(i) {
+  const sec = editDraft?.sections?.[i];
+  if (!sec || currentRole === "all") return;
+  sec.chordsByRole = sec.chordsByRole || {};
+  sec.chordsByRole[currentRole] = {
+    lyrics: sec.lyrics || "",
+    chords: sec.chords || "",
+    baseLyrics: sec.lyrics || ""
+  };
+  editDirty = true;
+  renderEditForm({ focusSelector: `[data-field="sections.${i}.chordsByRole.${currentRole}.lyrics"]` });
+}
+window.useMyChords = useMyChords;
+
+function resyncMyChords(i) {
+  const sec = editDraft?.sections?.[i];
+  if (!sec?.chordsByRole?.[currentRole]) return;
+  showConfirm({
+    title: "Regenerar tus acordes",
+    body: "Se sustituirán tus acordes de esta sección por los de la banda. Lo que hubieras cambiado aquí se pierde.",
+    confirmLabel: "Regenerar",
+    danger: true,
+    onConfirm: () => {
+      sec.chordsByRole[currentRole] = {
+        lyrics: sec.lyrics || "",
+        chords: sec.chords || "",
+        baseLyrics: sec.lyrics || ""
+      };
+      editDirty = true;
+      renderEditForm();
+    }
+  });
+}
+window.resyncMyChords = resyncMyChords;
+
+function clearMyChords(i) {
+  const sec = editDraft?.sections?.[i];
+  if (!sec?.chordsByRole?.[currentRole]) return;
+  delete sec.chordsByRole[currentRole];
+  if (!Object.keys(sec.chordsByRole).length) delete sec.chordsByRole;
+  editDirty = true;
+  renderEditForm();
+}
+window.clearMyChords = clearMyChords;
 
 function askDeleteSong(songId) {
   const song = songs.find(s => s.id === songId);
@@ -7507,16 +8018,28 @@ function renderSection(sec, idx) {
   const showTypeBadge = type && type !== "custom" && typeLabel
     && primaryLabel.toLowerCase() !== typeLabel.toLowerCase();
 
-  const lyricsHtml = sec.lyrics
-    ? `<div class="lyrics-block">${renderLyrics(sec.lyrics)}</div>`
+  // Cada miembro puede tener sus propios acordes en esta sección.
+  const res = sectionChordsFor(sec, currentRole);
+  const otherVersions = rolesWithOwnChords(sec).filter(r => r !== res.ownerRole);
+  const ownerBadge = res.ownerRole
+    ? `<span class="chords-owner" data-role-color="${res.ownerRole}">acordes de ${escapeHtml(roleLabel(res.ownerRole))}</span>`
+    : (otherVersions.length && currentRole === "all"
+        ? `<span class="chords-owner alt" title="Estos son los de la banda">versión propia: ${escapeHtml(otherVersions.map(roleLabel).join(", "))}</span>`
+        : "");
+  const staleHtml = res.stale
+    ? `<div class="chords-stale">La letra de la banda ha cambiado desde que guardaste tus acordes. Pulsa <strong>Editar</strong> para revisarlos.</div>`
     : "";
 
-  const hasInlineChords = sec.lyrics && /\[[^\]]+\]/.test(sec.lyrics);
-  const chordsLineHtml = (sec.chords && !hasInlineChords)
-    ? `<div class="chords-line">${escapeHtml(convertChordsString(sec.chords))}</div>`
+  const lyricsHtml = res.lyrics
+    ? `<div class="lyrics-block">${renderLyrics(res.lyrics)}</div>`
     : "";
 
-  const sectionChords = extractChordsFromSection(sec);
+  const hasInlineChords = res.lyrics && /\[[^\]]+\]/.test(res.lyrics);
+  const chordsLineHtml = (res.chords && !hasInlineChords)
+    ? `<div class="chords-line">${escapeHtml(convertChordsString(res.chords, transposeAmount))}</div>`
+    : "";
+
+  const sectionChords = extractChordsFromSection({ lyrics: res.lyrics, chords: res.chords });
   const stripHtml = sectionChords.length
     ? `<div class="chord-strip">
          ${sectionChords.map(c => {
@@ -7530,6 +8053,10 @@ function renderSection(sec, idx) {
                <div class="chord-card-name">${escapeHtml(convertChordToken(c))}</div>
                <div class="chord-card-diagram piano">${renderPianoChord(transposed)}</div>
              </div>
+             <div class="chord-card instrument-bass">
+               <div class="chord-card-name">${escapeHtml(convertChordToken(c))}</div>
+               <div class="chord-card-diagram bass">${renderBassChord(transposed)}</div>
+             </div>
            `;
          }).join("")}
        </div>`
@@ -7542,7 +8069,9 @@ function renderSection(sec, idx) {
         <h3 class="section-label">
           <span class="section-label-name">${escapeHtml(primaryLabel)}</span>
           ${showTypeBadge ? `<span class="section-label-type">${escapeHtml(typeLabel)}</span>` : ""}
+          ${ownerBadge}
         </h3>
+        ${staleHtml}
         ${stripHtml}
         ${chordsLineHtml}
         ${lyricsHtml || (chordsLineHtml ? '' : '<div style="color:var(--muted);font-size:13px;font-style:italic;">— sección sin contenido —</div>')}
