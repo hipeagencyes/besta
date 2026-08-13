@@ -2637,6 +2637,21 @@ body.setlist-open { overflow: hidden; }
 }
 textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-height: 1.4; }
 .sl-inline:focus { outline: none; border-color: var(--accent); border-style: solid; }
+/* Anotaciones en el editor */
+.sl-notes { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.sl-note-row { display: flex; align-items: flex-start; gap: 5px; width: 100%; }
+.sl-note-bullet {
+  flex: none; width: 7px; padding-top: 7px;
+  color: var(--accent); font-weight: 700; line-height: 1;
+}
+.sl-note-row .sl-mini { flex: none; margin-top: 4px; }
+.sl-note-add {
+  background: transparent; border: none; padding: 2px 0 0 12px; cursor: pointer;
+  font-family: inherit; font-size: 11px; font-weight: 700; color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.sl-note-add:hover { color: var(--accent); }
+
 .sl-row-actions { display: flex; flex-direction: column; gap: 3px; }
 /* Los bloques no llevan anotación: los botones van en fila para no dejar hueco muerto */
 .sl-row-block .sl-row-actions { flex-direction: row; }
@@ -2734,6 +2749,16 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
   color: #4a4552; white-space: pre-wrap;
 }
 .sl-item-note::before { content: "↳ "; color: #db7f4e; }
+/* Varias anotaciones del mismo momento: una debajo de otra, con punto */
+.sl-item-notes {
+  grid-column: 2 / -1; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 1.5pt;
+}
+.sl-item-notes li {
+  font-size: 9.5pt; line-height: 1.35; color: #4a4552;
+  white-space: pre-wrap; padding-left: 11pt; text-indent: -11pt;
+}
+.sl-item-notes li::before { content: "• "; color: #db7f4e; }
 .sl-item.cue { border-bottom-style: dashed; }
 .sl-item.cue .sl-item-num { color: #b9b4c2; font-size: 11pt; }
 .sl-item.cue .sl-item-title {
@@ -6774,6 +6799,13 @@ function setlistUid() {
   return `i${Date.now().toString(36)}${setlistUidSeq.toString(36)}`;
 }
 
+/* Cada elemento puede llevar varias anotaciones (salen como puntos en la hoja).
+   `note` era el campo antiguo de una sola: se lee como la primera de la lista. */
+function normalizeSetlistNotes(item) {
+  const raw = Array.isArray(item?.notes) ? item.notes : [item?.note];
+  return raw.map(n => String(n || "").trim()).filter(Boolean);
+}
+
 function normalizeSetlistItems(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];
@@ -6783,7 +6815,7 @@ function normalizeSetlistItems(raw) {
     const base = {
       uid: String(item?.uid || "").trim() || setlistUid(),
       type,
-      note: String(item?.note || "")
+      notes: normalizeSetlistNotes(item)
     };
     if (type === "song") {
       const songId = String(item?.songId || "").trim();
@@ -6802,7 +6834,7 @@ function setlistSongById(id) {
 
 function buildSetlistItemsFromList(listName) {
   return getListOrder(listName).map(songId => ({
-    uid: setlistUid(), type: "song", songId, note: ""
+    uid: setlistUid(), type: "song", songId, notes: []
   }));
 }
 
@@ -6991,9 +7023,19 @@ function renderSetlistEditor() {
         </div>`;
     }
 
+    // Varias anotaciones por elemento: cada una es un punto en la hoja.
+    const notes = Array.isArray(item.notes) && item.notes.length ? item.notes : [""];
     const noteHtml = item.type === "block"
       ? ""
-      : `<textarea class="sl-inline" data-field="note" placeholder="Anotación…" rows="1">${escapeHtml(item.note || "")}</textarea>`;
+      : `<div class="sl-notes">
+           ${notes.map((n, ni) => `
+             <div class="sl-note-row">
+               <span class="sl-note-bullet" aria-hidden="true">${notes.length > 1 ? "·" : ""}</span>
+               <textarea class="sl-inline" data-field="notes" data-note-idx="${ni}" placeholder="${ni === 0 ? "Anotación…" : "Otra anotación…"}" rows="1">${escapeHtml(n)}</textarea>
+               ${notes.length > 1 ? `<button class="sl-mini danger" type="button" data-act="note-del" data-note-idx="${ni}" title="Quitar anotación" aria-label="Quitar anotación">✕</button>` : ""}
+             </div>`).join("")}
+           <button class="sl-note-add" type="button" data-act="note-add">+ anotación</button>
+         </div>`;
 
     li.innerHTML = `
       <div class="sl-grip" title="Arrastra para mover">⠿</div>
@@ -7038,14 +7080,18 @@ function renderSetlistSheet() {
   let seconds = 0;
 
   const rows = setlistDraft.items.map(item => {
+    const itemNotes = normalizeSetlistNotes(item);
     // Un momento/bloque sin escribir no ensucia la hoja (sigue en el editor)
-    if (item.type !== "song" && !String(item.title || "").trim() && !String(item.note || "").trim()) return "";
+    if (item.type !== "song" && !String(item.title || "").trim() && !itemNotes.length) return "";
     if (item.type === "block") {
       return `<li class="sl-item block"><span class="sl-block-label">${escapeHtml(item.title)}</span></li>`;
     }
-    const noteHtml = (opt.notes && item.note)
-      ? `<div class="sl-item-note">${escapeHtml(item.note)}</div>`
-      : "";
+    // Una sola anotación va suelta; varias salen como puntos.
+    const noteHtml = (!opt.notes || !itemNotes.length)
+      ? ""
+      : itemNotes.length === 1
+        ? `<div class="sl-item-note">${escapeHtml(itemNotes[0])}</div>`
+        : `<ul class="sl-item-notes">${itemNotes.map(n => `<li>${escapeHtml(n)}</li>`).join("")}</ul>`;
     if (item.type === "cue") {
       return `
         <li class="sl-item cue">
@@ -7153,7 +7199,7 @@ function syncSetlistWithList() {
     return;
   }
   missing.forEach(songId => {
-    setlistDraft.items.push({ uid: setlistUid(), type: "song", songId, note: "" });
+    setlistDraft.items.push({ uid: setlistUid(), type: "song", songId, notes: [] });
   });
   setlistTouched();
   renderSetlistEditor();
@@ -7233,13 +7279,13 @@ function wireSetlistOverlay() {
   document.getElementById("sl-add-song")?.addEventListener("click", () => {
     const songId = document.getElementById("sl-add-select")?.value;
     if (!songId) return;
-    addSetlistItem({ uid: setlistUid(), type: "song", songId, note: "" });
+    addSetlistItem({ uid: setlistUid(), type: "song", songId, notes: [] });
   });
   document.getElementById("sl-add-cue")?.addEventListener("click", () => {
-    addSetlistItem({ uid: setlistUid(), type: "cue", title: "", note: "" }, { focus: true });
+    addSetlistItem({ uid: setlistUid(), type: "cue", title: "", notes: [] }, { focus: true });
   });
   document.getElementById("sl-add-block")?.addEventListener("click", () => {
-    addSetlistItem({ uid: setlistUid(), type: "block", title: "", note: "" }, { focus: true });
+    addSetlistItem({ uid: setlistUid(), type: "block", title: "", notes: [] }, { focus: true });
   });
 
   // Filas: mover, quitar y editar
@@ -7251,6 +7297,28 @@ function wireSetlistOverlay() {
     const idx = setlistDraft.items.findIndex(it => it.uid === uid);
     if (idx < 0) return;
     const act = btn.dataset.act;
+    const item = setlistDraft.items[idx];
+    if (act === "note-add") {
+      if (!Array.isArray(item.notes)) item.notes = [];
+      if (!item.notes.length) item.notes.push("");   // la caja visible aún no estaba en el modelo
+      item.notes.push("");
+      setlistTouched();
+      renderSetlistEditor();
+      // El re-render pierde el foco: lo devolvemos a la anotación recién creada
+      const sel = `.sl-row[data-uid="${item.uid}"] textarea[data-note-idx="${item.notes.length - 1}"]`;
+      document.querySelector(sel)?.focus();
+      return;
+    }
+    if (act === "note-del") {
+      const ni = Number(btn.dataset.noteIdx);
+      if (Array.isArray(item.notes) && ni >= 0 && ni < item.notes.length) {
+        item.notes.splice(ni, 1);
+        setlistTouched();
+        renderSetlistEditor();
+        renderSetlistSheet();
+      }
+      return;
+    }
     if (act === "del") {
       setlistDraft.items.splice(idx, 1);
     } else if (act === "up" && idx > 0) {
@@ -7270,7 +7338,15 @@ function wireSetlistOverlay() {
     const uid = e.target.closest(".sl-row")?.dataset.uid;
     const item = setlistDraft.items.find(it => it.uid === uid);
     if (!item) return;
-    item[field] = e.target.value;
+    if (field === "notes") {
+      const ni = Number(e.target.dataset.noteIdx);
+      if (!Number.isInteger(ni) || ni < 0) return;
+      if (!Array.isArray(item.notes)) item.notes = [];
+      while (item.notes.length <= ni) item.notes.push("");
+      item.notes[ni] = e.target.value;
+    } else {
+      item[field] = e.target.value;
+    }
     setlistTouched();
     renderSetlistSheet();   // solo la hoja: el editor no se re-renderiza para no perder el foco
   });
