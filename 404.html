@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<meta name="description" content="Esta página no existe. Vuelve al inicio de BESTA." />
+<meta name="theme-color" content="#050508" />
+
+<title>BESTA — Página no encontrada</title>
+
+<!-- Rutas absolutas: el 404 se sirve también en URLs profundas (/lo/que/sea) -->
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicons/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicons/favicon-32x32.png">
+<link rel="shortcut icon" href="/assets/favicons/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/favicons/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Major+Mono+Display&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #050508;
+  --fg: #f5f7ff;
+  --accent: #db7f4e;
+  --accent-rgb: 219, 127, 78;
+  --glow: 0 0 18px rgba(var(--accent-rgb), 0.35);
+}
+* { box-sizing: border-box; }
+html { overflow-x: hidden; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  min-height: 100svh;
+  /* La viñeta se sale a propósito por los bordes: que no genere scroll lateral */
+  overflow-x: hidden;
+  display: grid; place-items: center;
+}
+main {
+  position: relative; z-index: 3;
+  text-align: center; padding: clamp(24px, 6vw, 48px);
+  display: grid; gap: clamp(18px, 3vw, 30px); place-items: center;
+  width: 100%; max-width: 620px;
+}
+
+.brand-logo {
+  display: block; width: min(38vw, 190px); height: auto;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 18px rgba(var(--accent-rgb), 0.2));
+}
+
+/* El 404, con separación cromática tipo CRT */
+.code {
+  position: relative;
+  font-family: 'Major Mono Display', monospace;
+  font-size: clamp(72px, 22vw, 180px);
+  line-height: 0.9;
+  letter-spacing: 0.06em;
+  margin: 0;
+  color: var(--fg);
+}
+.code span { position: relative; display: inline-block; }
+.code span::before,
+.code span::after {
+  content: "404";
+  position: absolute; inset: 0;
+  pointer-events: none;
+}
+.code span::before { color: var(--accent); animation: shift-a 3.2s steps(2, end) infinite; }
+.code span::after  { color: #6b7dff;      animation: shift-b 2.7s steps(2, end) infinite; }
+@keyframes shift-a {
+  0%, 92%, 100% { transform: none; opacity: 0; }
+  93%, 97% { transform: translate(-3px, 1px); opacity: 0.8; }
+}
+@keyframes shift-b {
+  0%, 90%, 100% { transform: none; opacity: 0; }
+  91%, 96% { transform: translate(3px, -1px); opacity: 0.6; }
+}
+
+.lead {
+  margin: 0;
+  font-size: clamp(15px, 2.2vw, 19px);
+  line-height: 1.6;
+  color: rgba(245, 247, 255, 0.82);
+}
+.lead strong { color: var(--fg); font-weight: 600; }
+
+.path {
+  margin: 0;
+  font-family: 'Major Mono Display', monospace;
+  font-size: clamp(11px, 1.6vw, 13px);
+  letter-spacing: 0.06em;
+  color: rgba(245, 247, 255, 0.42);
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.cta-group {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: clamp(10px, 1.6vw, 16px);
+}
+.cta {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(13px, 1.6vw, 15px);
+  font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fg); text-decoration: none; cursor: pointer;
+  padding: 13px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(13, 11, 17, 0.45);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s, background 0.2s;
+}
+.cta:hover, .cta:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+  background: rgba(var(--accent-rgb), 0.12);
+  outline: none;
+}
+.cta.primary { border-color: rgba(var(--accent-rgb), 0.5); color: var(--accent); }
+
+/* Capas de ambiente */
+.canvas-stack { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+#noise {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  mix-blend-mode: soft-light; opacity: 0.3;
+}
+.vignette {
+  position: fixed; inset: -10%; pointer-events: none; z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.5) 80%, rgba(0,0,0,0.8) 100%);
+  mix-blend-mode: multiply;
+}
+.flicker { animation: flicker 5s steps(2, end) infinite; }
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.97; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flicker, .code span::before, .code span::after { animation: none; }
+  .code span::before, .code span::after { opacity: 0; }
+  .cta:hover { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="canvas-stack"><canvas id="noise"></canvas></div>
+<div class="vignette"></div>
+
+<main class="flicker">
+  <img class="brand-logo" src="/assets/images/besta_color.png" alt="BESTA">
+  <h1 class="code"><span>404</span></h1>
+  <p class="lead">
+    Esta página <strong>no existe</strong>.<br>
+    O el enlace está roto, o la hemos movido de sitio.
+  </p>
+  <p class="path" id="path"></p>
+  <div class="cta-group">
+    <a class="cta primary" href="/">Volver al inicio</a>
+    <a class="cta" href="/radio.html">Radio</a>
+  </div>
+</main>
+
+<script>
+/* Deja ver qué URL se ha pedido: ayuda a saber si el enlace venía mal */
+(function () {
+  var el = document.getElementById("path");
+  var p = (location.pathname || "/") + (location.search || "");
+  if (p && p !== "/") el.textContent = p;
+})();
+
+/* Grain: se dibuja pequeño y se estira, para no comerse la CPU */
+(function () {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var c = document.getElementById("noise");
+  var ctx = c.getContext("2d");
+  c.width = 160; c.height = 160;                 // resolución interna, no de pantalla
+  var img = ctx.createImageData(c.width, c.height);
+  var last = 0;
+  function draw(t) {
+    if (t - last > 55) {                        // ~18 fps, suficiente para el grano
+      last = t;
+      var d = img.data;
+      for (var i = 0; i < d.length; i += 4) {
+        var v = Math.random() * 255;
+        d[i] = d[i + 1] = d[i + 2] = v;
+        d[i + 3] = Math.random() * 70;
+      }
+      ctx.putImageData(img, 0, 0);
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

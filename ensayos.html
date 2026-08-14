@@ -2486,6 +2486,68 @@ body.editing .sidebar::after {
 .live-song-lead .t { font-size: clamp(34px, 7vw, 80px); font-weight: 800; line-height: 1.1; }
 .live-song-lead .a { color: var(--muted); font-size: clamp(18px, 3vw, 30px); font-weight: 600; }
 
+/* ---- Lo que viene de la setlist: bloques, momentos y anotaciones ---- */
+.live-head { min-width: 0; }
+.live-list-tag {
+  color: var(--accent); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  margin-bottom: 2px;
+}
+.live-list-tag[hidden] { display: none; }
+
+/* "PRIMER PASE", "BIS": marca el tema o momento que abre el bloque */
+.live-block-label {
+  align-self: center;
+  color: var(--muted); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.22em;
+  font-size: clamp(11px, 1.5vw, 15px);
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 5px 15px;
+}
+
+/* Momento: vídeo, presentación, cambio de guitarra… */
+.live-moment-kicker {
+  color: var(--accent); font-size: clamp(13px, 2vw, 18px); font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.live-moment {
+  font-size: clamp(30px, 6vw, 68px); font-weight: 800; line-height: 1.12;
+  text-transform: uppercase; letter-spacing: 0.01em;
+}
+
+/* Anotaciones de la setlist, en la portada de la canción o del momento */
+.live-notes {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 26ch;
+}
+.live-notes li {
+  font-size: clamp(16px, 2.6vw, 28px); font-weight: 600; line-height: 1.3;
+  color: var(--fg); text-indent: -1.1em; padding-left: 1.1em;
+}
+.live-notes li::before { content: "↳ "; color: var(--accent); }
+
+/* Aviso de lo que viene después, en la última diapositiva de cada tema.
+   Fuera del escenario para que no se vaya con el scroll de la letra;
+   sin eventos para no comerse los toques de la zona táctil. */
+.live-nextcue {
+  position: relative; z-index: 1; flex: none;
+  pointer-events: none;
+  display: flex; align-items: baseline; justify-content: center;
+  gap: 10px; flex-wrap: wrap;
+  padding: 8px clamp(20px, 6vw, 90px);
+  border-top: 1px dashed var(--line);
+  font-size: clamp(13px, 1.8vw, 18px); font-weight: 700;
+  color: var(--fg); text-align: center;
+}
+.live-nextcue[hidden] { display: none; }
+.live-nextcue .k {
+  color: var(--accent); font-size: 0.8em; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.16em;
+}
+.live-nextcue.end { color: var(--muted); }
+.live-nextcue.end .k { color: var(--muted); }
+
 /* Acordes en directo */
 .live-topbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .live-chords-btn {
@@ -2676,11 +2738,20 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
   font-size: 12px; color: var(--muted); cursor: pointer;
 }
 .sl-opts input { accent-color: var(--accent); }
+/* Cuánto se ha tenido que encoger la lista para caber en una hoja */
+.sl-fit-hint {
+  margin-top: 7px; font-size: 11px; letter-spacing: 0.04em; color: var(--muted);
+}
+.sl-fit-hint:empty { display: none; }
+.sl-fit-hint.warn { color: var(--accent); }
 
 /* ---- La hoja A4 ---- */
 .sl-sheet-wrap { display: flex; justify-content: center; }
 .sl-sheet {
   zoom: var(--sl-zoom, 1);
+  /* --sl-fit encoge la lista (no la cabecera) para que quepa en una hoja.
+     Lo calcula setlistFitScale(); 1 = tamaño natural. */
+  --sl-fit: 1;
   width: 210mm; min-height: 297mm; padding: 14mm 15mm;
   background: #ffffff; color: #14121a;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
@@ -2726,26 +2797,27 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
 .sl-rule::after { content: ""; display: block; height: 1px; margin-top: 2.5px; background: #e6e3ea; }
 .sl-sheet-notes {
   margin-top: 9px; padding-left: 8px; border-left: 3px solid rgba(219, 127, 78, 0.5);
-  font-size: 9.5pt; line-height: 1.45; color: #3a3540; white-space: pre-wrap;
+  font-size: calc(9.5pt * var(--sl-fit)); line-height: 1.45; color: #3a3540; white-space: pre-wrap;
 }
-.sl-list { list-style: none; margin: 11px 0 0; padding: 0; flex: 1; }
+.sl-list { list-style: none; margin: calc(11px * var(--sl-fit)) 0 0; padding: 0; flex: 1; }
 .sl-item {
-  display: grid; grid-template-columns: 9mm 1fr auto; gap: 3px 8px; align-items: baseline;
-  padding: 4px 0; border-bottom: 1px solid #eceaf0;
+  display: grid; grid-template-columns: calc(9mm * var(--sl-fit)) 1fr auto;
+  gap: calc(3px * var(--sl-fit)) 8px; align-items: baseline;
+  padding: calc(4px * var(--sl-fit)) 0; border-bottom: 1px solid #eceaf0;
   break-inside: avoid; page-break-inside: avoid;
 }
 .sl-item-num {
   font-family: 'JetBrains Mono', monospace; font-weight: 700;
-  font-size: 13pt; color: #db7f4e;
+  font-size: calc(13pt * var(--sl-fit)); color: #db7f4e;
 }
-.sl-item-title { font-size: 13pt; font-weight: 600; min-width: 0; }
-.sl-item-artist { font-size: 9pt; font-weight: 400; color: #6b6675; }
+.sl-item-title { font-size: calc(13pt * var(--sl-fit)); font-weight: 600; min-width: 0; }
+.sl-item-artist { font-size: calc(9pt * var(--sl-fit)); font-weight: 400; color: #6b6675; }
 .sl-item-meta {
-  font-family: 'JetBrains Mono', monospace; font-size: 9pt;
+  font-family: 'JetBrains Mono', monospace; font-size: calc(9pt * var(--sl-fit));
   color: #6b6675; white-space: nowrap;
 }
 .sl-item-note {
-  grid-column: 2 / -1; font-size: 9.5pt; line-height: 1.35;
+  grid-column: 2 / -1; font-size: calc(9.5pt * var(--sl-fit)); line-height: 1.35;
   color: #4a4552; white-space: pre-wrap;
 }
 .sl-item-note::before { content: "↳ "; color: #db7f4e; }
@@ -2755,19 +2827,22 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
   display: flex; flex-direction: column; gap: 1.5pt;
 }
 .sl-item-notes li {
-  font-size: 9.5pt; line-height: 1.35; color: #4a4552;
+  font-size: calc(9.5pt * var(--sl-fit)); line-height: 1.35; color: #4a4552;
   white-space: pre-wrap; padding-left: 11pt; text-indent: -11pt;
 }
 .sl-item-notes li::before { content: "• "; color: #db7f4e; }
 .sl-item.cue { border-bottom-style: dashed; }
-.sl-item.cue .sl-item-num { color: #b9b4c2; font-size: 11pt; }
+.sl-item.cue .sl-item-num { color: #b9b4c2; font-size: calc(11pt * var(--sl-fit)); }
 .sl-item.cue .sl-item-title {
-  font-size: 10.5pt; font-weight: 600; font-style: italic;
+  font-size: calc(10.5pt * var(--sl-fit)); font-weight: 600; font-style: italic;
   text-transform: uppercase; letter-spacing: 0.04em; color: #4a4552;
 }
-.sl-item.block { display: block; border-bottom: none; margin: 11px 0 1px; padding: 0; }
+.sl-item.block {
+  display: block; border-bottom: none;
+  margin: calc(11px * var(--sl-fit)) 0 1px; padding: 0;
+}
 .sl-block-label {
-  display: block; font-size: 9.5pt; font-weight: 700;
+  display: block; font-size: calc(9.5pt * var(--sl-fit)); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.2em; color: #db7f4e;
   border-bottom: 2px solid #db7f4e; padding-bottom: 2px;
 }
@@ -2777,13 +2852,18 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
   font-size: 7.5pt; color: #9a95a4; letter-spacing: 0.12em; text-transform: uppercase;
 }
 /* Variante letra grande (para leer desde el suelo del escenario) */
-.sl-sheet.big .sl-item { padding: 9px 0; grid-template-columns: 13mm 1fr auto; }
-.sl-sheet.big .sl-item-num, .sl-sheet.big .sl-item-title { font-size: 22pt; }
-.sl-sheet.big .sl-item-artist { font-size: 11pt; }
-.sl-sheet.big .sl-item.cue .sl-item-title { font-size: 15pt; }
-.sl-sheet.big .sl-item-note { font-size: 12pt; }
-.sl-sheet.big .sl-item-meta { font-size: 12pt; }
-.sl-sheet.big .sl-block-label { font-size: 12pt; }
+.sl-sheet.big .sl-item {
+  padding: calc(9px * var(--sl-fit)) 0;
+  grid-template-columns: calc(13mm * var(--sl-fit)) 1fr auto;
+}
+.sl-sheet.big .sl-item-num,
+.sl-sheet.big .sl-item-title { font-size: calc(22pt * var(--sl-fit)); }
+.sl-sheet.big .sl-item-artist { font-size: calc(11pt * var(--sl-fit)); }
+.sl-sheet.big .sl-item.cue .sl-item-title { font-size: calc(15pt * var(--sl-fit)); }
+.sl-sheet.big .sl-item-note { font-size: calc(12pt * var(--sl-fit)); }
+.sl-sheet.big .sl-item-notes li { font-size: calc(12pt * var(--sl-fit)); }
+.sl-sheet.big .sl-item-meta { font-size: calc(12pt * var(--sl-fit)); }
+.sl-sheet.big .sl-block-label { font-size: calc(12pt * var(--sl-fit)); }
 /* Variante fondo negro (para leer en tablet/móvil, no para imprimir) */
 .sl-sheet.dark { background: #0d0b11; color: #f5f7ff; }
 .sl-sheet.dark .sl-item { border-bottom-color: rgba(255, 255, 255, 0.1); }
@@ -2959,7 +3039,10 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
   <!-- Modo directo: letra a pantalla completa, pase por estrofas -->
   <div class="live-overlay" id="live-overlay" hidden>
     <div class="live-topbar">
-      <div class="live-song-title" id="live-song-title"></div>
+      <div class="live-head">
+        <div class="live-list-tag" id="live-list-tag" hidden></div>
+        <div class="live-song-title" id="live-song-title"></div>
+      </div>
       <div class="live-topbar-actions">
         <button class="live-chords-btn on" id="live-chords" aria-pressed="true" title="Mostrar u ocultar los acordes (A)">Letra+Acordes</button>
         <button class="live-exit" id="live-exit" aria-label="Salir del modo directo" title="Salir (Esc)">✕</button>
@@ -2968,6 +3051,7 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
     <div class="live-tap live-tap-prev" id="live-tap-prev" aria-hidden="true"></div>
     <div class="live-tap live-tap-next" id="live-tap-next" aria-hidden="true"></div>
     <div class="live-stage" id="live-stage"></div>
+    <div class="live-nextcue" id="live-nextcue" hidden></div>
     <div class="live-controls">
       <button class="live-nav" id="live-prev" aria-label="Anterior" title="Anterior (←)">◀</button>
       <div class="live-progress" id="live-progress">–</div>
@@ -3183,8 +3267,10 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
         <label><input type="checkbox" data-opt="duration"> Duración</label>
         <label><input type="checkbox" data-opt="notes"> Anotaciones</label>
         <label><input type="checkbox" data-opt="big"> Letra grande</label>
+        <label title="Encoge la lista lo justo para que no se parta en dos hojas"><input type="checkbox" data-opt="onepage"> Forzar 1 página</label>
         <label><input type="checkbox" data-opt="dark"> Fondo negro</label>
       </div>
+      <div class="sl-fit-hint" id="sl-fit-hint" aria-live="polite"></div>
     </div>
 
     <div class="sl-pane sl-pane-view" id="sl-pane-view">
@@ -6082,6 +6168,7 @@ let liveIndex = 0;
 let liveAutoplay = false;
 let liveTimer = null;
 let liveWakeLock = null;
+let liveFollowsSetlist = false;   // ¿manda la setlist de la lista o el orden de la barra lateral?
 let liveAutoplaySeconds = (() => {
   const v = parseInt(localStorage.getItem(LIVE_SPEED_KEY), 10);
   return (!isNaN(v) && v >= 3 && v <= 60) ? v : 12;
@@ -6114,43 +6201,129 @@ function liveSetChords(on, persist) {
   if (liveActive) renderLiveSlide();
 }
 
-// Construye la secuencia de "slides" desde las canciones visibles (respeta el filtro/orden de la lista):
-// por cada canción, una portada + una diapositiva por sección (letra grande, o cue si es instrumental).
-function buildLiveSlides() {
+// Por cada canción: una portada + una diapositiva por sección
+// (letra grande, o cue si es instrumental).
+function buildLiveSongSlides(song, extra = {}) {
+  const id = song.id;
+  const slides = [{
+    songId: id, kind: "intro",
+    title: song.title || "Sin título", artist: song.artist || "",
+    setNum: extra.setNum || getSetlistNumber(song),
+    notes: extra.notes || [],
+    blockLabel: extra.blockLabel || ""
+  }];
+  (Array.isArray(song.sections) ? song.sections : []).forEach(sec => {
+    // Respeta la versión de acordes del miembro seleccionado, si la tiene.
+    const res = sectionChordsFor(sec, currentRole);
+    const raw = String(res.lyrics || "");
+    const lyrics = liveStripChords(raw).trim();
+    const type = sec.type || inferSectionType(sec.name);
+    const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
+    const name = sec.name || typeLabel || "Sección";
+    // Acordes de la sección: inline en la letra ([Am]hola) o línea aparte.
+    const hasInlineChords = /\[[^\]]+\]/.test(raw);
+    const chordsLine = String(res.chords || "").trim();
+    const base = {
+      songId: id, title: song.title || "", artist: song.artist || "",
+      sectionName: name, lyricsRaw: raw, hasInlineChords, chordsLine
+    };
+    if (lyrics) {
+      slides.push({ ...base, kind: "lyrics", lyrics });
+    } else {
+      slides.push({ ...base, kind: "cue", cue: typeLabel || name });
+    }
+  });
+  return slides;
+}
+
+/* Si la lista activa tiene setlist montada, es ella la que manda en el
+   directo: su orden, sus momentos y sus anotaciones. Devuelve null cuando
+   no hay setlist utilizable — entonces se sigue la lista, como siempre. */
+function liveSetlistItems() {
+  // Con una búsqueda abierta manda lo que se está viendo en la barra lateral.
+  if (String(searchQuery || "").trim()) return null;
+  if (activeFolderFilter === ALL_FOLDERS || activeFolderFilter === NO_FOLDER) return null;
+  const raw = getListMeta(activeFolderFilter)?.items;
+  if (!Array.isArray(raw)) return null;
+  const items = raw.filter(item => {
+    if (item.type === "song") return !!setlistSongById(item.songId);
+    // Un momento o bloque sin escribir no pinta nada (igual que en la hoja)
+    return !!String(item.title || "").trim() || normalizeSetlistNotes(item).length > 0;
+  });
+  return items.some(item => item.type === "song") ? items : null;
+}
+
+// La setlist tal cual: canciones en su orden, momentos como diapositiva propia
+// y los bloques ("PRIMER PASE", "BIS") como etiqueta de lo que abren.
+function buildLiveSlidesFromSetlist(items) {
+  const slides = [];
+  let blockLabel = "";
+  let num = 0;
+  items.forEach(item => {
+    const notes = normalizeSetlistNotes(item);
+    if (item.type === "block") {
+      blockLabel = String(item.title || "").trim();
+      return;
+    }
+    if (item.type === "cue") {
+      slides.push({
+        songId: "", kind: "moment",
+        title: String(item.title || "").trim() || "Momento",
+        artist: "", notes, blockLabel
+      });
+      blockLabel = "";
+      return;
+    }
+    const song = setlistSongById(item.songId);
+    if (!song) return;
+    num += 1;
+    // El número es el de la hoja imprimible: la posición dentro de la setlist.
+    slides.push(...buildLiveSongSlides(song, { setNum: num, notes, blockLabel }));
+    blockLabel = "";
+  });
+  return slides;
+}
+
+// Sin setlist: las canciones visibles en la barra lateral (respeta filtro y orden).
+function buildLiveSlidesFromList() {
   const items = Array.from(document.querySelectorAll("#song-list .song-item[data-id]"));
   let ids = items.map(li => li.dataset.id);
   if (!ids.length && activeSongId) ids = [activeSongId];
   const slides = [];
   ids.forEach(id => {
     const song = songs.find(s => s.id === id);
-    if (!song) return;
-    slides.push({
-      songId: id, kind: "intro",
-      title: song.title || "Sin título", artist: song.artist || "",
-      setNum: getSetlistNumber(song)
-    });
-    (Array.isArray(song.sections) ? song.sections : []).forEach(sec => {
-      // Respeta la versión de acordes del miembro seleccionado, si la tiene.
-      const res = sectionChordsFor(sec, currentRole);
-      const raw = String(res.lyrics || "");
-      const lyrics = liveStripChords(raw).trim();
-      const type = sec.type || inferSectionType(sec.name);
-      const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
-      const name = sec.name || typeLabel || "Sección";
-      // Acordes de la sección: inline en la letra ([Am]hola) o línea aparte.
-      const hasInlineChords = /\[[^\]]+\]/.test(raw);
-      const chordsLine = String(res.chords || "").trim();
-      const base = {
-        songId: id, title: song.title || "", artist: song.artist || "",
-        sectionName: name, lyricsRaw: raw, hasInlineChords, chordsLine
-      };
-      if (lyrics) {
-        slides.push({ ...base, kind: "lyrics", lyrics });
-      } else {
-        slides.push({ ...base, kind: "cue", cue: typeLabel || name });
-      }
-    });
+    if (song) slides.push(...buildLiveSongSlides(song));
   });
+  return slides;
+}
+
+/* Aviso de lo que viene. Se cuelga de la ÚLTIMA diapositiva de cada canción o
+   momento, que es cuando hace falta: da tiempo a prepararse mientras se toca
+   el final en vez de descubrir el cambio de guitarra al pasar de página. */
+function liveAttachNextCues(slides) {
+  const opens = s => s.kind === "intro" || s.kind === "moment";
+  slides.forEach((slide, i) => {
+    const next = slides[i + 1];
+    if (next && !opens(next)) return;   // aún queda canción por delante
+    if (!next) {
+      slide.nextLabel = "Fin";
+      slide.nextKind = "end";
+    } else if (next.kind === "moment") {
+      const note = next.notes?.[0] ? ` — ${next.notes[0]}` : "";
+      slide.nextLabel = next.title + note;
+      slide.nextKind = "moment";
+    } else {
+      slide.nextLabel = next.title || "Siguiente canción";
+      slide.nextKind = "song";
+    }
+  });
+}
+
+function buildLiveSlides() {
+  const items = liveSetlistItems();
+  liveFollowsSetlist = !!items;
+  const slides = items ? buildLiveSlidesFromSetlist(items) : buildLiveSlidesFromList();
+  liveAttachNextCues(slides);
   return slides;
 }
 
@@ -6179,13 +6352,29 @@ function renderLiveSlide() {
     ? `<div class="live-chords-line">${escapeHtml(convertChordsString(slide.chordsLine, semis))}</div>`
     : "";
 
-  if (slide.kind === "intro") {
+  // Lo que trae la setlist: el bloque que abre y sus anotaciones.
+  const blockHtml = slide.blockLabel
+    ? `<div class="live-block-label">${escapeHtml(slide.blockLabel)}</div>`
+    : "";
+  const notesHtml = (Array.isArray(slide.notes) && slide.notes.length)
+    ? `<ul class="live-notes">${slide.notes.map(n => `<li>${escapeHtml(n)}</li>`).join("")}</ul>`
+    : "";
+
+  if (slide.kind === "moment") {
     stage.innerHTML = `
+      ${blockHtml}
+      <div class="live-moment-kicker">Momento</div>
+      <div class="live-moment">${escapeHtml(slide.title)}</div>
+      ${notesHtml}`;
+  } else if (slide.kind === "intro") {
+    stage.innerHTML = `
+      ${blockHtml}
       <div class="live-song-lead">
         <div class="num">${slide.setNum ? "Setlist #" + escapeHtml(String(slide.setNum)) : "Canción"}</div>
         <div class="t">${escapeHtml(slide.title)}</div>
         ${slide.artist ? `<div class="a">${escapeHtml(slide.artist)}</div>` : ""}
-      </div>`;
+      </div>
+      ${notesHtml}`;
   } else if (slide.kind === "cue") {
     stage.innerHTML = `
       <div class="live-section-name">${escapeHtml(slide.sectionName)}</div>
@@ -6201,6 +6390,15 @@ function renderLiveSlide() {
       ${lyricsHtml}`;
   }
   stage.scrollTop = 0;
+
+  const nextEl = document.getElementById("live-nextcue");
+  if (nextEl) {
+    nextEl.className = `live-nextcue ${slide.nextKind || ""}`.trim();
+    nextEl.hidden = !slide.nextLabel;
+    nextEl.innerHTML = slide.nextLabel
+      ? `<span class="k">${slide.nextKind === "end" ? "▪" : "▸ luego"}</span><span>${escapeHtml(slide.nextLabel)}</span>`
+      : "";
+  }
 
   if (titleEl) titleEl.innerHTML = `${escapeHtml(slide.title)}${slide.artist ? ` <span class="artist">· ${escapeHtml(slide.artist)}</span>` : ""}`;
   if (progEl) progEl.textContent = `${liveIndex + 1} / ${liveSlides.length}`;
@@ -6243,6 +6441,11 @@ async function openLiveMode() {
   if (!liveSlides.length) { alert("No hay canciones para mostrar en directo."); return; }
   liveIndex = activeSongId ? liveSlideIndexForSong(activeSongId) : 0;
   liveActive = true;
+  const tag = document.getElementById("live-list-tag");
+  if (tag) {
+    tag.textContent = liveFollowsSetlist ? `Setlist · ${activeFolderFilter}` : "";
+    tag.hidden = !liveFollowsSetlist;
+  }
   const spd = document.getElementById("live-speed-display");
   if (spd) spd.textContent = liveAutoplaySeconds + "s";
   liveSetAutoplay(false);
@@ -6780,7 +6983,7 @@ let setlistOpts = loadSetlistOpts();
 function loadSetlistOpts() {
   const def = {
     logo: true, artist: true, key: true, bpm: true,
-    duration: true, notes: true, big: false, dark: false
+    duration: true, notes: true, big: false, onepage: false, dark: false
   };
   try {
     const stored = JSON.parse(localStorage.getItem(SETLIST_OPTS_KEY) || "{}");
@@ -7161,6 +7364,89 @@ function renderSetlistSheet() {
       <span>${escapeHtml(setlistDraft.listName)}</span>
       <span>@besta_oficial</span>
     </footer>`;
+
+  applySetlistFit();
+}
+
+/* =========================================================
+   "Forzar 1 página"
+   Con letra grande una setlist larga se parte en dos hojas. En vez de
+   dejar tres temas huérfanos en la página 2, encogemos la lista (la
+   cabecera y el pie se quedan igual) hasta que entra justa en el A4.
+   ========================================================= */
+const A4_HEIGHT_PX = (297 * 96) / 25.4;
+const SETLIST_MIN_FIT = 0.45;   // por debajo de esto ya no se lee de lejos
+/* Un par de mm de aire: si lo dejamos clavado al milímetro, cualquier
+   redondeo del driver de impresión tira la última línea a la hoja 2. */
+const SETLIST_FIT_SLACK_PX = (3 * 96) / 25.4;
+
+/* Mide sobre una copia fuera de pantalla: así funciona aunque la vista
+   previa esté oculta (el usuario puede estar en la pestaña de edición)
+   y sin pelearse con el zoom de la vista previa. */
+function setlistFitScale() {
+  const sheet = document.getElementById("sl-sheet");
+  if (!sheet) return { scale: 1, overflows: false };
+
+  const probe = sheet.cloneNode(true);
+  probe.removeAttribute("id");
+  probe.style.cssText =
+    "position:absolute;left:-10000px;top:0;visibility:hidden;" +
+    "zoom:1;min-height:0;box-shadow:none;";
+  document.body.appendChild(probe);
+
+  const budget = A4_HEIGHT_PX - SETLIST_FIT_SLACK_PX;
+  const fitsAt = (scale) => {
+    probe.style.setProperty("--sl-fit", String(scale));
+    return probe.scrollHeight <= budget;
+  };
+
+  let result;
+  if (fitsAt(1)) {
+    result = { scale: 1, overflows: false, pages: 1 };
+  } else if (!fitsAt(SETLIST_MIN_FIT)) {
+    // Ni al mínimo cabe: mejor varias hojas legibles que una ilegible.
+    fitsAt(1);
+    result = { scale: 1, overflows: true, pages: Math.max(2, Math.ceil(probe.scrollHeight / A4_HEIGHT_PX)) };
+  } else {
+    // Busca el mayor tamaño que sigue cabiendo.
+    let lo = SETLIST_MIN_FIT, hi = 1;
+    for (let i = 0; i < 8; i++) {
+      const mid = (lo + hi) / 2;
+      if (fitsAt(mid)) lo = mid; else hi = mid;
+    }
+    result = { scale: lo, overflows: false, pages: 1 };
+  }
+
+  probe.remove();
+  return result;
+}
+
+/** Aplica (o quita) la compresión de "Forzar 1 página" a la hoja real. */
+function applySetlistFit() {
+  const sheet = document.getElementById("sl-sheet");
+  if (!sheet) return;
+  const hint = document.getElementById("sl-fit-hint");
+  const say = (text, warn) => {
+    if (!hint) return;
+    hint.textContent = text;
+    hint.classList.toggle("warn", !!warn);
+  };
+
+  if (!setlistOpts.onepage) {
+    sheet.style.setProperty("--sl-fit", "1");
+    say("");
+    return;
+  }
+
+  const { scale, overflows, pages } = setlistFitScale();
+  sheet.style.setProperty("--sl-fit", scale.toFixed(3));
+  if (overflows) {
+    say(`No cabe en una hoja ni al ${Math.round(SETLIST_MIN_FIT * 100)}%: saldrá en ${pages} páginas`, true);
+  } else if (scale < 0.995) {
+    say(`Comprimida al ${Math.round(scale * 100)}% para caber en 1 hoja`);
+  } else {
+    say("Cabe en 1 hoja sin comprimir");
+  }
 }
 
 /** Encaja el A4 en el ancho disponible de la vista previa. */
