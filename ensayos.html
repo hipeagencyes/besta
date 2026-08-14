@@ -2890,7 +2890,10 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
 
 /* ---- Impresión: solo la hoja ---- */
 @media print {
-  @page { size: A4 portrait; margin: 12mm; }
+  /* Margen 0 y el aire lo pone la propia hoja con su padding. Así ganamos los
+     24 mm que se comía el margen, y de paso el navegador se queda sin sitio
+     para pintar su cabecera y su pie (título, fecha, URL, "Página 1 de 2"). */
+  @page { size: A4 portrait; margin: 0; }
   body.printing-setlist { background: #fff !important; overflow: visible !important; }
   body.printing-setlist > *:not(#setlist-overlay) { display: none !important; }
   body.printing-setlist #setlist-overlay {
@@ -2907,7 +2910,7 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
   body.printing-setlist .sl-sheet-wrap { display: block !important; }
   body.printing-setlist .sl-sheet {
     zoom: 1 !important; width: auto !important; min-height: 0 !important;
-    padding: 0 !important; box-shadow: none !important;
+    padding: 14mm 15mm !important; box-shadow: none !important;
   }
   body.printing-setlist .sl-sheet,
   body.printing-setlist .sl-sheet * {
@@ -7383,12 +7386,16 @@ const SETLIST_MIN_FIT = 0.45;   // por debajo de esto ya no se lee de lejos
    del navegador. Presupuestamos el caso peor de los tres y así la hoja sale
    entera venga de donde venga; el precio es un pelín menos de cuerpo. */
 const mmToPx = (mm) => (mm * 96) / 25.4;
-const SETLIST_PRINT_MARGIN_MM = 12;      // el margen declarado en @page
-/* Carta es 18 mm más corta que un A4 y 6 mm más ancha. Cogemos el alto de
-   Carta y el ancho de A4: la combinación más desfavorable, la que menos
-   texto deja entrar. Si cabe aquí, cabe en cualquiera de los dos papeles. */
-const SETLIST_PRINT_H_MM = 279.4 - 2 * SETLIST_PRINT_MARGIN_MM;   // 255.4
-const SETLIST_PRINT_W_MM = 210 - 2 * SETLIST_PRINT_MARGIN_MM;     // 186
+/* Al imprimir, @page va sin margen y el aire lo pone el padding de .sl-sheet
+   (14 mm arriba/abajo, 15 mm a los lados). El hueco de texto es, por tanto,
+   el papel menos ese padding.
+   Carta es 18 mm más corta que un A4 y 6 mm más ancha: cogemos el alto de
+   Carta y el ancho de A4, la combinación que menos texto deja entrar. Si cabe
+   ahí, cabe en cualquiera de los dos papeles. */
+const SETLIST_SHEET_PAD_Y_MM = 28;       // 14 arriba + 14 abajo
+const SETLIST_SHEET_PAD_X_MM = 30;       // 15 + 15
+const SETLIST_PRINT_H_MM = 279.4 - SETLIST_SHEET_PAD_Y_MM;   // 251.4 (Carta)
+const SETLIST_PRINT_W_MM = 210 - SETLIST_SHEET_PAD_X_MM;     // 180 (A4)
 const SETLIST_FIT_SLACK_MM = 4;          // aire para redondeos del driver
 const SETLIST_FIT_BUDGET_PX = mmToPx(SETLIST_PRINT_H_MM - SETLIST_FIT_SLACK_MM);
 
