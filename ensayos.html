@@ -7374,30 +7374,43 @@ function renderSetlistSheet() {
    dejar tres temas huérfanos en la página 2, encogemos la lista (la
    cabecera y el pie se quedan igual) hasta que entra justa en el A4.
    ========================================================= */
-const A4_HEIGHT_PX = (297 * 96) / 25.4;
 const SETLIST_MIN_FIT = 0.45;   // por debajo de esto ya no se lee de lejos
-/* Un par de mm de aire: si lo dejamos clavado al milímetro, cualquier
-   redondeo del driver de impresión tira la última línea a la hoja 2. */
-const SETLIST_FIT_SLACK_PX = (3 * 96) / 25.4;
 
-/* Mide sobre una copia fuera de pantalla: así funciona aunque la vista
-   previa esté oculta (el usuario puede estar en la pestaña de edición)
-   y sin pelearse con el zoom de la vista previa. */
+/* Cuánto papel hay de verdad.
+   No podemos dar por hecho un A4 perfecto: el diálogo de impresión puede
+   estar en Carta (279 mm, 18 menos que un A4), Safari no siempre respeta el
+   margen de @page, y algunos drivers reservan sitio para la cabecera y el pie
+   del navegador. Presupuestamos el caso peor de los tres y así la hoja sale
+   entera venga de donde venga; el precio es un pelín menos de cuerpo. */
+const mmToPx = (mm) => (mm * 96) / 25.4;
+const SETLIST_PRINT_MARGIN_MM = 12;      // el margen declarado en @page
+/* Carta es 18 mm más corta que un A4 y 6 mm más ancha. Cogemos el alto de
+   Carta y el ancho de A4: la combinación más desfavorable, la que menos
+   texto deja entrar. Si cabe aquí, cabe en cualquiera de los dos papeles. */
+const SETLIST_PRINT_H_MM = 279.4 - 2 * SETLIST_PRINT_MARGIN_MM;   // 255.4
+const SETLIST_PRINT_W_MM = 210 - 2 * SETLIST_PRINT_MARGIN_MM;     // 186
+const SETLIST_FIT_SLACK_MM = 4;          // aire para redondeos del driver
+const SETLIST_FIT_BUDGET_PX = mmToPx(SETLIST_PRINT_H_MM - SETLIST_FIT_SLACK_MM);
+
+/* Mide sobre una copia fuera de pantalla montada con la geometría de la hoja
+   IMPRESA, no la de pantalla: al imprimir, .sl-sheet pierde su padding y pasa
+   a ocupar el ancho útil de la página. Medir así evita restar paddings a mano
+   y funciona aunque la vista previa esté oculta o tenga zoom. */
 function setlistFitScale() {
   const sheet = document.getElementById("sl-sheet");
-  if (!sheet) return { scale: 1, overflows: false };
+  if (!sheet) return { scale: 1, overflows: false, pages: 1 };
 
   const probe = sheet.cloneNode(true);
   probe.removeAttribute("id");
   probe.style.cssText =
     "position:absolute;left:-10000px;top:0;visibility:hidden;" +
-    "zoom:1;min-height:0;box-shadow:none;";
+    "zoom:1;min-height:0;box-shadow:none;padding:0;" +
+    `width:${mmToPx(SETLIST_PRINT_W_MM)}px;`;
   document.body.appendChild(probe);
 
-  const budget = A4_HEIGHT_PX - SETLIST_FIT_SLACK_PX;
   const fitsAt = (scale) => {
     probe.style.setProperty("--sl-fit", String(scale));
-    return probe.scrollHeight <= budget;
+    return probe.scrollHeight <= SETLIST_FIT_BUDGET_PX;
   };
 
   let result;
@@ -7406,7 +7419,10 @@ function setlistFitScale() {
   } else if (!fitsAt(SETLIST_MIN_FIT)) {
     // Ni al mínimo cabe: mejor varias hojas legibles que una ilegible.
     fitsAt(1);
-    result = { scale: 1, overflows: true, pages: Math.max(2, Math.ceil(probe.scrollHeight / A4_HEIGHT_PX)) };
+    result = {
+      scale: 1, overflows: true,
+      pages: Math.max(2, Math.ceil(probe.scrollHeight / SETLIST_FIT_BUDGET_PX))
+    };
   } else {
     // Busca el mayor tamaño que sigue cabiendo.
     let lo = SETLIST_MIN_FIT, hi = 1;
@@ -7414,7 +7430,8 @@ function setlistFitScale() {
       const mid = (lo + hi) / 2;
       if (fitsAt(mid)) lo = mid; else hi = mid;
     }
-    result = { scale: lo, overflows: false, pages: 1 };
+    // Redondear hacia abajo: hacia arriba nos pasaríamos del valor comprobado.
+    result = { scale: Math.floor(lo * 1000) / 1000, overflows: false, pages: 1 };
   }
 
   probe.remove();
@@ -7439,7 +7456,7 @@ function applySetlistFit() {
   }
 
   const { scale, overflows, pages } = setlistFitScale();
-  sheet.style.setProperty("--sl-fit", scale.toFixed(3));
+  sheet.style.setProperty("--sl-fit", String(scale));
   if (overflows) {
     say(`No cabe en una hoja ni al ${Math.round(SETLIST_MIN_FIT * 100)}%: saldrá en ${pages} páginas`, true);
   } else if (scale < 0.995) {
