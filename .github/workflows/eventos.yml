@@ -31,7 +31,8 @@ jobs:
       - name: Descargar conciertos
         env:
           BIT_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
-          BIT_ARTIST: ${{ vars.BANDSINTOWN_ARTIST }}
+        # A quien preguntamos va en scripts/fetch-events.mjs (id_15661145).
+        # Por id y no por nombre: hay otro grupo llamado Besta.
         run: node scripts/fetch-events.mjs
 
       # Si la API falla, el paso anterior corta el workflow y events.json
