@@ -219,6 +219,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .platform[aria-disabled="true"] {
   opacity: 0.55; cursor: default; pointer-events: none;
 }
+.platform .arrow { color: var(--accent); font-size: 15px; opacity: 0.8; }
 .platform .badge {
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
   padding: 4px 9px; border-radius: 999px;
@@ -250,6 +251,18 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* Botón "Pronto": informativo, no clicable */
 .gig .gig-cta-soon { color: rgba(245,247,255,0.5); border-style: dashed; cursor: default; }
 .gig .gig-cta-soon:hover { border-color: rgba(255,255,255,0.16); background: transparent; }
+/* Concierto ya celebrado: tachado, apagado y con su chapa (lo pone el JS) */
+.gig.gig-past { opacity: 0.5; }
+.gig.gig-past .gig-date,
+.gig.gig-past .gig-info .city,
+.gig.gig-past .gig-info .venue { text-decoration: line-through; }
+.gig.gig-past .gig-date { color: rgba(245,247,255,0.55); }
+.gig .gig-done {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
+  padding: 6px 11px; border-radius: 999px; white-space: nowrap;
+  color: rgba(245,247,255,0.6); border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+}
 /* Texto de ubicación aún secreta */
 .blurred { filter: blur(4px); user-select: none; opacity: 0.85; }
 .gigs-empty { color: rgba(245,247,255,0.6); font-size: 14px; line-height: 1.5; }
@@ -533,17 +546,20 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
       <a class="platform-icon" href="https://music.apple.com/us/artist/besta/6785490450" target="_blank" rel="noopener noreferrer" aria-label="BESTA en Apple Music">
         <img src="https://cdn.simpleicons.org/applemusic/ffffff" width="22" height="22" alt="" aria-hidden="true">
       </a>
-      <button type="button" class="platform-icon platform-icon-wide" data-platform="Amazon Music" aria-label="Amazon Music (próximamente)">
+      <a class="platform-icon platform-icon-wide" href="https://music.amazon.es/artists/B00B7Y26HS/besta" target="_blank" rel="noopener noreferrer" aria-label="BESTA en Amazon Music">
         <!-- Amazon Music: texto "music" + flecha smile -->
         <svg viewBox="0 0 64 28" height="22" fill="currentColor" aria-hidden="true">
           <text x="32" y="13" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" letter-spacing="-0.3" fill="currentColor">music</text>
           <path d="M6 19 C 18 25, 46 25, 56 20" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>
           <path d="M52 17 L 57 20 L 52 23" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </button>
-      <button type="button" class="platform-icon" data-platform="YouTube Music" aria-label="YouTube Music (próximamente)">
+      </a>
+      <a class="platform-icon" href="https://music.youtube.com/channel/UC65W26oTuS8fjpXq1ca24BA" target="_blank" rel="noopener noreferrer" aria-label="BESTA en YouTube Music">
         <img src="https://cdn.simpleicons.org/youtubemusic/ffffff" width="22" height="22" alt="" aria-hidden="true">
-      </button>
+      </a>
+      <a class="platform-icon" href="https://youtube.com/@besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="BESTA en YouTube">
+        <img src="https://cdn.simpleicons.org/youtube/ffffff" width="22" height="22" alt="" aria-hidden="true">
+      </a>
 
       <span class="platform-sep" aria-hidden="true"></span>
 
@@ -579,13 +595,14 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   <div class="modal-card">
     <button type="button" class="modal-close" data-close aria-label="Cerrar">&times;</button>
     <h2 id="listen-title">Escúchanos</h2>
-    <p class="modal-sub">Pronto en todas las plataformas</p>
+    <p class="modal-sub">Ya en todas las plataformas</p>
     <!-- Cuando tengáis los enlaces, sustituye href="#" y quita aria-disabled / la etiqueta "Próximamente" -->
     <div class="platforms">
-      <a class="platform" href="#" aria-disabled="true">Spotify <span class="badge">Próximamente</span></a>
-      <a class="platform" href="#" aria-disabled="true">Apple Music <span class="badge">Próximamente</span></a>
-      <a class="platform" href="#" aria-disabled="true">YouTube Music <span class="badge">Próximamente</span></a>
-      <a class="platform" href="#" aria-disabled="true">Bandcamp <span class="badge">Próximamente</span></a>
+      <a class="platform" href="https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe" target="_blank" rel="noopener noreferrer">Spotify <span class="arrow" aria-hidden="true">&rarr;</span></a>
+      <a class="platform" href="https://music.apple.com/us/artist/besta/6785490450" target="_blank" rel="noopener noreferrer">Apple Music <span class="arrow" aria-hidden="true">&rarr;</span></a>
+      <a class="platform" href="https://music.amazon.es/artists/B00B7Y26HS/besta" target="_blank" rel="noopener noreferrer">Amazon Music <span class="arrow" aria-hidden="true">&rarr;</span></a>
+      <a class="platform" href="https://music.youtube.com/channel/UC65W26oTuS8fjpXq1ca24BA" target="_blank" rel="noopener noreferrer">YouTube Music <span class="arrow" aria-hidden="true">&rarr;</span></a>
+      <a class="platform" href="https://youtube.com/@besta_oficial" target="_blank" rel="noopener noreferrer">YouTube <span class="arrow" aria-hidden="true">&rarr;</span></a>
     </div>
   </div>
 </div>
@@ -596,11 +613,14 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
     <button type="button" class="modal-close" data-close aria-label="Cerrar">&times;</button>
     <h2 id="gigs-title">Próximos conciertos</h2>
     <p class="modal-sub">Nos vemos en directo</p>
-    <!-- ===== EDITA AQUÍ TUS CONCIERTOS =====
-         Copia un bloque .gig y cambia el día, mes, ciudad, sala y el enlace de entradas.
-         Si aún no hay entradas, pon href="#" y texto "Pronto". -->
-    <div class="gigs">
-      <div class="gig">
+    <!-- ===== LOS CONCIERTOS LOS TRAE BANDSINTOWN =====
+         Ya no hay que tocar esto: das de alta el bolo en Bandsintown y la web lo
+         recoge sola desde events.json. Lo de abajo es el plan B que se ve si falla
+         la carga o si alguien entra sin JavaScript (conviene dejar ahí el próximo).
+         ¿Quieres cambiar cómo se enseña un bolo concreto (sala, hora, enlace)?
+         → events-overrides.json -->
+    <div class="gigs" id="gigs">
+      <div class="gig" data-date="2026-08-15">
         <div class="gig-date"><span class="day">15</span>AGO</div>
         <div class="gig-info">
           <div class="city">Castelldefels</div>
@@ -608,17 +628,13 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
         </div>
         <a class="gig-cta" href="https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto" target="_blank" rel="noopener noreferrer">Info</a>
       </div>
-      <!-- 29 AGO · Benicarló, El Catxull (Festa Major, Plaça Constitució).
-           La cartelera aún no está publicada → los datos van borrosos.
-           CUANDO SE PUBLIQUE: quita los dos <span class="blurred"> y cambia el
-           "Pronto" por: <a class="gig-cta" href="https://www.instagram.com/elcatxull/" target="_blank" rel="noopener noreferrer">Info</a> -->
-      <div class="gig">
+      <div class="gig" data-date="2026-08-29">
         <div class="gig-date"><span class="day">29</span>AGO</div>
         <div class="gig-info">
-          <div class="city"><span class="blurred">Benicarló</span></div>
-          <div class="venue"><span class="blurred">El Catxull · Festa Major · Plaça Constitució</span> · se revela pronto</div>
+          <div class="city">Benicarló</div>
+          <div class="venue">El Catxull · Festa Major · Plaça Constitució</div>
         </div>
-        <span class="gig-cta gig-cta-soon">Pronto</span>
+        <a class="gig-cta" href="https://www.instagram.com/elcatxull/" target="_blank" rel="noopener noreferrer">Info</a>
       </div>
     </div>
     <!-- Si no hay fechas, borra los .gig de arriba y descomenta esto:
@@ -763,10 +779,155 @@ document.querySelectorAll(".platform-icon[data-platform]").forEach(btn => {
   btn.addEventListener("click", () => showComingToast(btn.dataset.platform));
 });
 
+/* ===== Conciertos: los da de alta Bandsintown =====
+   El bolo se crea UNA vez en Bandsintown y de ahí llega a la web: una GitHub
+   Action (.github/workflows/eventos.yml) baja los datos cada mañana y cada tarde
+   y los deja en events.json, que es lo que lee esta página.
+   Si un bolo concreto hay que enseñarlo de otra forma (nombre de la sala, hora
+   con rango, enlace propio en vez del de Bandsintown) → events-overrides.json.
+   Aquí abajo viven solo NUESTRAS NORMAS de cómo se pinta un concierto.        */
+const MESES = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+const MESES_LARGOS = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                      "agosto","septiembre","octubre","noviembre","diciembre"];
+
+/* Línea de debajo de la ciudad: "El Catxull · Festa Major · 21:00" */
+function lineaSala(ev) {
+  return [ev.venue, ev.note, ev.time].filter(Boolean).join(" · ");
+}
+/* Botón de la derecha: entradas si las hay, si no info, y si no hay nada "Pronto" */
+function enlaceConcierto(ev) {
+  if (ev.info) return { href: ev.info, texto: "Info" };
+  if (ev.tickets && !/sold[\s_-]?out/i.test(ev.ticketsStatus || "")) return { href: ev.tickets, texto: "Entradas" };
+  if (ev.url) return { href: ev.url, texto: "Info" };
+  return null;
+}
+/* Un concierto, con la misma pinta que los que había escritos a mano */
+function pintarConcierto(ev) {
+  const [, mes, dia] = ev.date.split("-");
+  const fila = document.createElement("div");
+  fila.className = "gig";
+  fila.dataset.date = ev.date;          // de esto vive el tachado y la caducidad
+
+  const fecha = document.createElement("div");
+  fecha.className = "gig-date";
+  const numero = document.createElement("span");
+  numero.className = "day";
+  numero.textContent = String(Number(dia));
+  fecha.append(numero, MESES[Number(mes) - 1] || "");
+
+  const info = document.createElement("div");
+  info.className = "gig-info";
+  const ciudad = document.createElement("div");
+  ciudad.className = "city";
+  ciudad.textContent = ev.city || ev.venue || "";
+  const sala = document.createElement("div");
+  sala.className = "venue";
+  sala.textContent = lineaSala(ev);
+  info.append(ciudad, sala);
+
+  const enlace = enlaceConcierto(ev);
+  let boton;
+  if (enlace) {
+    boton = document.createElement("a");
+    boton.className = "gig-cta";
+    boton.href = enlace.href;
+    boton.target = "_blank";
+    boton.rel = "noopener noreferrer";
+    boton.textContent = enlace.texto;
+  } else {
+    boton = document.createElement("span");
+    boton.className = "gig-cta gig-cta-soon";
+    boton.textContent = "Pronto";
+  }
+
+  fila.append(fecha, info, boton);
+  return fila;
+}
+/* El mismo concierto, convertido en tarjeta del aviso flotante de la portada */
+function avisoConcierto(ev) {
+  const [, mes, dia] = ev.date.split("-");
+  const numero = Number(dia);
+  const sala = ev.short || ev.venue || "";
+  const enlace = enlaceConcierto(ev);
+  const hora = ev.time ? " · " + ev.time : "";
+  return {
+    eyebrow: `Próximo concierto · ${numero} ${(MESES[Number(mes) - 1] || "").toLowerCase()}${hora}`,
+    title: [ev.city, sala].filter(Boolean).join(" · "),
+    href: enlace ? enlace.href : "#",
+    modal: enlace ? undefined : "modal-gigs",
+    label: `Concierto en ${[ev.city, sala].filter(Boolean).join(", ")}, ` +
+           `${numero} de ${MESES_LARGOS[Number(mes) - 1] || ""}` +
+           `${ev.time ? " a las " + ev.time : ""}`,
+    date: ev.date,
+    dot: "#db7f4e"
+  };
+}
+/* Trae events.json y repinta la lista del modal. Si falla (sin conexión, fichero
+   roto), devuelve null y se queda lo que hay escrito a mano en el HTML.        */
+async function cargarConciertos() {
+  try {
+    const res = await fetch("events.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const datos = await res.json();
+    const conciertos = (datos.events || [])
+      .filter(ev => ev && ev.date && !ev.hide)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const lista = document.getElementById("gigs");
+    if (lista) lista.replaceChildren(...conciertos.map(pintarConcierto));
+    return conciertos;
+  } catch (_) {
+    return null;
+  }
+}
+
+/* ===== Conciertos: se apañan solos =====
+   Cada .gig lleva data-date="AAAA-MM-DD". Al día siguiente del concierto se
+   tacha, se apaga y le sale la chapa de "Finalizado"; además baja al final de
+   la lista, para que arriba queden siempre los que están por venir. Pasados
+   GIG_DIAS días desaparece del todo, y si no queda ninguno sale el aviso de
+   que estamos cerrando fechas. Así no hay que tocar la web cada semana.     */
+const GIG_DIAS = 30;            // lo que aguanta un concierto ya pasado
+function ordenarConciertos() {
+  const lista = document.querySelector(".gigs");
+  if (!lista) return;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  let porVenir = 0, quedan = 0;
+  lista.querySelectorAll(".gig").forEach(gig => {
+    const iso = gig.dataset.date;
+    const dia = iso ? new Date(iso + "T00:00:00") : null;
+    if (!dia || isNaN(dia)) { porVenir++; quedan++; return; }   // sin fecha: se deja tal cual
+    const dias = Math.round((hoy - dia) / 86400000);
+    if (dias > GIG_DIAS) { gig.remove(); return; }
+    if (dias <= 0) { porVenir++; quedan++; return; }            // hoy también cuenta
+    gig.classList.add("gig-past");
+    const cta = gig.querySelector(".gig-cta");
+    const chapa = document.createElement("span");
+    chapa.className = "gig-done";
+    chapa.textContent = "Finalizado";
+    if (cta) cta.replaceWith(chapa); else gig.appendChild(chapa);
+    lista.appendChild(gig);                                     // al final de la lista
+    quedan++;
+  });
+  if (!quedan) {
+    const p = document.createElement("p");
+    p.className = "gigs-empty";
+    p.textContent = "Estamos cerrando nuevas fechas. ¡Síguenos en redes para no perderte nada!";
+    lista.replaceWith(p);
+  } else if (!porVenir) {
+    const p = document.createElement("p");
+    p.className = "gigs-empty";
+    p.style.marginTop = "14px";
+    p.textContent = "Estamos cerrando nuevas fechas. ¡Síguenos en redes para no perderte nada!";
+    lista.after(p);
+  }
+}
+
 /* ===== Aviso flotante rotativo (single + próximos conciertos) =====
    Si el usuario lo cierra, no vuelve a aparecer hasta que cambies la versión.
 
-   ===== EDITA AQUÍ LOS AVISOS =====
+   ===== EDITA AQUÍ LOS AVISOS FIJOS =====
+   Aquí van solo los avisos que NO son conciertos (un single, un vídeo...). Los
+   conciertos se enganchan solos detrás, desde Bandsintown: no los pongas a mano.
    Cada bloque es una "tarjeta" del carrusel:
      eyebrow : línea pequeña de arriba
      title   : texto grande
@@ -781,27 +942,6 @@ const TOAST_SLIDES = [
     href: "no-me-sale-olvidarte.html",
     label: "No me sale olvidarte — nuevo single de BESTA",
     dot: "#f4d35e"
-  },
-  {
-    eyebrow: "Próximo concierto · 15 ago · 21:00",
-    title: "Castelldefels · Festa Major",
-    href: "https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto",
-    label: "Concierto en Castelldefels, Festa Major, 15 de agosto a las 21:00",
-    date: "2026-08-15",
-    dot: "#db7f4e"
-  },
-  /* 29 AGO · Benicarló, El Catxull (Festa Major, Plaça Constitució).
-     Aún no hay cartelera pública → el aviso no da el sitio y abre el modal,
-     donde los datos aparecen borrosos. CUANDO SE PUBLIQUE, sustituye por:
-       title: "Benicarló · El Catxull",
-       href: "https://www.instagram.com/elcatxull/",   (y quita la línea modal) */
-  {
-    eyebrow: "Próximo concierto · 29 ago",
-    title: "Ubicación próximamente...",
-    modal: "modal-gigs",
-    label: "Concierto sorpresa el 29 de agosto, ubicación por revelar",
-    date: "2026-08-29",
-    dot: "#db7f4e"
   }
 ];
 const TOAST_INTERVAL = 5200;   // ms que se ve cada aviso
@@ -812,9 +952,9 @@ const radioToastLink = document.getElementById("radio-toast-link");
 const radioToastText = document.getElementById("radio-toast-text");
 const radioToastDot = document.getElementById("radio-toast-dot");
 
-/* Solo avisos vigentes: los conciertos ya pasados desaparecen del carrusel */
-const todayISO = new Date().toISOString().slice(0, 10);
-const toastSlides = TOAST_SLIDES.filter(s => !s.date || s.date >= todayISO);
+/* Se llena al arrancar: los avisos fijos de arriba + los conciertos de Bandsintown.
+   Los que ya pasaron se caen solos del carrusel. */
+let toastSlides = [];
 
 function renderToastSlide(slide) {
   radioToastText.innerHTML =
@@ -880,7 +1020,8 @@ function stopToastRotation() {
   toastTimer = null;
 }
 
-if (radioToast && toastSlides.length && !localStorage.getItem(RADIO_TOAST_KEY)) {
+function initToast() {
+  if (!radioToast || !toastSlides.length || localStorage.getItem(RADIO_TOAST_KEY)) return;
   renderToastSlide(toastSlides[0]);
   radioToast.hidden = false;
   fitToastWidth();
@@ -906,6 +1047,19 @@ if (radioToast && toastSlides.length && !localStorage.getItem(RADIO_TOAST_KEY)) 
     }
   });
 }
+/* ===== Arranque =====
+   Primero los conciertos (que mandan sobre la lista y sobre el aviso flotante),
+   luego se aplican las normas de tachado/caducidad y se enciende el carrusel. */
+cargarConciertos().then(conciertos => {
+  ordenarConciertos();
+  const hoy = new Date().toISOString().slice(0, 10);
+  const avisos = (conciertos || [])
+    .filter(ev => ev.date >= hoy)       // en el aviso solo lo que está por venir
+    .map(avisoConcierto);
+  toastSlides = [...TOAST_SLIDES, ...avisos].filter(s => !s.date || s.date >= hoy);
+  initToast();
+});
+
 if (radioToastClose) {
   radioToastClose.addEventListener("click", () => {
     radioToast.hidden = true;

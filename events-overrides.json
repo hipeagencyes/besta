@@ -1,0 +1,29 @@
+{
+  "_leeme": [
+    "Retoques nuestros sobre lo que llega de Bandsintown, para que un bolo se enseñe en la web como queremos.",
+    "La clave es la FECHA del concierto (AAAA-MM-DD) o su id de Bandsintown.",
+    "Campos que puedes usar (todos opcionales):",
+    "  city    → cambia la ciudad",
+    "  venue   → cambia el nombre de la sala/festival",
+    "  note    → texto extra que se añade en la línea de la sala (ej. la plaza)",
+    "  time    → hora en texto libre; admite rangos ('21:00 – 21:30'). Vacío = no se muestra hora",
+    "  info    → enlace propio para el boton, en vez del de Bandsintown",
+    "  short   → titulo corto para el aviso flotante de la portada",
+    "  hide    → true para que ese bolo no salga en la web",
+    "Borra las entradas de conciertos que ya hayan pasado, no hacen nada."
+  ],
+
+  "2026-08-15": {
+    "venue": "Festa Major de Castelldefels",
+    "time": "21:00 – 21:30",
+    "info": "https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto",
+    "short": "Festa Major"
+  },
+
+  "2026-08-29": {
+    "venue": "El Catxull",
+    "note": "Festa Major · Plaça Constitució",
+    "info": "https://www.instagram.com/elcatxull/",
+    "short": "El Catxull"
+  }
+}
