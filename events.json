@@ -1,47 +1,11 @@
 {
-  "updated": "2026-08-19T00:00:00.000Z",
-  "source": "semilla-inicial",
+  "updated": "2026-08-19T12:37:32.931Z",
+  "source": "bandsintown",
   "artist": {
-    "name": "BESTA",
-    "url": "",
-    "image": "",
-    "followers": null
+    "name": "Besta",
+    "url": "https://www.bandsintown.com/a/2718278?came_from=267&app_id=a469330168c7e36f76c2a8722e1b1d91\\n",
+    "image": "https://photos.bandsintown.com/large/8701376.jpeg",
+    "followers": 1982
   },
-  "events": [
-    {
-      "id": "seed-2026-08-15",
-      "date": "2026-08-15",
-      "time": "21:00 – 21:30",
-      "city": "Castelldefels",
-      "region": "Barcelona",
-      "country": "Spain",
-      "venue": "Festa Major de Castelldefels",
-      "title": "",
-      "description": "",
-      "lineup": ["BESTA"],
-      "url": "",
-      "tickets": "",
-      "ticketsStatus": "",
-      "info": "https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto",
-      "short": "Festa Major"
-    },
-    {
-      "id": "seed-2026-08-29",
-      "date": "2026-08-29",
-      "time": "",
-      "city": "Benicarló",
-      "region": "Castellón",
-      "country": "Spain",
-      "venue": "El Catxull",
-      "note": "Festa Major · Plaça Constitució",
-      "title": "",
-      "description": "",
-      "lineup": ["BESTA"],
-      "url": "",
-      "tickets": "",
-      "ticketsStatus": "",
-      "info": "https://www.instagram.com/elcatxull/",
-      "short": "El Catxull"
-    }
-  ]
+  "events": []
 }
