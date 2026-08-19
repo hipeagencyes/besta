@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  BESTA — PROPUESTA DE WEB NUEVA (v2)
+  ============================================================================
+  Este archivo NO toca nada de la web actual. Convive con index.html.
+  Para verlo:  abre propuesta.html en el navegador (o sirve la carpeta con
+               `python3 -m http.server` para que funcione el fetch de eventos).
+
+  Qué cambia respecto a index.html:
+   · Deja de ser una splash page con modales: es una home con scroll y
+     secciones reales (escucha / directo / vídeos / banda / únete / prensa).
+   · Los conciertos y la música se ven SIN hacer click.
+   · Añade captación de email (lo único que es realmente vuestro).
+   · Añade bloque de prensa y contratación (EPK) para promotores.
+   · SEO real: <h1>, canonical, JSON-LD MusicGroup + MusicEvent, OG en besta.es.
+   · Sin el canvas de ruido a 60fps: el grano es un SVG estático (0% de CPU).
+   · Respeta prefers-reduced-motion y no autocarga vídeo en conexiones lentas.
+
+  BUSCA "EDITAR" PARA ENCONTRAR TODO LO QUE HAY QUE RELLENAR.
+  ============================================================================
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BESTA — Pop-rock desde Castelldefels</title>
+<meta name="description" content="BESTA, banda de pop-rock de Castelldefels. Escucha «No me sale olvidarte», consulta los próximos conciertos y contacta para contratación." />
+<meta name="theme-color" content="#0b0a0c" />
+
+<!-- OJO: el dominio real (CNAME) es besta.es. La web actual apunta a besta.es
+     en las etiquetas OG y eso rompe las previsualizaciones al compartir. -->
+<link rel="canonical" href="https://besta.es/" />
+<meta property="og:type" content="music.musician" />
+<meta property="og:site_name" content="BESTA" />
+<meta property="og:title" content="BESTA — Pop-rock desde Castelldefels" />
+<meta property="og:description" content="Nuevo single «No me sale olvidarte». Próximos conciertos y contratación." />
+<meta property="og:image" content="https://besta.es/assets/images/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://besta.es/" />
+<meta property="og:locale" content="es_ES" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="BESTA — Pop-rock desde Castelldefels" />
+<meta name="twitter:description" content="Nuevo single «No me sale olvidarte». Próximos conciertos y contratación." />
+<meta name="twitter:image" content="https://besta.es/assets/images/og-image.png" />
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicons/favicon-16x16.png">
+<link rel="shortcut icon" href="assets/favicons/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/favicons/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Jost = alternativa libre a la geométrica del logotipo (Futura / Century Gothic).
+     Space Grotesk se mantiene para textos, por continuidad con lo que ya teníais. -->
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================================================
+   1. TOKENS — el sistema de diseño en 20 líneas.
+   Paleta sacada del logotipo y de la portada del single, no inventada:
+   crema del wordmark, naranja quemado de marca, verde-azulado del mar de
+   la portada como color de apoyo.
+   =========================================================================== */
+:root {
+  --ink:        #0b0a0c;   /* negro cálido, no negro puro */
+  --ink-2:      #151316;   /* superficies elevadas sobre el negro */
+  --ink-3:      #211d21;   /* bordes sobre negro */
+  --cream:      #f4e7d3;   /* el crema del logotipo */
+  --cream-2:    #eadcc4;
+  --orange:     #d9762f;   /* acento de marca */
+  --orange-lt:  #e79a5f;
+  --teal:       #2e5d63;   /* apoyo, del mar de la portada */
+  --fg:         #f6efe4;
+  --fg-dim:     rgba(246,239,228,0.62);
+  --fg-faint:   rgba(246,239,228,0.38);
+  --rule:       rgba(246,239,228,0.14);
+
+  --display: 'Jost', 'Century Gothic', system-ui, sans-serif;
+  --text:    'Space Grotesk', system-ui, sans-serif;
+
+  --pad:      clamp(20px, 5vw, 64px);
+  --section:  clamp(72px, 11vh, 132px);
+  --maxw:     1180px;
+  --radius:   14px;
+
+  --ease: cubic-bezier(0.22, 0.75, 0.28, 1);
+}
+
+/* ===========================================================================
+   2. BASE
+   =========================================================================== */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--fg);
+  font-family: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  /* Grano estático en SVG: el mismo aire analógico que el canvas de la web
+     actual, pero sin recalcular 8 millones de píxeles por frame. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+img, video { max-width: 100%; display: block; }
+a { color: inherit; }
+h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; line-height: 1.02; margin: 0; letter-spacing: -0.02em; }
+p { margin: 0; }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 4px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
+section { padding-block: var(--section); position: relative; }
+
+/* Cabecera de sección: número + título + línea. Da ritmo editorial. */
+.sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: clamp(28px, 5vw, 52px); flex-wrap: wrap; }
+.sec-num {
+  font-family: var(--text); font-size: 12px; font-weight: 600; letter-spacing: 0.24em;
+  color: var(--orange); padding-top: 6px;
+}
+.sec-title { font-size: clamp(34px, 7vw, 68px); text-transform: lowercase; }
+.sec-rule { flex: 1 1 120px; height: 1px; background: var(--rule); transform: translateY(-8px); }
+.sec-sub { color: var(--fg-dim); font-size: 15px; max-width: 54ch; margin-top: 14px; }
+
+/* Botones */
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--text); font-size: 14px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none;
+  padding: 14px 26px; border-radius: 999px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.25s var(--ease), background 0.25s, border-color 0.25s, color 0.25s;
+}
+.btn-primary { background: var(--orange); color: #17100a; border-color: var(--orange); }
+.btn-primary:hover { background: var(--orange-lt); border-color: var(--orange-lt); transform: translateY(-2px); }
+.btn-ghost { border-color: var(--rule); color: var(--fg); background: rgba(246,239,228,0.03); }
+.btn-ghost:hover { border-color: var(--orange); color: var(--orange); transform: translateY(-2px); }
+.btn .ar { transition: transform 0.25s var(--ease); }
+.btn:hover .ar { transform: translateX(4px); }
+
+/* ===========================================================================
+   3. NAV — fina, fija, con el wordmark y un único CTA destacado
+   =========================================================================== */
+.nav {
+  position: fixed; inset: 0 0 auto 0; z-index: 60;
+  display: flex; align-items: center; gap: 24px;
+  padding: 14px var(--pad);
+  transition: background 0.3s, border-color 0.3s, padding 0.3s;
+  border-bottom: 1px solid transparent;
+}
+.nav.is-stuck {
+  background: rgba(11,10,12,0.82);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-bottom-color: var(--rule);
+  padding-block: 10px;
+}
+.nav-brand { display: flex; align-items: center; text-decoration: none; }
+.nav-brand img { width: 92px; height: auto; }
+.nav-links { display: flex; gap: 4px; margin-left: auto; align-items: center; }
+.nav-links a {
+  font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+  text-decoration: none; color: var(--fg-dim); padding: 9px 13px; border-radius: 999px;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-links a:hover, .nav-links a.is-active { color: var(--fg); background: rgba(246,239,228,0.06); }
+.nav .btn { padding: 10px 20px; font-size: 12px; }
+.nav-toggle { display: none; }
+
+@media (max-width: 900px) {
+  .nav-links { display: none; }
+  .nav-brand img { width: 78px; }
+}
+
+/* ===========================================================================
+   4. HERO
+   =========================================================================== */
+.hero {
+  min-height: 100svh; display: grid; align-items: end;
+  padding: 0 0 clamp(28px, 6vh, 64px);
+  position: relative; overflow: hidden;
+}
+.hero-media { position: absolute; inset: 0; z-index: 0; }
+.hero-media img, .hero-media video {
+  width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(0.92) contrast(1.06) brightness(0.62);
+}
+/* Degradado hacia el negro para que el texto siempre tenga contraste */
+.hero-media::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(to top, var(--ink) 2%, rgba(11,10,12,0.35) 45%, rgba(11,10,12,0.72) 100%),
+    radial-gradient(ellipse at 50% 40%, transparent 30%, rgba(11,10,12,0.6) 100%);
+}
+/* Líneas de barrido: el guiño CRT, pero sutil y sólo aquí */
+.hero-scan {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0.5;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}
+.hero-inner { position: relative; z-index: 2; display: grid; gap: clamp(20px, 3vw, 30px); }
+.hero h1 { margin: 0; }
+.hero h1 img { width: min(62vw, 420px); }
+.hero-tag {
+  font-family: var(--display); font-weight: 500;
+  font-size: clamp(20px, 3.4vw, 34px); line-height: 1.18; max-width: 20ch;
+  color: var(--fg);
+}
+.hero-tag em { font-style: normal; color: var(--orange); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-scroll {
+  position: absolute; bottom: 20px; right: var(--pad); z-index: 2;
+  font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--fg-faint);
+  writing-mode: vertical-rl;
+}
+@media (max-width: 700px) { .hero-scroll { display: none; } }
+
+/* ===========================================================================
+   5. TICKER — banda naranja con el aviso vivo (single / próximo bolo)
+   =========================================================================== */
+.ticker {
+  background: var(--orange); color: #17100a; overflow: hidden;
+  border-block: 1px solid rgba(0,0,0,0.18); padding-block: 0;
+}
+.ticker-track {
+  display: flex; gap: 0; width: max-content;
+  animation: ticker 38s linear infinite;
+}
+.ticker:hover .ticker-track { animation-play-state: paused; }
+.ticker-item {
+  font-family: var(--display); font-weight: 600;
+  font-size: clamp(15px, 2.1vw, 21px); letter-spacing: 0.02em;
+  padding: 13px 30px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 30px;
+}
+.ticker-item::after { content: "◆"; font-size: 9px; opacity: 0.55; }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ===========================================================================
+   6. ESCUCHA — el single manda, el reproductor suena sin salir de la web
+   =========================================================================== */
+.release { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); align-items: center; }
+.release-art { position: relative; }
+.release-art img { width: 100%; border-radius: var(--radius); box-shadow: 0 30px 70px rgba(0,0,0,0.55); }
+.release-badge {
+  position: absolute; top: 14px; left: 14px;
+  background: var(--orange); color: #17100a;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 7px 13px; border-radius: 999px;
+}
+.release-body { display: grid; gap: 20px; }
+.release-kicker { font-size: 12px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--orange); font-weight: 600; }
+.release-title { font-size: clamp(30px, 5.2vw, 54px); }
+.release-text { color: var(--fg-dim); max-width: 44ch; }
+
+.embed { border-radius: 12px; overflow: hidden; background: var(--ink-2); min-height: 152px; }
+.embed iframe { width: 100%; border: 0; display: block; }
+
+.dsp { display: flex; flex-wrap: wrap; gap: 10px; }
+.dsp a {
+  display: inline-flex; align-items: center; gap: 9px;
+  text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 0.06em;
+  padding: 11px 18px; border-radius: 999px;
+  border: 1px solid var(--rule); background: rgba(246,239,228,0.03);
+  transition: border-color 0.22s, background 0.22s, transform 0.22s var(--ease);
+}
+.dsp a:hover { border-color: var(--orange); background: rgba(217,118,47,0.12); transform: translateY(-2px); }
+.dsp img { width: 17px; height: 17px; }
+
+@media (max-width: 820px) {
+  .release { grid-template-columns: 1fr; }
+  .release-art { max-width: 320px; }
+}
+
+/* ===========================================================================
+   7. DIRECTO — visible sin clicar, que es de lo que va una web de banda
+   =========================================================================== */
+.gigs { display: grid; gap: 2px; border-top: 1px solid var(--rule); }
+.gig {
+  display: grid; grid-template-columns: 92px minmax(0,1fr) auto;
+  gap: clamp(14px, 3vw, 32px); align-items: center;
+  padding: 22px 6px; border-bottom: 1px solid var(--rule);
+  transition: background 0.25s, padding-left 0.25s var(--ease);
+}
+.gig:hover { background: rgba(246,239,228,0.035); padding-left: 14px; }
+.gig-date { font-family: var(--display); line-height: 1; }
+.gig-day { display: block; font-size: 40px; font-weight: 700; color: var(--fg); }
+.gig-month { font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--orange); font-weight: 600; }
+.gig-city { font-family: var(--display); font-size: clamp(19px, 2.6vw, 27px); font-weight: 600; }
+.gig-venue { font-size: 14px; color: var(--fg-dim); margin-top: 3px; }
+.gig-soon { font-size: 13px; color: var(--fg-faint); letter-spacing: 0.1em; text-transform: uppercase; }
+.gig.is-past { opacity: 0.42; }
+.gig.is-past:hover { padding-left: 6px; background: none; }
+.gig-done {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 7px 13px; border: 1px solid var(--rule); border-radius: 999px; color: var(--fg-dim);
+}
+.gigs-empty { color: var(--fg-dim); padding: 30px 0; }
+.gigs-foot { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.gigs-note { font-size: 13px; color: var(--fg-faint); }
+
+@media (max-width: 640px) {
+  .gig { grid-template-columns: 66px 1fr; row-gap: 14px; }
+  .gig-day { font-size: 32px; }
+  .gig > :last-child { grid-column: 2; justify-self: start; }
+}
+
+/* ===========================================================================
+   8. VÍDEOS — fachada ligera: la miniatura no carga YouTube hasta el click
+   =========================================================================== */
+.videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; }
+.vcard {
+  position: relative; aspect-ratio: 16/9; border-radius: var(--radius); overflow: hidden;
+  background: var(--ink-2); border: 1px solid var(--ink-3); cursor: pointer;
+  padding: 0; width: 100%; display: block;
+}
+.vcard img, .vcard video { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s var(--ease), filter 0.35s; filter: brightness(0.72); }
+.vcard:hover img, .vcard:hover video { transform: scale(1.04); filter: brightness(0.85); }
+.vcard-play {
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+}
+.vcard-play span {
+  width: 62px; height: 62px; border-radius: 50%;
+  background: rgba(217,118,47,0.92); color: #17100a;
+  display: grid; place-items: center; font-size: 20px; padding-left: 4px;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.5);
+  transition: transform 0.3s var(--ease);
+}
+.vcard:hover .vcard-play span { transform: scale(1.09); }
+.vcard-label {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; pointer-events: none;
+  padding: 34px 18px 16px; text-align: left;
+  background: linear-gradient(to top, rgba(11,10,12,0.9), transparent);
+  font-family: var(--display); font-weight: 600; font-size: 17px; color: var(--fg);
+}
+.vcard iframe, .vcard video.is-playing { width: 100%; height: 100%; border: 0; filter: none; }
+
+/* ===========================================================================
+   9. BANDA — sección en crema. Rompe el "todo negro" y respira.
+   =========================================================================== */
+.band { background: var(--cream); color: var(--ink); }
+.band .sec-title, .band h3 { color: var(--ink); }
+.band .sec-num { color: #a8511a; }
+.band .sec-rule { background: rgba(11,10,12,0.16); }
+.band-grid { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr); gap: clamp(26px, 5vw, 64px); align-items: center; }
+.band-photo { border-radius: var(--radius); overflow: hidden; box-shadow: 0 26px 60px rgba(11,10,12,0.28); }
+.band-photo img { width: 100%; aspect-ratio: 4/3; object-fit: cover; }
+.band-bio { display: grid; gap: 18px; }
+.band-bio p { color: rgba(11,10,12,0.76); font-size: 17px; line-height: 1.65; }
+.band-lead { font-family: var(--display); font-size: clamp(21px, 2.7vw, 29px); font-weight: 500; line-height: 1.3; color: var(--ink) !important; }
+.lineup { display: grid; gap: 8px; margin-top: 6px; }
+.lineup li { display: flex; gap: 12px; align-items: baseline; font-size: 15px; color: rgba(11,10,12,0.8); }
+.lineup { list-style: none; padding: 0; }
+.lineup .rol { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #a8511a; font-weight: 700; min-width: 92px; }
+@media (max-width: 820px) { .band-grid { grid-template-columns: 1fr; } }
+
+/* ===========================================================================
+   10. ÚNETE — lo que no tiene la web actual y es lo que más valor acumula
+   =========================================================================== */
+.join { background: var(--ink-2); border-block: 1px solid var(--ink-3); }
+.join-inner { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,0.9fr); gap: clamp(26px, 5vw, 60px); align-items: center; }
+.join h2 { font-size: clamp(30px, 5vw, 52px); text-transform: lowercase; }
+.join p { color: var(--fg-dim); margin-top: 14px; max-width: 42ch; }
+.join-form { display: grid; gap: 12px; }
+.join-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.join-row input {
+  flex: 1 1 220px; font-family: var(--text); font-size: 16px; color: var(--fg);
+  background: rgba(246,239,228,0.05); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 15px 22px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.join-row input::placeholder { color: var(--fg-faint); }
+.join-row input:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(217,118,47,0.18); }
+.join-legal { font-size: 12px; color: var(--fg-faint); line-height: 1.5; max-width: 48ch; }
+.join-legal a { color: var(--fg-dim); }
+.form-status { font-size: 14px; min-height: 20px; }
+.form-status.ok { color: #79d9a4; }
+.form-status.err { color: #ff9d9d; }
+@media (max-width: 820px) { .join-inner { grid-template-columns: 1fr; } }
+
+/* ===========================================================================
+   11. PRENSA Y CONTRATACIÓN (EPK) — lo que busca un promotor en 60 segundos
+   =========================================================================== */
+.epk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.epk-card {
+  border: 1px solid var(--ink-3); border-radius: var(--radius);
+  background: linear-gradient(160deg, rgba(246,239,228,0.045), rgba(246,239,228,0.012));
+  padding: 26px 24px; display: grid; gap: 10px; align-content: start;
+  text-decoration: none; transition: border-color 0.25s, transform 0.25s var(--ease);
+}
+a.epk-card:hover { border-color: var(--orange); transform: translateY(-3px); }
+.epk-card h3 { font-size: 20px; }
+.epk-card p, .epk-card a { font-size: 14px; color: var(--fg-dim); }
+.epk-card .mail { color: var(--orange); text-decoration: none; font-weight: 600; word-break: break-all; }
+.epk-card .mail:hover { text-decoration: underline; }
+.epk-stats { display: flex; flex-wrap: wrap; gap: 30px; margin-top: 34px; padding-top: 26px; border-top: 1px solid var(--rule); }
+.stat-num { font-family: var(--display); font-size: clamp(26px, 4vw, 40px); font-weight: 700; color: var(--orange); line-height: 1; }
+.stat-lbl { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-faint); margin-top: 7px; }
+
+/* ===========================================================================
+   12. FOOTER
+   =========================================================================== */
+.foot { padding: clamp(46px, 7vw, 76px) 0 34px; border-top: 1px solid var(--rule); }
+.foot-top { display: flex; justify-content: space-between; gap: 30px; flex-wrap: wrap; align-items: flex-start; }
+.foot-brand img { width: 118px; opacity: 0.9; }
+.foot-brand p { font-size: 13px; color: var(--fg-faint); margin-top: 12px; max-width: 30ch; }
+.socials { display: flex; gap: 8px; flex-wrap: wrap; }
+.socials a {
+  width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid var(--rule); transition: border-color 0.22s, transform 0.22s var(--ease), background 0.22s;
+}
+.socials a:hover { border-color: var(--orange); background: rgba(217,118,47,0.12); transform: translateY(-2px); }
+.socials img { width: 18px; height: 18px; }
+.foot-bottom {
+  margin-top: 42px; padding-top: 20px; border-top: 1px solid var(--rule);
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  font-size: 12px; color: var(--fg-faint); letter-spacing: 0.04em;
+}
+.foot-bottom a { color: var(--fg-faint); text-decoration: none; }
+.foot-bottom a:hover { color: var(--fg-dim); }
+
+/* ===========================================================================
+   13. MOVIMIENTO — aparición al hacer scroll, y desconexión total si el
+   sistema pide menos animación (esto la web actual no lo contempla).
+   =========================================================================== */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+.reveal.is-in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  .reveal { opacity: 1; transform: none; }
+  .hero-scan { display: none; }
+}
+</style>
+</head>
+<body>
+
+<a class="sr-only" href="#escucha">Saltar al contenido</a>
+
+<!-- =====================================================================
+     NAV
+     ===================================================================== -->
+<header class="nav" id="nav">
+  <a class="nav-brand" href="#top" aria-label="BESTA — inicio">
+    <img src="assets/images/besta_color.png" alt="BESTA" width="92" height="92">
+  </a>
+  <nav class="nav-links" aria-label="Principal">
+    <a href="#escucha">Escucha</a>
+    <a href="#directo">Directo</a>
+    <a href="#videos">Vídeos</a>
+    <a href="#banda">La banda</a>
+    <a href="#prensa">Contacto</a>
+  </nav>
+  <a class="btn btn-primary" href="#unete">Únete</a>
+</header>
+
+<!-- =====================================================================
+     HERO
+     ===================================================================== -->
+<main id="top">
+<section class="hero" aria-label="BESTA">
+  <!-- El vídeo NO se carga de entrada: primero pinta el póster y sólo se
+       inyecta si hay pantalla grande, conexión decente y el usuario no ha
+       pedido reducir movimiento. (El aftermovie actual pesa 30 MB: hay que
+       recomprimirlo a ~2-3 MB antes de publicar esto.) -->
+  <div class="hero-media" id="heroMedia">
+    <img src="assets/images/og-image.png" alt="" aria-hidden="true" fetchpriority="high" width="1200" height="630">
+  </div>
+  <div class="hero-scan" aria-hidden="true"></div>
+
+  <div class="wrap hero-inner">
+    <h1><img src="assets/images/besta_color.png" alt="BESTA" width="420" height="420"></h1>
+    <!-- EDITAR: la frase que define a la banda en una línea. -->
+    <p class="hero-tag">Pop-rock desde Castelldefels.<br><em>Canciones para cantar a gritos.</em></p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#escucha">Escuchar <span class="ar" aria-hidden="true">→</span></a>
+      <a class="btn btn-ghost" href="#directo" id="heroGigsBtn">Próximos conciertos</a>
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true">scroll</div>
+</section>
+
+<!-- =====================================================================
+     TICKER — se rellena solo con el single y el próximo bolo
+     ===================================================================== -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<!-- =====================================================================
+     ESCUCHA
+     ===================================================================== -->
+<section id="escucha">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-num">01</span>
+      <h2 class="sec-title">escucha</h2>
+      <span class="sec-rule" aria-hidden="true"></span>
+    </div>
+
+    <div class="release reveal">
+      <div class="release-art">
+        <img src="assets/images/no-me-sale-olvidarte/cover.jpg" alt="Portada del single «No me sale olvidarte» de BESTA" width="1000" height="1000" loading="lazy" decoding="async">
+        <span class="release-badge">Nuevo single</span>
+      </div>
+      <div class="release-body">
+        <p class="release-kicker">Single · 16 julio 2026</p>
+        <h3 class="release-title">No me sale olvidarte</h3>
+        <!-- EDITAR: dos líneas sobre la canción. Lo que contaríais en la radio. -->
+        <p class="release-text">Ya disponible en todas las plataformas. Dale al play, súbelo y cuéntanos qué te parece.</p>
+
+        <!-- Reproductor real: suena aquí, sin mandar al usuario fuera. -->
+        <div class="embed">
+          <iframe
+            title="BESTA en Spotify"
+            src="https://open.spotify.com/embed/artist/14kN0Ny6BdnaWg1dShpZSe?utm_source=generator&theme=0"
+            height="152" loading="lazy"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+        </div>
+
+        <div class="dsp">
+          <a href="https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe" target="_blank" rel="noopener noreferrer">
+            <img src="https://cdn.simpleicons.org/spotify/f4e7d3" alt="" aria-hidden="true" width="17" height="17">Spotify</a>
+          <a href="https://music.apple.com/us/artist/besta/6785490450" target="_blank" rel="noopener noreferrer">
+            <img src="https://cdn.simpleicons.org/applemusic/f4e7d3" alt="" aria-hidden="true" width="17" height="17">Apple Music</a>
+          <a href="https://music.amazon.es/artists/B00B7Y26HS/besta" target="_blank" rel="noopener noreferrer">
+            <img src="https://cdn.simpleicons.org/amazonmusic/f4e7d3" alt="" aria-hidden="true" width="17" height="17">Amazon Music</a>
+          <a href="https://music.youtube.com/channel/UC65W26oTuS8fjpXq1ca24BA" target="_blank" rel="noopener noreferrer">
+            <img src="https://cdn.simpleicons.org/youtubemusic/f4e7d3" alt="" aria-hidden="true" width="17" height="17">YouTube Music</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     DIRECTO
+     ===================================================================== -->
+<section id="directo">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-num">02</span>
+      <h2 class="sec-title">directo</h2>
+      <span class="sec-rule" aria-hidden="true"></span>
+    </div>
+
+    <!-- Se rellena desde events.json (lo mismo que ya alimenta Bandsintown
+         con vuestra GitHub Action). Lo de dentro es el plan B sin JS. -->
+    <div class="gigs reveal" id="gigs">
+      <div class="gig">
+        <div class="gig-date"><span class="gig-day">15</span><span class="gig-month">ago</span></div>
+        <div><div class="gig-city">Castelldefels</div><div class="gig-venue">Festa Major de Castelldefels · 21:00 – 21:30</div></div>
+        <a class="btn btn-ghost" href="https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto" target="_blank" rel="noopener noreferrer">Info</a>
+      </div>
+    </div>
+
+    <div class="gigs-foot reveal">
+      <a class="btn btn-ghost" href="https://www.bandsintown.com/" target="_blank" rel="noopener noreferrer" id="btnFollow">Avísame cuando toquen cerca</a>
+      <p class="gigs-note">¿Quieres a BESTA en tu fiesta o sala? Escríbenos en <a href="#prensa">contratación</a>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     VÍDEOS
+     ===================================================================== -->
+<section id="videos">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-num">03</span>
+      <h2 class="sec-title">vídeos</h2>
+      <span class="sec-rule" aria-hidden="true"></span>
+    </div>
+    <div class="videos reveal" id="videos-grid"><!-- lo pinta el JS (ver VIDEOS abajo) --></div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     LA BANDA
+     ===================================================================== -->
+<section id="banda" class="band">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-num">04</span>
+      <h2 class="sec-title">la banda</h2>
+      <span class="sec-rule" aria-hidden="true"></span>
+    </div>
+    <div class="band-grid reveal">
+      <div class="band-photo">
+        <!-- EDITAR: aquí va una FOTO DE LA BANDA de verdad. Mientras tanto,
+             el muro de televisores de la identidad visual. -->
+        <img src="directo.jpeg" alt="Muro de televisores con el logotipo de BESTA" width="1536" height="1024" loading="lazy" decoding="async">
+      </div>
+      <div class="band-bio">
+        <!-- EDITAR: TODO ESTE TEXTO ES UN EJEMPLO PARA QUE VEÁIS EL FORMATO.
+             Reescribidlo vosotros: es la bio que copiará la prensa. -->
+        <p class="band-lead">BESTA es una banda de pop-rock nacida en Castelldefels que toca canciones para cantar a gritos.</p>
+        <p>Guitarras grandes, estribillos que se quedan y una estética de televisor viejo: entre la nostalgia de la radio de los 80 y el pop-rock español de ahora. En directo van a por todas.</p>
+        <p>Su último single, «No me sale olvidarte», salió en julio de 2026 y está en todas las plataformas.</p>
+        <ul class="lineup">
+          <li><span class="rol">Voz</span> <span>Nombre Apellido</span></li>
+          <li><span class="rol">Guitarra</span> <span>Nombre Apellido</span></li>
+          <li><span class="rol">Bajo</span> <span>Nombre Apellido</span></li>
+          <li><span class="rol">Batería</span> <span>Nombre Apellido</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     ÚNETE
+     ===================================================================== -->
+<section id="unete" class="join">
+  <div class="wrap join-inner">
+    <div class="reveal">
+      <h2>únete a la lista</h2>
+      <p>Fechas nuevas, canciones antes que nadie y entradas antes de que se agoten. Sin spam: escribimos poco y sólo cuando hay algo.</p>
+    </div>
+    <form class="join-form reveal" id="joinForm">
+      <!-- Va por Web3Forms, el mismo servicio que ya usáis en el contacto.
+           Cuando la lista crezca, migradlo a Mailchimp / Buttondown / Beehiiv
+           para poder enviar campañas de verdad. -->
+      <input type="hidden" name="subject" value="Alta en la lista de BESTA">
+      <input type="hidden" name="from_name" value="Web besta.es">
+      <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" style="display:none" aria-hidden="true">
+      <div class="join-row">
+        <label class="sr-only" for="joinName">Nombre</label>
+        <input id="joinName" name="nombre" type="text" placeholder="Tu nombre" autocomplete="given-name" required>
+        <label class="sr-only" for="joinMail">Email</label>
+        <input id="joinMail" name="email" type="email" placeholder="tu@email.com" autocomplete="email" required>
+      </div>
+      <button class="btn btn-primary" type="submit" style="justify-content:center">Apuntarme <span class="ar" aria-hidden="true">→</span></button>
+      <p class="form-status" id="joinStatus" role="status" aria-live="polite"></p>
+      <p class="join-legal">Al apuntarte aceptas recibir emails de BESTA. Tus datos no se ceden a terceros y puedes darte de baja cuando quieras.</p>
+    </form>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PRENSA Y CONTRATACIÓN (EPK)
+     ===================================================================== -->
+<section id="prensa">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-num">05</span>
+      <h2 class="sec-title">prensa y contratación</h2>
+      <span class="sec-rule" aria-hidden="true"></span>
+    </div>
+    <p class="sec-sub reveal" style="margin-bottom:34px">Todo lo que necesita un programador, una sala o un periodista, sin pedirlo por WhatsApp.</p>
+
+    <div class="epk-grid reveal">
+      <div class="epk-card">
+        <h3>Contratación</h3>
+        <p>Salas, festivales y fiestas mayores.</p>
+        <!-- EDITAR: si tenéis oficina/booking, aquí van sus datos. -->
+        <a class="mail" href="mailto:info@besta.es?subject=Contrataci%C3%B3n%20BESTA">info@besta.es</a>
+      </div>
+      <div class="epk-card">
+        <h3>Prensa</h3>
+        <p>Entrevistas, promos y acreditaciones.</p>
+        <a class="mail" href="mailto:info@besta.es?subject=Prensa%20BESTA">info@besta.es</a>
+      </div>
+      <!-- EDITAR: cuando exista, que este enlace baje un ZIP con fotos en alta,
+           logotipos y la bio en texto. -->
+      <a class="epk-card" href="#" aria-disabled="true">
+        <h3>Dossier y fotos ↗</h3>
+        <p>Bio corta y larga, fotos en alta resolución, logotipos y rider técnico.</p>
+      </a>
+      <a class="epk-card" href="https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe" target="_blank" rel="noopener noreferrer">
+        <h3>Escucha profesional ↗</h3>
+        <p>Discografía completa en streaming, lista para valorar sin descargas.</p>
+      </a>
+    </div>
+
+    <!-- EDITAR: números reales. Si aún son pequeños, quitad este bloque:
+         mejor sin datos que con datos que restan. -->
+    <div class="epk-stats reveal">
+      <div><div class="stat-num" data-count="—">—</div><div class="stat-lbl">Oyentes mensuales</div></div>
+      <div><div class="stat-num">—</div><div class="stat-lbl">Conciertos 2026</div></div>
+      <div><div class="stat-num">—</div><div class="stat-lbl">Seguidores</div></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- =====================================================================
+     FOOTER
+     ===================================================================== -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <img src="assets/images/besta_w.png" alt="BESTA" width="118" height="118" loading="lazy">
+        <p>Pop-rock desde Castelldefels.</p>
+      </div>
+      <div class="socials">
+        <a href="https://instagram.com/besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="BESTA en Instagram"><img src="https://cdn.simpleicons.org/instagram/f4e7d3" alt="" aria-hidden="true" width="18" height="18" loading="lazy"></a>
+        <a href="https://tiktok.com/@besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="BESTA en TikTok"><img src="https://cdn.simpleicons.org/tiktok/f4e7d3" alt="" aria-hidden="true" width="18" height="18" loading="lazy"></a>
+        <a href="https://youtube.com/@besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="BESTA en YouTube"><img src="https://cdn.simpleicons.org/youtube/f4e7d3" alt="" aria-hidden="true" width="18" height="18" loading="lazy"></a>
+        <a href="https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe" target="_blank" rel="noopener noreferrer" aria-label="BESTA en Spotify"><img src="https://cdn.simpleicons.org/spotify/f4e7d3" alt="" aria-hidden="true" width="18" height="18" loading="lazy"></a>
+        <a href="https://music.apple.com/us/artist/besta/6785490450" target="_blank" rel="noopener noreferrer" aria-label="BESTA en Apple Music"><img src="https://cdn.simpleicons.org/applemusic/f4e7d3" alt="" aria-hidden="true" width="18" height="18" loading="lazy"></a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="year">2026</span> BESTA</span>
+      <span><a href="mailto:info@besta.es">info@besta.es</a> · <a href="no-me-sale-olvidarte.html">Último single</a> · <a href="radio.html">Radio</a></span>
+    </div>
+  </div>
+</footer>
+
+<!-- JSON-LD: para que Google entienda que sois una banda y muestre las fechas.
+     La parte de conciertos la completa el JS con events.json. -->
+<script type="application/ld+json" id="ld-band">
+{
+  "@context": "https://schema.org",
+  "@type": "MusicGroup",
+  "name": "BESTA",
+  "url": "https://besta.es/",
+  "genre": ["Pop rock", "Rock español"],
+  "foundingLocation": { "@type": "Place", "name": "Castelldefels, Barcelona, España" },
+  "image": "https://besta.es/assets/images/og-image.png",
+  "email": "info@besta.es",
+  "sameAs": [
+    "https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe",
+    "https://music.apple.com/us/artist/besta/6785490450",
+    "https://music.amazon.es/artists/B00B7Y26HS/besta",
+    "https://music.youtube.com/channel/UC65W26oTuS8fjpXq1ca24BA",
+    "https://youtube.com/@besta_oficial",
+    "https://instagram.com/besta_oficial",
+    "https://tiktok.com/@besta_oficial"
+  ]
+}
+</script>
+
+<script>
+/* ===========================================================================
+   CONFIGURACIÓN — lo único que hay que tocar para el día a día
+   =========================================================================== */
+
+/* EDITAR: vídeos de la home. Para YouTube basta con el ID (lo que va después
+   de watch?v=). La miniatura no carga YouTube hasta que se hace click, así
+   que añadir vídeos no penaliza la velocidad de la página.                   */
+const VIDEOS = [
+  { tipo: "local", src: "assets/videos/aftermovie-mobile.mp4", poster: "assets/images/og-image.png", titulo: "Aftermovie" },
+  // { tipo: "youtube", id: "XXXXXXXXXXX", titulo: "No me sale olvidarte (videoclip)" },
+  // { tipo: "youtube", id: "XXXXXXXXXXX", titulo: "En directo · Festa Major" },
+];
+
+const WEB3FORMS_KEY = "58a9cff7-90b2-4a86-919c-34cae4be4139";  // el mismo que ya usáis
+
+const MESES  = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const GIG_DIAS_VISIBLES = 60;   // cuánto tiempo se sigue viendo un bolo pasado
+
+/* ===========================================================================
+   NAV: fondo al bajar + marcar la sección en la que estás
+   =========================================================================== */
+const nav = document.getElementById("nav");
+const onScroll = () => nav.classList.toggle("is-stuck", window.scrollY > 40);
+onScroll();
+addEventListener("scroll", onScroll, { passive: true });
+
+const navLinks = [...document.querySelectorAll(".nav-links a")];
+const spy = new IntersectionObserver(entradas => {
+  entradas.forEach(e => {
+    if (!e.isIntersecting) return;
+    navLinks.forEach(a => a.classList.toggle("is-active", a.getAttribute("href") === "#" + e.target.id));
+  });
+}, { rootMargin: "-45% 0px -50% 0px" });
+["escucha", "directo", "videos", "banda", "prensa"].forEach(id => {
+  const s = document.getElementById(id); if (s) spy.observe(s);
+});
+
+/* ===========================================================================
+   REVELADO AL HACER SCROLL (se desactiva solo si el sistema pide menos motion)
+   =========================================================================== */
+const quietMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (!quietMotion) {
+  const io = new IntersectionObserver((es, obs) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("is-in"); obs.unobserve(e.target); } });
+  }, { rootMargin: "0px 0px -8% 0px" });
+  document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+} else {
+  document.querySelectorAll(".reveal").forEach(el => el.classList.add("is-in"));
+}
+
+/* ===========================================================================
+   HERO: el vídeo sólo entra si la conexión y el dispositivo lo permiten.
+   (Con el aftermovie actual de 30 MB esto es imprescindible; aun recomprimido,
+   es la forma correcta de servir un vídeo de fondo.)
+   =========================================================================== */
+(function heroVideo() {
+  if (quietMotion) return;
+  const con = navigator.connection || {};
+  if (con.saveData) return;
+  if (con.effectiveType && !/4g/.test(con.effectiveType)) return;
+  if (innerWidth < 760) return;                 // en móvil, foto: pesa cero
+
+  const v = document.createElement("video");
+  v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true;
+  v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+  v.preload = "auto";
+  v.poster = "assets/images/og-image.png";
+  v.src = "assets/videos/aftermovie-mobile.mp4";   // el ligero, también en desktop
+  v.style.opacity = "0";
+  v.style.transition = "opacity 0.9s ease";
+  v.addEventListener("canplay", () => {
+    document.getElementById("heroMedia").prepend(v);
+    requestAnimationFrame(() => { v.style.opacity = "1"; });
+    v.play().catch(() => {});
+  }, { once: true });
+  v.load();
+})();
+
+/* ===========================================================================
+   CONCIERTOS: se leen de events.json (Bandsintown → GitHub Action → web)
+   =========================================================================== */
+function lineaSala(ev) { return [ev.venue, ev.note, ev.time].filter(Boolean).join(" · "); }
+
+function enlaceConcierto(ev) {
+  if (ev.tickets && !/sold[\s_-]?out/i.test(ev.ticketsStatus || "")) return { href: ev.tickets, texto: "Entradas", primario: true };
+  if (ev.info) return { href: ev.info, texto: "Info", primario: false };
+  if (ev.url)  return { href: ev.url,  texto: "Info", primario: false };
+  return null;
+}
+
+function pintarConcierto(ev, pasado) {
+  const [, mes, dia] = ev.date.split("-");
+  const fila = document.createElement("div");
+  fila.className = "gig" + (pasado ? " is-past" : "");
+
+  const fecha = document.createElement("div");
+  fecha.className = "gig-date";
+  fecha.innerHTML = '<span class="gig-day"></span><span class="gig-month"></span>';
+  fecha.querySelector(".gig-day").textContent = String(Number(dia));
+  fecha.querySelector(".gig-month").textContent = MESES[Number(mes) - 1] || "";
+
+  const info = document.createElement("div");
+  const ciudad = document.createElement("div");
+  ciudad.className = "gig-city";
+  ciudad.textContent = ev.city || ev.venue || "";
+  const sala = document.createElement("div");
+  sala.className = "gig-venue";
+  sala.textContent = lineaSala(ev);
+  info.append(ciudad, sala);
+
+  let accion;
+  if (pasado) {
+    accion = document.createElement("span");
+    accion.className = "gig-done";
+    accion.textContent = "Finalizado";
+  } else {
+    const enlace = enlaceConcierto(ev);
+    if (enlace) {
+      accion = document.createElement("a");
+      accion.className = "btn " + (enlace.primario ? "btn-primary" : "btn-ghost");
+      accion.href = enlace.href;
+      accion.target = "_blank";
+      accion.rel = "noopener noreferrer";
+      accion.textContent = enlace.texto;
+    } else {
+      accion = document.createElement("span");
+      accion.className = "gig-soon";
+      accion.textContent = "Próximamente";
+    }
+  }
+
+  fila.append(fecha, info, accion);
+  return fila;
+}
+
+function eventoLD(ev) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "MusicEvent",
+    "name": `BESTA en ${ev.city || ev.venue || ""}`.trim(),
+    "startDate": ev.date,
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "performer": { "@type": "MusicGroup", "name": "BESTA", "url": "https://besta.es/" },
+    "organizer": { "@type": "Organization", "name": ev.venue || "BESTA" },
+    "location": {
+      "@type": "Place",
+      "name": ev.venue || ev.city || "",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": ev.city || "",
+        "addressRegion": ev.region || "",
+        "addressCountry": ev.country || "ES"
+      }
+    },
+    "url": (enlaceConcierto(ev) || {}).href || "https://besta.es/#directo",
+    "image": "https://besta.es/assets/images/og-image.png"
+  };
+}
+
+async function cargarConciertos() {
+  let conciertos = [];
+  try {
+    const res = await fetch("events.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const datos = await res.json();
+    conciertos = (datos.events || []).filter(ev => ev && ev.date && !ev.hide);
+  } catch (_) {
+    return null;                       // se queda lo escrito a mano en el HTML
+  }
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const limite = new Date(Date.now() - GIG_DIAS_VISIBLES * 86400000).toISOString().slice(0, 10);
+
+  const proximos = conciertos.filter(ev => ev.date >= hoy).sort((a, b) => a.date.localeCompare(b.date));
+  const pasados  = conciertos.filter(ev => ev.date < hoy && ev.date >= limite).sort((a, b) => b.date.localeCompare(a.date));
+
+  const lista = document.getElementById("gigs");
+  if (lista) {
+    if (!proximos.length && !pasados.length) {
+      const p = document.createElement("p");
+      p.className = "gigs-empty";
+      p.textContent = "Estamos cerrando nuevas fechas. Apúntate a la lista y te avisamos los primeros.";
+      lista.replaceChildren(p);
+    } else {
+      lista.replaceChildren(
+        ...proximos.map(ev => pintarConcierto(ev, false)),
+        ...pasados.map(ev => pintarConcierto(ev, true))
+      );
+    }
+  }
+
+  // JSON-LD de cada concierto, para los resultados enriquecidos de Google
+  proximos.forEach(ev => {
+    const s = document.createElement("script");
+    s.type = "application/ld+json";
+    s.textContent = JSON.stringify(eventoLD(ev));
+    document.head.appendChild(s);
+  });
+
+  return proximos;
+}
+
+/* ===========================================================================
+   TICKER: single + próximo concierto, repetido para que no haya huecos
+   =========================================================================== */
+function pintarTicker(proximos) {
+  const track = document.getElementById("tickerTrack");
+  if (!track) return;
+  const avisos = ["Nuevo single · No me sale olvidarte"];   // EDITAR
+  (proximos || []).slice(0, 3).forEach(ev => {
+    const [, mes, dia] = ev.date.split("-");
+    avisos.push(`${Number(dia)} ${MESES[Number(mes) - 1]} · ${ev.city || ev.venue}`);
+  });
+  const linea = avisos.length ? avisos : ["BESTA"];
+  const bloque = linea.map(t => {
+    const s = document.createElement("span");
+    s.className = "ticker-item";
+    s.textContent = t;
+    return s;
+  });
+  // Se duplica el contenido: así el bucle del CSS (-50%) es continuo.
+  track.replaceChildren(...bloque, ...bloque.map(n => n.cloneNode(true)));
+  while (track.scrollWidth < innerWidth * 2 && track.children.length < 40) {
+    track.append(...[...track.children].map(n => n.cloneNode(true)));
+  }
+}
+
+/* ===========================================================================
+   VÍDEOS: fachada. Nada de YouTube hasta que alguien pulsa play.
+   =========================================================================== */
+function pintarVideos() {
+  const grid = document.getElementById("videos-grid");
+  if (!grid) return;
+  if (!VIDEOS.length) { grid.remove(); document.getElementById("videos").remove(); return; }
+
+  VIDEOS.forEach(v => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "vcard";
+    card.setAttribute("aria-label", "Reproducir: " + v.titulo);
+
+    const miniatura = v.tipo === "youtube"
+      ? Object.assign(document.createElement("img"), {
+          src: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`, alt: "", loading: "lazy", decoding: "async"
+        })
+      : Object.assign(document.createElement("video"), {
+          src: v.src, poster: v.poster || "", muted: true, playsInline: true, preload: "metadata"
+        });
+
+    const play = document.createElement("span");
+    play.className = "vcard-play";
+    play.innerHTML = "<span>▶</span>";
+    const label = document.createElement("span");
+    label.className = "vcard-label";
+    label.textContent = v.titulo;
+
+    card.append(miniatura, play, label);
+    card.addEventListener("click", () => {
+      if (v.tipo === "youtube") {
+        const f = document.createElement("iframe");
+        f.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0`;
+        f.title = v.titulo;
+        f.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen";
+        f.allowFullscreen = true;
+        card.replaceChildren(f);
+      } else {
+        miniatura.controls = true;
+        miniatura.muted = false;
+        miniatura.classList.add("is-playing");
+        play.remove(); label.remove();
+        miniatura.play().catch(() => {});
+      }
+    });
+    grid.append(card);
+  });
+}
+
+/* ===========================================================================
+   ALTA EN LA LISTA
+   =========================================================================== */
+const joinForm = document.getElementById("joinForm");
+const joinStatus = document.getElementById("joinStatus");
+joinForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = joinForm.querySelector("button[type=submit]");
+  joinStatus.className = "form-status";
+  joinStatus.textContent = "Enviando…";
+  btn.disabled = true;
+  try {
+    const payload = Object.fromEntries(new FormData(joinForm).entries());
+    payload.access_key = WEB3FORMS_KEY;
+    payload.replyto = payload.email || "";
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      joinStatus.textContent = "¡Dentro! Nos vemos en el próximo bolo.";
+      joinStatus.classList.add("ok");
+      joinForm.reset();
+    } else { throw new Error("fallo"); }
+  } catch (_) {
+    joinStatus.textContent = "No se pudo enviar. Prueba otra vez o escríbenos a info@besta.es.";
+    joinStatus.classList.add("err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ===========================================================================
+   ARRANQUE
+   =========================================================================== */
+document.getElementById("year").textContent = new Date().getFullYear();
+pintarVideos();
+cargarConciertos().then(proximos => {
+  pintarTicker(proximos);
+  // El botón del hero pasa a decir la próxima fecha: información, no etiqueta.
+  if (proximos && proximos.length) {
+    const ev = proximos[0];
+    const [, mes, dia] = ev.date.split("-");
+    const btn = document.getElementById("heroGigsBtn");
+    if (btn) btn.textContent = `Próximo: ${ev.city} · ${Number(dia)} ${MESES[Number(mes) - 1]}`;
+  }
+});
+</script>
+</body>
+</html>

@@ -1,11 +1,50 @@
 {
-  "updated": "2026-08-19T12:37:32.931Z",
+  "updated": "2026-08-19T12:48:56.534Z",
   "source": "bandsintown",
   "artist": {
-    "name": "Besta",
-    "url": "https://www.bandsintown.com/a/2718278?came_from=267&app_id=a469330168c7e36f76c2a8722e1b1d91\\n",
-    "image": "https://photos.bandsintown.com/large/8701376.jpeg",
-    "followers": 1982
+    "name": "besta",
+    "url": "https://www.bandsintown.com/a/15661145?came_from=267",
+    "image": "https://photos.bandsintown.com/large/25959375.jpeg",
+    "followers": 0
   },
-  "events": []
+  "events": [
+    {
+      "id": "manual-2026-08-15",
+      "date": "2026-08-15",
+      "time": "21:00 – 21:30",
+      "city": "Castelldefels",
+      "region": "",
+      "country": "",
+      "venue": "Festa Major de Castelldefels",
+      "title": "",
+      "description": "",
+      "lineup": [],
+      "url": "",
+      "tickets": "",
+      "ticketsStatus": "",
+      "manual": true,
+      "info": "https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto",
+      "short": "Festa Major"
+    },
+    {
+      "id": "108794780",
+      "date": "2026-08-29",
+      "time": "22:00",
+      "city": "Benicarló",
+      "region": "",
+      "country": "Spain",
+      "venue": "El Catxull",
+      "title": "",
+      "description": "El sábado 29 de agosto, una noche para disfrutar en directo, cantar, bailar y seguir viviendo las Fiestas Patronales de Benicarló.\n\n📅 Sábado 29 de agosto\n🕙 22:00 h\n📍 Plaza de la Constitución, Benicarló",
+      "lineup": [
+        "besta"
+      ],
+      "url": "https://www.bandsintown.com/e/108794780?came_from=267&utm_medium=api&utm_source=public_api&utm_campaign=event",
+      "tickets": "",
+      "ticketsStatus": "",
+      "note": "Festa Major · Plaça Constitució",
+      "info": "https://www.instagram.com/elcatxull/",
+      "short": "El Catxull"
+    }
+  ]
 }

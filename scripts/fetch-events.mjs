@@ -8,8 +8,10 @@
  *
  * Variables de entorno:
  *   BIT_APP_ID  (obligatoria)  la API key que te dio Bandsintown
- *   BIT_ARTIST  (opcional)     nombre del artista en Bandsintown. Por defecto "BESTA".
- *                              También vale el ID: "id_15578055"
+ *   BIT_ARTIST  (opcional)     a quien preguntamos. Por defecto nuestro perfil,
+ *                              "id_15661145" (artists.bandsintown.com/artists/15661145).
+ *                              Mejor por id que por nombre: hay otro grupo llamado
+ *                              Besta y buscando por nombre sale el suyo, no el nuestro.
  */
 
 import { readFile, writeFile } from "node:fs/promises";
@@ -20,8 +22,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "events.json");
 const OVERRIDES = join(ROOT, "events-overrides.json");
 
-const APP_ID = process.env.BIT_APP_ID;
-const ARTIST = process.env.BIT_ARTIST || "BESTA";
+const APP_ID = (process.env.BIT_APP_ID || "").trim().replace(/\\n$/, "");
+const ARTIST = (process.env.BIT_ARTIST || "").trim() || "id_15661145";
 
 if (!APP_ID) {
   console.error("Falta BIT_APP_ID (la API key de Bandsintown).");
@@ -35,6 +37,20 @@ function encodeArtist(name) {
     .replace(/%3F/gi, "%253F")
     .replace(/%2A/gi, "%252A")
     .replace(/%22/gi, "%27C");
+}
+
+/* Bandsintown devuelve su app_id pegada a las URLs que nos manda. events.json es
+   un fichero PÚBLICO de la web, así que la quitamos antes de guardar nada. */
+function limpiarUrl(u) {
+  if (typeof u !== "string" || !u.trim()) return "";
+  const limpia = u.trim();
+  try {
+    const url = new URL(limpia);
+    url.searchParams.delete("app_id");
+    return url.toString();
+  } catch {
+    return limpia.split(/[?&]app_id=/)[0];
+  }
 }
 
 async function getJSON(url) {
@@ -78,8 +94,8 @@ function normalize(raw) {
     title: (raw?.title || "").trim(),
     description: (raw?.description || "").trim(),
     lineup: Array.isArray(raw?.lineup) ? raw.lineup : [],
-    url: raw?.url || "",
-    tickets: offer?.url || "",
+    url: limpiarUrl(raw?.url),
+    tickets: limpiarUrl(offer?.url),
     ticketsStatus: offer?.status || ""
   };
 }
@@ -98,6 +114,22 @@ async function loadOverrides() {
 function applyOverride(ev, overrides) {
   const patch = overrides[ev.id] || overrides[ev.date];
   return patch ? { ...ev, ...patch } : ev;
+}
+
+/* Red de seguridad: si en events-overrides.json hay una fecha que Bandsintown
+   todavía no tiene, ese concierto sale igualmente en la web. Así un bolo cerrado
+   a última hora (o un fallo al darlo de alta) nunca deja la web sin fechas. */
+const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+function eventosManuales(overrides, fechasQueYaEstan) {
+  return Object.entries(overrides)
+    .filter(([clave]) => ES_FECHA.test(clave) && !fechasQueYaEstan.has(clave))
+    .map(([fecha, datos]) => ({
+      id: "manual-" + fecha,
+      date: fecha, time: "", city: "", region: "", country: "", venue: "",
+      title: "", description: "", lineup: [], url: "", tickets: "", ticketsStatus: "",
+      manual: true,
+      ...datos
+    }));
 }
 
 /* Pedimos también los conciertos recién pasados: la web los enseña tachados y
@@ -125,9 +157,15 @@ if (!Array.isArray(rawEvents)) {
   throw new Error(`Esperaba una lista de eventos y llegó: ${JSON.stringify(rawEvents).slice(0, 300)}`);
 }
 
-const events = rawEvents
-  .map(normalize)
-  .map(ev => applyOverride(ev, overrides))
+if (!rawEvents.length) {
+  console.warn(`AVISO: Bandsintown no devuelve ningun concierto para "${ARTIST}".`);
+  console.warn("       Si no es que no hay fechas, comprueba que se pregunta por id_15661145:");
+  console.warn("       hay otro grupo llamado Besta y por nombre sale el suyo, no el nuestro.");
+}
+
+const deBandsintown = rawEvents.map(normalize).map(ev => applyOverride(ev, overrides));
+const fechasQueYaEstan = new Set(deBandsintown.map(ev => ev.date));
+const events = [...deBandsintown, ...eventosManuales(overrides, fechasQueYaEstan)]
   .filter(ev => ev.date)
   .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -136,13 +174,14 @@ const payload = {
   source: "bandsintown",
   artist: {
     name: artist?.name || ARTIST,
-    url: artist?.url || "",
-    image: artist?.image_url || "",
+    url: limpiarUrl(artist?.url),
+    image: limpiarUrl(artist?.image_url),
     followers: artist?.tracker_count ?? null
   },
   events
 };
 
 await writeFile(OUT, JSON.stringify(payload, null, 2) + "\n", "utf8");
-console.log(`OK · ${events.length} concierto(s) guardados en events.json`);
+console.log(`OK · ${events.length} concierto(s) guardados en events.json ` +
+            `(${deBandsintown.length} de Bandsintown, ${events.length - deBandsintown.length} a mano)`);
 events.forEach(ev => console.log(`   ${ev.date}${ev.time ? " " + ev.time : ""} · ${ev.city} · ${ev.venue}`));

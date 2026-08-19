@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  BESTA · PROPUESTA "CANAL BESTA"  — v3
+  ============================================================================
+  No toca nada: convive con index.html. Ábrela con un servidor local para que
+  lea events.json →  python3 -m http.server 8000  →  /propuesta-tv.html
+
+  LA IDEA
+  Una sola pantalla, sin scroll, un lienzo. Pero en vez de un cartel quieto,
+  la web ES una televisión del muro de BESTA. El contenido no son secciones:
+  son CANALES. Se zapea con el dial, con las flechas, con los números o
+  deslizando en el móvil. Cada cambio de canal tiene su ráfaga de nieve.
+
+  POR QUÉ ASÍ Y NO CON SCROLL
+  · Mantiene lo que ya funcionaba: una pantalla, atmósfera, cero deriva.
+  · Usa vuestra identidad real (el muro CRT) como interfaz, no como adorno.
+  · Y aun así la música, las fechas y el contacto están a UN gesto, no
+    escondidos detrás de un botón que abre una ventana.
+  · Todos los canales están en el HTML desde el principio: Google los lee
+    aunque no se vean. Sin scroll no significa sin contenido.
+
+  BUSCA "EDITAR" PARA LO QUE HAY QUE RELLENAR.
+  ============================================================================
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BESTA · pop-rock desde Castelldefels</title>
+<meta name="description" content="Canal BESTA. Pop-rock desde Castelldefels: escucha «No me sale olvidarte», próximos conciertos y contratación.">
+<meta name="theme-color" content="#0a0908">
+
+<link rel="canonical" href="https://besta.es/">
+<meta property="og:type" content="music.musician">
+<meta property="og:site_name" content="BESTA">
+<meta property="og:title" content="BESTA · pop-rock desde Castelldefels">
+<meta property="og:description" content="Sintoniza el canal BESTA: nuevo single, conciertos y contratación.">
+<meta property="og:image" content="https://besta.es/assets/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://besta.es/">
+<meta property="og:locale" content="es_ES">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://besta.es/assets/images/og-image.png">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png">
+<link rel="shortcut icon" href="assets/favicons/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/favicons/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Jost: la geométrica libre más cercana al wordmark de besta.
+     DM Mono: el texto de rótulo/teletipo de televisión. -->
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   PALETA — la del muro: negro cálido, crema del logo, naranja quemado
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --ink:#0a0908;
+  --wall:#0d0b0a;
+  --cream:#E8DCC5;
+  --orange:#CE602A;
+  --orange-hi:#e8823f;
+  --amber:#f4c67a;
+  --dim:rgba(232,220,197,.55);
+  --faint:rgba(232,220,197,.3);
+  --line:rgba(232,220,197,.16);
+
+  --sans:'Jost','Century Gothic',system-ui,sans-serif;
+  --mono:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+
+  --bezel:#1c1815;
+  --bezel-hi:#2e2823;
+  --ease:cubic-bezier(.2,.75,.3,1);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ink); color:var(--cream);
+  font-family:var(--sans); overflow:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:clamp(14px,2.4vh,26px);
+  padding:clamp(10px,2vh,24px) 12px;
+  -webkit-font-smoothing:antialiased;
+}
+img,video{display:block;max-width:100%}
+a{color:inherit}
+p{margin:0}
+h1,h2,h3{margin:0;font-weight:600;line-height:1.05;letter-spacing:-.01em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--orange-hi);outline-offset:3px;border-radius:6px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA HABITACIÓN — el muro de televisores, desenfocado, detrás
+   ══════════════════════════════════════════════════════════════════════ */
+.room{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.room img{
+  width:100%;height:100%;object-fit:cover;
+  filter:blur(16px) brightness(.3) saturate(.75);
+  transform:scale(1.12);
+}
+.room::after{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 46%,rgba(206,96,42,.1) 0%,transparent 55%),
+             radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(10,9,8,.86) 78%,var(--ink) 100%);
+}
+/* Grano estático en SVG: mismo aire analógico, 0% de CPU */
+.room::before{
+  content:"";position:absolute;inset:-50%;z-index:2;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E");
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   EL TELEVISOR
+   ══════════════════════════════════════════════════════════════════════ */
+.tv{
+  position:relative; z-index:2;
+  width:min(93vw,1060px); aspect-ratio:4/3;
+  border-radius:26px;
+  padding:clamp(12px,1.7vw,22px);
+  background:
+    linear-gradient(155deg,var(--bezel-hi) 0%,var(--bezel) 38%,#141110 100%);
+  box-shadow:
+    0 2px 0 rgba(255,255,255,.05) inset,
+    0 -3px 12px rgba(0,0,0,.6) inset,
+    0 40px 90px rgba(0,0,0,.75),
+    0 0 130px rgba(206,96,42,.14);
+  flex:none;
+}
+@media (min-aspect-ratio:1/1){
+  .tv{width:auto;height:min(74svh,700px)}
+}
+
+/* El tubo: esquinas hinchadas, como un CRT de verdad */
+.tube{
+  position:relative; width:100%; height:100%;
+  border-radius:7% / 9%;
+  overflow:hidden;
+  background:#050404;
+  box-shadow:0 0 0 2px #0a0807, 0 0 34px rgba(0,0,0,.9) inset;
+  isolation:isolate;
+}
+
+/* Capas de encima del contenido: barrido, brillo del cristal, viñeta */
+.tube::after{
+  content:"";position:absolute;inset:0;z-index:8;pointer-events:none;
+  background:
+    /* reflejo del cristal */
+    linear-gradient(118deg,rgba(255,255,255,.07) 0%,transparent 34%,transparent 62%,rgba(255,255,255,.035) 100%),
+    /* viñeta del tubo */
+    radial-gradient(ellipse at 50% 48%,transparent 52%,rgba(0,0,0,.55) 92%),
+    /* líneas de barrido */
+    repeating-linear-gradient(to bottom,rgba(0,0,0,.26) 0 1px,transparent 1px 3px);
+}
+/* Franja de brillo que baja lentamente (el "refresco" del tubo) */
+.tube::before{
+  content:"";position:absolute;left:0;right:0;height:32%;z-index:7;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(232,220,197,.045),transparent);
+  animation:sweep 7s linear infinite;
+}
+@keyframes sweep{from{top:-35%}to{top:105%}}
+
+/* ── nieve / cambio de canal ─────────────────────────────────────────── */
+.snow{
+  position:absolute;inset:-40%;z-index:9;opacity:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23s)' opacity='.55'/%3E%3C/svg%3E");
+}
+.tv.zap .snow{opacity:.9;animation:snow .07s steps(1) infinite}
+@keyframes snow{
+  0%{transform:translate(0,0)}      25%{transform:translate(-24px,16px)}
+  50%{transform:translate(18px,-22px)} 75%{transform:translate(-14px,-9px)}
+  100%{transform:translate(22px,14px)}
+}
+/* Golpe de luz + desplazamiento vertical al zapear */
+.tv.zap .screen{animation:roll .34s var(--ease)}
+@keyframes roll{
+  0%{transform:translateY(0) scaleY(1);filter:brightness(2.4) blur(1px)}
+  35%{transform:translateY(-9%) scaleY(1.03)}
+  70%{transform:translateY(3%) scaleY(.99);filter:brightness(1.05)}
+  100%{transform:none;filter:none}
+}
+
+/* ── encendido: la línea blanca del CRT ──────────────────────────────── */
+.boot{position:absolute;inset:0;z-index:14;background:#050404;pointer-events:none}
+.boot::after{
+  content:"";position:absolute;left:0;right:0;top:50%;height:3px;
+  background:var(--cream);box-shadow:0 0 22px 5px rgba(232,220,197,.75);
+  transform:translateY(-50%);
+}
+body.on .boot{animation:boot .85s var(--ease) forwards}
+@keyframes boot{
+  0%{clip-path:inset(49.7% 0 49.7% 0);opacity:1}
+  38%{clip-path:inset(49.7% 0 49.7% 0);opacity:1}
+  72%{clip-path:inset(0 0 0 0);opacity:1;background:transparent}
+  100%{clip-path:inset(0 0 0 0);opacity:0;background:transparent}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PANTALLA Y CANALES
+   ══════════════════════════════════════════════════════════════════════ */
+.screen{
+  position:absolute;inset:0;z-index:3;
+  display:grid;
+  padding:clamp(20px,4.2%,44px);
+  padding-top:clamp(44px,8%,62px);      /* hueco del rótulo de canal */
+  padding-bottom:clamp(34px,7%,52px);   /* hueco del teletipo */
+}
+.ch{grid-area:1/1;min-height:0;display:grid;align-content:center;gap:clamp(10px,1.8vh,20px)}
+html.js .ch{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s ease}
+html.js .ch.is-on{opacity:1;visibility:visible;pointer-events:auto}
+/* Sin JS se ven todos, uno detrás de otro: nadie se queda fuera */
+html:not(.js) body{overflow:auto;display:block;padding:24px}
+html:not(.js) .tv{width:auto;height:auto;aspect-ratio:auto;max-width:880px;margin:0 auto}
+html:not(.js) .tube{height:auto;border-radius:14px}
+html:not(.js) .screen{position:static;display:block;padding:26px}
+html:not(.js) .ch{display:block;margin-bottom:44px}
+html:not(.js) .osd,html:not(.js) .boot,html:not(.js) .snow,html:not(.js) .teletipo{display:none}
+
+/* Rótulo de canal, arriba a la izquierda, como el OSD de una tele */
+.osd{
+  position:absolute;top:clamp(14px,3.2%,26px);left:clamp(18px,4.2%,40px);right:clamp(18px,4.2%,40px);
+  z-index:6;display:flex;align-items:center;gap:11px;pointer-events:none;
+  font-family:var(--mono);font-size:clamp(10px,1.35vw,13px);letter-spacing:.16em;text-transform:uppercase;
+}
+.osd .num{color:var(--ink);background:var(--orange);padding:3px 8px;border-radius:3px;font-weight:500}
+.osd .name{color:var(--amber);text-shadow:0 0 14px rgba(244,198,122,.5)}
+.osd .live{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--dim)}
+.osd .dot{width:7px;height:7px;border-radius:50%;background:#e2483c;box-shadow:0 0 10px #e2483c;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── CANAL 01 · PORTADA ──────────────────────────────────────────────── */
+.portada{justify-items:center;text-align:center;align-content:center}
+.portada h1{margin:0}
+.portada h1 img{width:min(48%,340px)}
+.portada .lema{
+  font-size:clamp(13px,1.75vw,19px);letter-spacing:.3em;text-transform:uppercase;
+  color:var(--dim);font-weight:400;
+}
+.portada .next{
+  font-family:var(--mono);font-size:clamp(11px,1.4vw,14px);color:var(--amber);
+  border:1px solid rgba(244,198,122,.3);border-radius:999px;padding:8px 18px;
+  background:rgba(244,198,122,.07);
+}
+.hint{
+  font-family:var(--mono);font-size:clamp(9px,1.15vw,11.5px);letter-spacing:.2em;
+  text-transform:uppercase;color:var(--faint);
+}
+
+/* ── CANAL 02 · ESCUCHA ──────────────────────────────────────────────── */
+.escucha{grid-template-columns:auto 1fr;gap:clamp(16px,3vw,34px);align-items:center;align-content:center}
+.escucha .art{width:clamp(110px,21%,210px);border-radius:6px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.escucha .meta{display:grid;gap:clamp(8px,1.6vh,15px);min-width:0}
+.kicker{font-family:var(--mono);font-size:clamp(9.5px,1.2vw,12px);letter-spacing:.22em;text-transform:uppercase;color:var(--orange)}
+.escucha h2{font-size:clamp(21px,3.6vw,42px)}
+.escucha .embed{border-radius:8px;overflow:hidden;background:#111;box-shadow:0 0 0 1px var(--line)}
+.escucha iframe{width:100%;border:0;display:block;height:clamp(80px,15vh,152px)}
+.dsp{display:flex;flex-wrap:wrap;gap:7px}
+.dsp a{
+  display:inline-flex;align-items:center;gap:7px;text-decoration:none;
+  font-family:var(--mono);font-size:clamp(9.5px,1.1vw,11.5px);letter-spacing:.08em;
+  padding:7px 12px;border:1px solid var(--line);border-radius:999px;
+  transition:border-color .2s,background .2s,transform .2s var(--ease);
+}
+.dsp a:hover{border-color:var(--orange);background:rgba(206,96,42,.14);transform:translateY(-1px)}
+.dsp img{width:13px;height:13px}
+@media (max-width:600px){
+  .escucha{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .escucha .art{width:min(38%,140px)}
+  .dsp{justify-content:center}
+}
+
+/* ── CANAL 03 · DIRECTO ──────────────────────────────────────────────── */
+.directo{align-content:start;gap:clamp(6px,1.2vh,12px);min-height:0}
+.directo h2{font-size:clamp(19px,3vw,34px);margin-bottom:clamp(4px,1vh,10px)}
+.fechas{display:grid;gap:2px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.fechas::-webkit-scrollbar{width:5px}
+.fechas::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+.fecha{
+  display:grid;grid-template-columns:auto 1fr auto;gap:clamp(10px,2.2vw,22px);align-items:center;
+  padding:clamp(8px,1.5vh,14px) 4px;border-bottom:1px dashed rgba(232,220,197,.13);
+}
+.fecha .dia{font-family:var(--mono);font-size:clamp(15px,2.2vw,24px);color:var(--amber);white-space:nowrap}
+.fecha .ciudad{font-size:clamp(14px,2vw,22px);font-weight:600;line-height:1.15}
+.fecha .sala{font-family:var(--mono);font-size:clamp(9.5px,1.15vw,12px);color:var(--dim);margin-top:2px}
+.fecha.pasado{opacity:.36}
+.entradas{
+  font-family:var(--mono);font-size:clamp(9px,1.1vw,11.5px);letter-spacing:.12em;text-transform:uppercase;
+  text-decoration:none;padding:7px 13px;border-radius:999px;white-space:nowrap;
+  background:var(--orange);color:#1a0f07;transition:background .2s,transform .2s var(--ease);
+}
+.entradas:hover{background:var(--orange-hi);transform:translateY(-1px)}
+.entradas.info{background:transparent;color:var(--cream);border:1px solid var(--line)}
+.entradas.info:hover{border-color:var(--orange);color:var(--orange-hi);background:transparent}
+.fecha .fin{font-family:var(--mono);font-size:clamp(8.5px,1vw,11px);color:var(--faint);letter-spacing:.1em;text-transform:uppercase}
+.vacio{font-family:var(--mono);font-size:clamp(11px,1.4vw,14px);color:var(--dim);line-height:1.7}
+
+/* ── CANAL 04 · SINTONIZA (lista de correo) ──────────────────────────── */
+.sintoniza{justify-items:center;text-align:center;align-content:center;max-width:640px;margin-inline:auto}
+.sintoniza h2{font-size:clamp(20px,3.4vw,38px)}
+.sintoniza p{font-family:var(--mono);font-size:clamp(10.5px,1.3vw,13px);color:var(--dim);line-height:1.7;max-width:46ch}
+.form{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:480px}
+.form input{
+  flex:1 1 190px;font-family:var(--mono);font-size:clamp(12px,1.4vw,14px);color:var(--cream);
+  background:rgba(232,220,197,.06);border:1px solid var(--line);border-radius:999px;
+  padding:11px 18px;transition:border-color .2s,box-shadow .2s;min-width:0;
+}
+.form input::placeholder{color:var(--faint)}
+.form input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(206,96,42,.2)}
+.form button{
+  font-family:var(--mono);font-size:clamp(10px,1.2vw,12px);letter-spacing:.16em;text-transform:uppercase;
+  background:var(--orange);color:#1a0f07;border-radius:999px;padding:12px 22px;
+  transition:background .2s,transform .2s var(--ease);
+}
+.form button:hover{background:var(--orange-hi);transform:translateY(-1px)}
+.form button:disabled{opacity:.55;transform:none}
+.estado{font-family:var(--mono);font-size:clamp(10px,1.2vw,12.5px);min-height:18px}
+.estado.ok{color:#8fd8a8}
+.estado.err{color:#ff9c9c}
+
+/* ── CANAL 05 · CONTACTO ─────────────────────────────────────────────── */
+.contacto{align-content:center;gap:clamp(12px,2.2vh,22px)}
+.contacto h2{font-size:clamp(20px,3.4vw,38px);text-align:center}
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:clamp(8px,1.6vw,16px)}
+.tarjeta{border:1px solid var(--line);border-radius:10px;padding:clamp(12px,2.2vh,20px);display:grid;gap:6px;align-content:start;text-decoration:none;transition:border-color .22s,background .22s}
+a.tarjeta:hover{border-color:var(--orange);background:rgba(206,96,42,.07)}
+.tarjeta .rol{font-family:var(--mono);font-size:clamp(8.5px,1vw,10.5px);letter-spacing:.2em;text-transform:uppercase;color:var(--orange)}
+.tarjeta .val{font-size:clamp(12.5px,1.5vw,16px);word-break:break-word}
+.tarjeta .nota{font-family:var(--mono);font-size:clamp(9px,1.05vw,11px);color:var(--faint);line-height:1.5}
+.redes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.redes a{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;transition:border-color .22s,background .22s,transform .22s var(--ease)}
+.redes a:hover{border-color:var(--orange);background:rgba(206,96,42,.12);transform:translateY(-2px)}
+.redes img{width:16px;height:16px}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TELETIPO — la cinta de abajo del tubo
+   ══════════════════════════════════════════════════════════════════════ */
+.teletipo{
+  position:absolute;left:0;right:0;bottom:0;z-index:6;overflow:hidden;
+  background:linear-gradient(to right,rgba(206,96,42,.95),rgba(206,96,42,.82));
+  border-top:1px solid rgba(0,0,0,.35);
+  height:clamp(24px,4.6%,34px);display:flex;align-items:center;
+}
+.teletipo-track{display:flex;width:max-content;animation:tele 34s linear infinite}
+.teletipo:hover .teletipo-track{animation-play-state:paused}
+.teletipo span{
+  font-family:var(--mono);font-size:clamp(9px,1.15vw,12px);letter-spacing:.1em;
+  color:#1a0f07;padding:0 22px;white-space:nowrap;display:inline-flex;align-items:center;gap:22px;
+}
+.teletipo span::after{content:"◆";font-size:7px;opacity:.5}
+@keyframes tele{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   EL DIAL — los canales, debajo de la tele
+   ══════════════════════════════════════════════════════════════════════ */
+.dial{
+  position:relative;z-index:3;flex:none;
+  display:flex;gap:clamp(4px,.7vw,9px);flex-wrap:wrap;justify-content:center;
+  padding:7px;border-radius:999px;
+  background:rgba(28,24,21,.7);border:1px solid rgba(232,220,197,.09);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+.dial button{
+  display:inline-flex;align-items:baseline;gap:8px;
+  padding:9px 15px;border-radius:999px;
+  font-family:var(--mono);font-size:clamp(9.5px,1.15vw,12px);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);transition:color .22s,background .22s;
+}
+.dial button .n{font-size:.82em;opacity:.55}
+.dial button:hover{color:var(--cream);background:rgba(232,220,197,.06)}
+.dial button[aria-selected="true"]{
+  color:#1a0f07;background:var(--orange);
+  box-shadow:0 0 22px rgba(206,96,42,.45);
+}
+.dial button[aria-selected="true"] .n{opacity:.7}
+@media (max-width:620px){
+  .dial{gap:3px;padding:5px}
+  .dial button{padding:8px 11px;letter-spacing:.1em}
+  .dial button .n{display:none}
+}
+
+.pie{
+  position:relative;z-index:3;flex:none;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+  display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+}
+.pie a{text-decoration:none}
+.pie a:hover{color:var(--dim)}
+@media (max-height:620px){.pie{display:none}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MENOS MOVIMIENTO: se apaga todo el parpadeo, la web sigue funcionando
+   ══════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .tube::before,.snow{display:none}
+  .boot{display:none}
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add("js")</script>
+
+<!-- La habitación: el muro de televisores detrás, desenfocado -->
+<div class="room" aria-hidden="true">
+  <img src="directo.jpeg" alt="" fetchpriority="high" width="1536" height="1024">
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     EL TELEVISOR
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="tv" id="tv">
+  <div class="tube">
+    <div class="boot" aria-hidden="true"></div>
+    <div class="snow" aria-hidden="true"></div>
+
+    <!-- rótulo de canal -->
+    <div class="osd" aria-hidden="true">
+      <span class="num" id="osdNum">01</span>
+      <span class="name" id="osdName">besta</span>
+      <span class="live"><span class="dot"></span> en directo</span>
+    </div>
+
+    <div class="screen">
+
+      <!-- ── 01 · PORTADA ─────────────────────────────────────────── -->
+      <section class="ch portada is-on" id="ch-besta" role="tabpanel" aria-labelledby="tab-besta">
+        <h1><img src="assets/images/besta_color.png" alt="BESTA" width="340" height="340"></h1>
+        <!-- EDITAR: la frase de la banda -->
+        <p class="lema">pop-rock desde castelldefels</p>
+        <p class="next" id="proximoBolo" hidden></p>
+        <p class="hint">gira el dial ↓ &nbsp;·&nbsp; ← → &nbsp;·&nbsp; 1-5</p>
+      </section>
+
+      <!-- ── 02 · ESCUCHA ─────────────────────────────────────────── -->
+      <section class="ch escucha" id="ch-escucha" role="tabpanel" aria-labelledby="tab-escucha">
+        <img class="art" src="assets/images/no-me-sale-olvidarte/cover.jpg"
+             alt="Portada del single «No me sale olvidarte»" width="1000" height="1000" loading="lazy" decoding="async">
+        <div class="meta">
+          <p class="kicker">nuevo single · 16 jul 2026</p>
+          <h2>No me sale olvidarte</h2>
+          <div class="embed">
+            <!-- Suena aquí dentro: la tele reproduce, no manda fuera -->
+            <iframe title="BESTA en Spotify" loading="lazy"
+              src="https://open.spotify.com/embed/artist/14kN0Ny6BdnaWg1dShpZSe?utm_source=generator&theme=0"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+          </div>
+          <div class="dsp">
+            <a href="https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe" target="_blank" rel="noopener noreferrer"><img src="https://cdn.simpleicons.org/spotify/E8DCC5" alt="" width="13" height="13" loading="lazy">Spotify</a>
+            <a href="https://music.apple.com/us/artist/besta/6785490450" target="_blank" rel="noopener noreferrer"><img src="https://cdn.simpleicons.org/applemusic/E8DCC5" alt="" width="13" height="13" loading="lazy">Apple</a>
+            <a href="https://music.amazon.es/artists/B00B7Y26HS/besta" target="_blank" rel="noopener noreferrer"><img src="https://cdn.simpleicons.org/amazonmusic/E8DCC5" alt="" width="13" height="13" loading="lazy">Amazon</a>
+            <a href="https://music.youtube.com/channel/UC65W26oTuS8fjpXq1ca24BA" target="_blank" rel="noopener noreferrer"><img src="https://cdn.simpleicons.org/youtubemusic/E8DCC5" alt="" width="13" height="13" loading="lazy">YT Music</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 03 · DIRECTO ─────────────────────────────────────────── -->
+      <section class="ch directo" id="ch-directo" role="tabpanel" aria-labelledby="tab-directo">
+        <h2>Próximos conciertos</h2>
+        <!-- Lo rellena events.json (Bandsintown → GitHub Action → web).
+             Lo de dentro es el plan B si falla la carga. -->
+        <div class="fechas" id="fechas">
+          <div class="fecha">
+            <span class="dia">15·AGO</span>
+            <div><div class="ciudad">Castelldefels</div><div class="sala">Festa Major · 21:00</div></div>
+            <a class="entradas info" href="https://www.castelldefels.org/es/actualidad/agenda/fiesta-mayor-verano-2026-besta-en-concierto" target="_blank" rel="noopener noreferrer">Info</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 04 · SINTONIZA ───────────────────────────────────────── -->
+      <section class="ch sintoniza" id="ch-sintoniza" role="tabpanel" aria-labelledby="tab-sintoniza">
+        <p class="kicker">no te pierdas la señal</p>
+        <h2>Sintoniza</h2>
+        <p>Te avisamos de las fechas nuevas y de las canciones antes de que salgan. Escribimos poco y sólo cuando hay algo.</p>
+        <form class="form" id="formLista">
+          <input type="hidden" name="subject" value="Alta en la lista de BESTA">
+          <input type="hidden" name="from_name" value="Canal BESTA">
+          <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" style="display:none" aria-hidden="true">
+          <label class="sr-only" for="mail">Email</label>
+          <input id="mail" name="email" type="email" placeholder="tu@email.com" autocomplete="email" required>
+          <button type="submit">Sintonizar</button>
+        </form>
+        <p class="estado" id="estado" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- ── 05 · CONTACTO ────────────────────────────────────────── -->
+      <section class="ch contacto" id="ch-contacto" role="tabpanel" aria-labelledby="tab-contacto">
+        <h2>Contacto</h2>
+        <div class="tarjetas">
+          <!-- EDITAR: si tenéis booking/oficina, aquí van sus datos -->
+          <a class="tarjeta" href="mailto:info@besta.es?subject=Contrataci%C3%B3n%20BESTA">
+            <span class="rol">contratación</span>
+            <span class="val">info@besta.es</span>
+            <span class="nota">Salas, festivales y fiestas mayores</span>
+          </a>
+          <a class="tarjeta" href="mailto:info@besta.es?subject=Prensa%20BESTA">
+            <span class="rol">prensa</span>
+            <span class="val">info@besta.es</span>
+            <span class="nota">Entrevistas, promos y acreditaciones</span>
+          </a>
+          <!-- EDITAR: cuando exista el dossier, que este enlace baje el ZIP -->
+          <a class="tarjeta" href="#" aria-disabled="true">
+            <span class="rol">dossier ↗</span>
+            <span class="val">Fotos y bio</span>
+            <span class="nota">Alta resolución, logotipos y rider</span>
+          </a>
+        </div>
+        <div class="redes">
+          <a href="https://instagram.com/besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><img src="https://cdn.simpleicons.org/instagram/E8DCC5" alt="" width="16" height="16" loading="lazy"></a>
+          <a href="https://tiktok.com/@besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><img src="https://cdn.simpleicons.org/tiktok/E8DCC5" alt="" width="16" height="16" loading="lazy"></a>
+          <a href="https://youtube.com/@besta_oficial" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><img src="https://cdn.simpleicons.org/youtube/E8DCC5" alt="" width="16" height="16" loading="lazy"></a>
+        </div>
+      </section>
+
+    </div><!-- /screen -->
+
+    <!-- teletipo -->
+    <div class="teletipo" aria-hidden="true"><div class="teletipo-track" id="teletipo"></div></div>
+  </div><!-- /tube -->
+</div><!-- /tv -->
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     EL DIAL
+     ══════════════════════════════════════════════════════════════════════ -->
+<nav class="dial" role="tablist" aria-label="Canales">
+  <button role="tab" id="tab-besta"     aria-controls="ch-besta"     aria-selected="true"  data-ch="besta"><span class="n">01</span> besta</button>
+  <button role="tab" id="tab-escucha"   aria-controls="ch-escucha"   aria-selected="false" data-ch="escucha"><span class="n">02</span> escucha</button>
+  <button role="tab" id="tab-directo"   aria-controls="ch-directo"   aria-selected="false" data-ch="directo"><span class="n">03</span> directo</button>
+  <button role="tab" id="tab-sintoniza" aria-controls="ch-sintoniza" aria-selected="false" data-ch="sintoniza"><span class="n">04</span> sintoniza</button>
+  <button role="tab" id="tab-contacto"  aria-controls="ch-contacto"  aria-selected="false" data-ch="contacto"><span class="n">05</span> contacto</button>
+</nav>
+
+<div class="pie">
+  <span>© <span id="year">2026</span> besta</span>
+  <a href="mailto:info@besta.es">info@besta.es</a>
+  <a href="no-me-sale-olvidarte.html">último single</a>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"MusicGroup",
+  "name":"BESTA",
+  "url":"https://besta.es/",
+  "genre":["Pop rock","Rock español"],
+  "foundingLocation":{"@type":"Place","name":"Castelldefels, Barcelona, España"},
+  "image":"https://besta.es/assets/images/og-image.png",
+  "email":"info@besta.es",
+  "sameAs":[
+    "https://open.spotify.com/intl-es/artist/14kN0Ny6BdnaWg1dShpZSe",
+    "https://music.apple.com/us/artist/besta/6785490450",
+    "https://music.amazon.es/artists/B00B7Y26HS/besta",
+    "https://music.youtube.com/channel/UC65W26oTuS8fjpXq1ca24BA",
+    "https://youtube.com/@besta_oficial",
+    "https://instagram.com/besta_oficial",
+    "https://tiktok.com/@besta_oficial"
+  ]
+}
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   CONFIG
+   ══════════════════════════════════════════════════════════════════════ */
+const WEB3FORMS_KEY = "58a9cff7-90b2-4a86-919c-34cae4be4139";   // el que ya usáis
+const MESES = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+const DIAS_PASADOS = 45;              // cuánto se sigue viendo un bolo ya tocado
+const AVISOS_FIJOS = ["nuevo single · no me sale olvidarte"];   // EDITAR
+
+const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ══════════════════════════════════════════════════════════════════════
+   ZAPPING
+   ══════════════════════════════════════════════════════════════════════ */
+const tv    = document.getElementById("tv");
+const tabs  = [...document.querySelectorAll(".dial button")];
+const canales = tabs.map(t => t.dataset.ch);
+let actual = 0;
+let zapTimer = null;
+
+function zapear(i, foco) {
+  i = (i + canales.length) % canales.length;
+  if (i === actual) return;
+  actual = i;
+  const ch = canales[i];
+
+  tabs.forEach((t, n) => t.setAttribute("aria-selected", String(n === i)));
+  document.querySelectorAll(".ch").forEach(p => p.classList.toggle("is-on", p.id === "ch-" + ch));
+
+  // rótulo de canal
+  document.getElementById("osdNum").textContent = String(i + 1).padStart(2, "0");
+  document.getElementById("osdName").textContent = ch;
+
+  // ráfaga de nieve
+  if (!quieto) {
+    tv.classList.remove("zap");
+    void tv.offsetWidth;               // reinicia la animación
+    tv.classList.add("zap");
+    clearTimeout(zapTimer);
+    zapTimer = setTimeout(() => tv.classList.remove("zap"), 260);
+  }
+
+  history.replaceState(null, "", "#" + ch);
+  if (foco) tabs[i].focus();
+}
+
+tabs.forEach((t, i) => t.addEventListener("click", () => zapear(i)));
+
+/* Teclado: flechas para zapear, números para ir directo */
+addEventListener("keydown", e => {
+  if (/^(INPUT|TEXTAREA|IFRAME)$/.test(document.activeElement.tagName)) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); zapear(actual + 1, true); }
+  else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); zapear(actual - 1, true); }
+  else if (/^[1-9]$/.test(e.key) && +e.key <= canales.length) zapear(+e.key - 1);
+});
+
+/* Móvil: deslizar sobre la tele = cambiar de canal */
+let x0 = null, y0 = null;
+tv.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+tv.addEventListener("touchend", e => {
+  if (x0 === null) return;
+  const dx = e.changedTouches[0].clientX - x0;
+  const dy = e.changedTouches[0].clientY - y0;
+  if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6) zapear(actual + (dx < 0 ? 1 : -1));
+  x0 = y0 = null;
+}, { passive: true });
+
+/* Enlaces compartibles: besta.es/#directo abre ese canal */
+function desdeHash() {
+  const i = canales.indexOf(location.hash.replace("#", ""));
+  if (i < 0 || i === actual) return;
+  actual = -1;                     // fuerza el cambio aunque coincida
+  zapear(i);
+}
+addEventListener("hashchange", desdeHash);
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONCIERTOS — desde events.json
+   ══════════════════════════════════════════════════════════════════════ */
+function lineaSala(ev) { return [ev.venue, ev.note, ev.time].filter(Boolean).join(" · "); }
+function enlaceBolo(ev) {
+  if (ev.tickets && !/sold[\s_-]?out/i.test(ev.ticketsStatus || "")) return { href: ev.tickets, texto: "Entradas", primario: true };
+  if (ev.info) return { href: ev.info, texto: "Info", primario: false };
+  if (ev.url)  return { href: ev.url,  texto: "Info", primario: false };
+  return null;
+}
+
+function pintarBolo(ev, pasado) {
+  const [, mes, dia] = ev.date.split("-");
+  const fila = document.createElement("div");
+  fila.className = "fecha" + (pasado ? " pasado" : "");
+
+  const cuando = document.createElement("span");
+  cuando.className = "dia";
+  cuando.textContent = `${Number(dia)}·${MESES[Number(mes) - 1] || ""}`;
+
+  const info = document.createElement("div");
+  const ciudad = document.createElement("div");
+  ciudad.className = "ciudad";
+  ciudad.textContent = ev.city || ev.venue || "";
+  const sala = document.createElement("div");
+  sala.className = "sala";
+  sala.textContent = lineaSala(ev);
+  info.append(ciudad, sala);
+
+  let accion;
+  if (pasado) {
+    accion = document.createElement("span");
+    accion.className = "fin";
+    accion.textContent = "finalizado";
+  } else {
+    const e = enlaceBolo(ev);
+    if (e) {
+      accion = document.createElement("a");
+      accion.className = "entradas" + (e.primario ? "" : " info");
+      accion.href = e.href; accion.target = "_blank"; accion.rel = "noopener noreferrer";
+      accion.textContent = e.texto;
+    } else {
+      accion = document.createElement("span");
+      accion.className = "fin";
+      accion.textContent = "pronto";
+    }
+  }
+
+  fila.append(cuando, info, accion);
+  return fila;
+}
+
+function boloLD(ev) {
+  return {
+    "@context": "https://schema.org", "@type": "MusicEvent",
+    "name": `BESTA en ${ev.city || ev.venue || ""}`.trim(),
+    "startDate": ev.date,
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "performer": { "@type": "MusicGroup", "name": "BESTA", "url": "https://besta.es/" },
+    "location": {
+      "@type": "Place", "name": ev.venue || ev.city || "",
+      "address": { "@type": "PostalAddress", "addressLocality": ev.city || "", "addressRegion": ev.region || "", "addressCountry": ev.country || "ES" }
+    },
+    "url": (enlaceBolo(ev) || {}).href || "https://besta.es/#directo",
+    "image": "https://besta.es/assets/images/og-image.png"
+  };
+}
+
+async function cargarBolos() {
+  let bolos = [];
+  try {
+    const res = await fetch("events.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    bolos = ((await res.json()).events || []).filter(ev => ev && ev.date && !ev.hide);
+  } catch (_) {
+    return null;                       // se queda lo escrito a mano
+  }
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const tope = new Date(Date.now() - DIAS_PASADOS * 86400000).toISOString().slice(0, 10);
+  const proximos = bolos.filter(ev => ev.date >= hoy).sort((a, b) => a.date.localeCompare(b.date));
+  const pasados  = bolos.filter(ev => ev.date < hoy && ev.date >= tope).sort((a, b) => b.date.localeCompare(a.date));
+
+  const lista = document.getElementById("fechas");
+  if (lista) {
+    if (!proximos.length && !pasados.length) {
+      const p = document.createElement("p");
+      p.className = "vacio";
+      p.textContent = "Estamos cerrando fechas nuevas. Sintoniza el canal 04 y te avisamos los primeros.";
+      lista.replaceChildren(p);
+    } else {
+      lista.replaceChildren(...proximos.map(ev => pintarBolo(ev, false)), ...pasados.map(ev => pintarBolo(ev, true)));
+    }
+  }
+
+  proximos.forEach(ev => {
+    const s = document.createElement("script");
+    s.type = "application/ld+json";
+    s.textContent = JSON.stringify(boloLD(ev));
+    document.head.appendChild(s);
+  });
+
+  return proximos;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TELETIPO + aviso de la portada
+   ══════════════════════════════════════════════════════════════════════ */
+function pintarTeletipo(proximos) {
+  const track = document.getElementById("teletipo");
+  if (!track) return;
+  const avisos = [...AVISOS_FIJOS];
+  (proximos || []).slice(0, 4).forEach(ev => {
+    const [, mes, dia] = ev.date.split("-");
+    avisos.push(`${Number(dia)} ${(MESES[Number(mes) - 1] || "").toLowerCase()} · ${(ev.city || ev.venue || "").toLowerCase()}`);
+  });
+  if (!avisos.length) avisos.push("besta");
+
+  const bloque = avisos.map(t => {
+    const s = document.createElement("span");
+    s.textContent = t;
+    return s;
+  });
+  track.replaceChildren(...bloque, ...bloque.map(n => n.cloneNode(true)));
+  // Repite hasta cubrir el doble del ancho: el bucle no deja huecos
+  let guarda = 0;
+  while (track.scrollWidth < tv.offsetWidth * 2 && guarda++ < 4) {
+    track.append(...[...track.children].map(n => n.cloneNode(true)));
+  }
+}
+
+function pintarProximo(proximos) {
+  const el = document.getElementById("proximoBolo");
+  if (!el || !proximos || !proximos.length) return;
+  const ev = proximos[0];
+  const [, mes, dia] = ev.date.split("-");
+  el.textContent = `próximo · ${ev.city || ev.venue} · ${Number(dia)} ${(MESES[Number(mes) - 1] || "").toLowerCase()}`;
+  el.hidden = false;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALTA EN LA LISTA
+   ══════════════════════════════════════════════════════════════════════ */
+const formLista = document.getElementById("formLista");
+const estado = document.getElementById("estado");
+formLista.addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = formLista.querySelector("button");
+  estado.className = "estado";
+  estado.textContent = "sintonizando…";
+  btn.disabled = true;
+  try {
+    const payload = Object.fromEntries(new FormData(formLista).entries());
+    payload.access_key = WEB3FORMS_KEY;
+    payload.replyto = payload.email || "";
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!(await res.json()).success) throw new Error("fallo");
+    estado.textContent = "señal recibida. nos vemos en el próximo bolo.";
+    estado.classList.add("ok");
+    formLista.reset();
+  } catch (_) {
+    estado.textContent = "no se pudo enviar. escríbenos a info@besta.es";
+    estado.classList.add("err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   ARRANQUE — se enciende la tele
+   ══════════════════════════════════════════════════════════════════════ */
+document.getElementById("year").textContent = new Date().getFullYear();
+document.body.classList.add("on");
+cargarBolos().then(proximos => {
+  pintarTeletipo(proximos);
+  pintarProximo(proximos);
+  desdeHash();
+});
+</script>
+</body>
+</html>
