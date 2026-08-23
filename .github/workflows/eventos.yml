@@ -2,7 +2,7 @@ name: Actualizar conciertos desde Bandsintown
 
 on:
   schedule:
-    - cron: "17 5,17 * * *"   # dos veces al dia (07:17 y 19:17 en Espana)
+    - cron: "17 5 * * 1"   # una vez por semana (lunes, 07:17 en Espana)
   workflow_dispatch:           # boton "Run workflow" para actualizar al momento
   push:
     branches: [main]

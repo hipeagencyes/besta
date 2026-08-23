@@ -1427,7 +1427,107 @@ body.concert-mode.mode-chords .lyrics-block .chord {
 }
 .section-notes-aside .note .role-tag { font-size: 10px; padding: 2px 0; }
 .section-notes-aside:empty { display: none; }
-.song-section.no-notes { grid-template-columns: 1fr; }
+/* Antes las secciones sin notas ocupaban todo el ancho; ahora la columna de
+   notas siempre está (aunque solo lleve el botón "+ Nota"), así la letra no
+   baila de ancho de una sección a otra. */
+.song-section.no-notes .note-add { opacity: 0.35; }
+.song-section:hover .note-add,
+.song-section .note-add:focus-visible { opacity: 1; }
+
+/* Crear / editar / quitar notas sin entrar en el editor */
+.note-actions {
+  grid-column: 2;
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+  margin-top: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.note:hover .note-actions,
+.note:focus-within .note-actions { opacity: 1; }
+@media (hover: none) { .note-actions { opacity: 0.55; } }
+.note-act {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 6px;
+  width: 24px; height: 24px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+.note-act:hover { color: var(--fg); border-color: var(--line-strong); }
+.note-act.danger:hover { color: #ff8b8b; border-color: #ff8b8b; }
+.note-add {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.note-add:hover { color: var(--accent); border-color: var(--accent); opacity: 1; }
+.note-undo {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.note-editor {
+  background: var(--bg-2);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.note-editor-head { display: flex; flex-direction: column; gap: 6px; }
+.note-editor-title {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+.note-editor-ta {
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  width: 100%;
+  outline: none;
+}
+.note-editor-ta:focus { border-color: var(--accent); }
+.note-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.note-editor-hint { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.btn-xs { padding: 5px 12px; font-size: 12px; }
 
 /* In drums/voice role, the strip is hidden — collapse aside if empty */
 body.role-drums         .section-notes-aside .note:not([data-role="drums"]):not([data-role="all"])         { display: none; }
@@ -1952,11 +2052,61 @@ body.editing .sidebar::after {
 .section-type-chip[data-section-type-chip="solo"]       { color: var(--guitar-lead); border-color: rgba(255,157,110,0.3); }
 .section-type-chip[data-section-type-chip="outro"]      { color: var(--voice); border-color: rgba(95,214,165,0.3); }
 
-.section-name-input {
+/* Ocupa el hueco que dejaba el nombre para que los controles queden a la
+   derecha; colapsada, enseña el primer verso. */
+.section-head-spacer { flex: 1; min-width: 12px; }
+.section-peek {
   flex: 1;
-  min-width: 160px;
+  min-width: 60px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.section-len {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.section-len.warn {
+  color: var(--guitar-lead);
+  border-color: rgba(255, 157, 110, 0.45);
+  background: rgba(255, 157, 110, 0.08);
+}
+.section-notes-badge {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--accent);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.08);
+}
+.section-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+.section-tools .btn-link { text-decoration: none; border-bottom: 1px solid transparent; }
+.section-tools .btn-link:hover { border-bottom-color: currentColor; }
+.section-tools .btn-link:disabled {
+  color: var(--muted);
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-bottom-color: transparent;
+}
+.section-tools-warn {
+  font-size: 11px;
   font-weight: 600;
-  font-size: 14px;
+  color: var(--guitar-lead);
 }
 .section-type-select {
   width: auto;
@@ -1996,6 +2146,64 @@ body.editing .sidebar::after {
   flex-direction: column;
   gap: 10px;
 }
+
+/* Paneles del editor de sección: letra/acordes de la banda, acordes propios
+   y notas. Antes iban seguidos y se leían como un solo bloque revuelto. */
+.edit-panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.edit-panel-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.edit-panel-title {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fg);
+}
+.edit-panel-sub {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  flex: 1;
+  min-width: 140px;
+}
+.edit-panel-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.edit-panel .btn.danger:not(:disabled) { color: #ff8b8b; border-color: rgba(255,139,139,0.35); }
+.edit-panel .btn.danger:not(:disabled):hover { border-color: #ff8b8b; background: rgba(255,139,139,0.08); }
+.edit-panel .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.panel-band  { border-left-color: var(--line-strong); }
+.panel-mine  { border-left-color: var(--piano); }
+.panel-mine.active { border-color: rgba(var(--accent-rgb), 0.35); }
+.panel-notes { border-left-color: var(--accent); }
+.notes-summary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.notes-summary.empty { font-style: italic; }
+.notes-summary button.chords-owner { cursor: pointer; font-family: inherit; }
+.notes-summary button.chords-owner:hover { background: var(--bg-3); }
 
 /* Tabs de notas por rol (sustituye edit-notes-grid) */
 .note-tabs {
@@ -2040,6 +2248,9 @@ body.editing .sidebar::after {
 .note-tab[data-role-color="voice"].active         { border-color: var(--voice); }
 .note-tab[data-role-color="all"].active           { border-color: var(--all); }
 
+.note-tabs.compact { gap: 3px; margin: 0; }
+.note-tabs.compact .note-tab { font-size: 10px; padding: 3px 8px; letter-spacing: 0.04em; }
+
 .note-panes { position: relative; }
 .note-textarea { background: var(--bg); }
 .note-textarea.hidden { display: none; }
@@ -2065,9 +2276,7 @@ body.editing .sidebar::after {
   border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: 8px; padding: 8px 10px; margin: 8px 0;
 }
-.my-chords { border-top: 1px dashed var(--line); padding-top: 12px; }
-.my-chords.active { border-color: var(--accent); }
-.my-chords .edit-input { margin-top: 8px; }
+.my-chords .edit-input { margin-top: 0; }
 .my-chords-hint, .my-chords-others {
   font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.6;
 }
@@ -2088,6 +2297,193 @@ body.editing .sidebar::after {
   align-items: center;
 }
 .section-add-menu { position: relative; }
+/* El menú del esquema se abre hacia arriba: está pegado al borde inferior */
+.section-add-dropdown.up { top: auto; bottom: calc(100% + 4px); right: 0; }
+
+/* ============ ESQUEMA FLOTANTE DEL EDITOR ============
+   La estructura de la canción siempre a la vista: saltar de sección,
+   reordenar y ver de un vistazo cuáles no caben en el directo. */
+.edit-form.with-outline { padding-right: 262px; }
+
+.edit-outline {
+  position: fixed;
+  right: 0;
+  top: 96px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.edit-outline > * { pointer-events: auto; }
+
+.edit-outline-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin-top: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 10px 8px;
+  writing-mode: vertical-rl;
+}
+.edit-outline-tab:hover { color: var(--accent); border-color: var(--accent); }
+.edit-outline-tab-icon { writing-mode: horizontal-tb; font-size: 14px; }
+.edit-outline.open .edit-outline-tab { border-radius: 10px 0 0 10px; }
+
+.edit-outline-panel {
+  display: none;
+  flex-direction: column;
+  width: 246px;
+  max-height: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+.edit-outline.open .edit-outline-panel { display: flex; }
+
+.edit-outline-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.edit-outline-head strong { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+.edit-outline-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.edit-outline-warn {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--guitar-lead);
+  background: rgba(255, 157, 110, 0.08);
+  border-bottom: 1px solid var(--line);
+}
+
+.edit-outline-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.outline-empty { color: var(--muted); font-size: 12px; padding: 10px 8px; }
+
+.outline-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  border-left: 3px solid var(--line-strong);
+  padding: 2px 4px 2px 5px;
+}
+.outline-item:hover { background: var(--bg-3); }
+.outline-item.dragging { opacity: 0.4; }
+.outline-item.drag-over { border-color: var(--accent); }
+.outline-item[data-section-type-chip="intro"]      { border-left-color: #8ad7ff; }
+.outline-item[data-section-type-chip="pre_chorus"] { border-left-color: #c5b3ff; }
+.outline-item[data-section-type-chip="chorus"]     { border-left-color: var(--accent); }
+.outline-item[data-section-type-chip="bridge"]     { border-left-color: var(--guitar-rhythm); }
+.outline-item[data-section-type-chip="solo"]       { border-left-color: var(--guitar-lead); }
+.outline-item[data-section-type-chip="interlude"]  { border-left-color: #777; }
+.outline-item[data-section-type-chip="outro"]      { border-left-color: var(--voice); }
+
+.outline-grip {
+  color: var(--muted);
+  cursor: grab;
+  font-size: 12px;
+  letter-spacing: -2px;
+  padding: 0 2px;
+  flex: none;
+  opacity: 0.5;
+}
+.outline-grip:active { cursor: grabbing; }
+.outline-item:hover .outline-grip { opacity: 1; }
+
+.outline-go {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: none;
+  border: none;
+  padding: 5px 4px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--fg);
+}
+.outline-name {
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.outline-go:hover .outline-name { color: var(--accent); }
+.outline-peek {
+  font-size: 10.5px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.outline-len {
+  flex: none;
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  min-width: 20px; text-align: right;
+}
+.outline-len.warn { color: var(--guitar-lead); }
+
+.outline-moves { display: flex; flex-direction: column; flex: none; }
+.outline-moves button {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 9px; line-height: 1;
+  padding: 2px 3px;
+}
+.outline-moves button:hover { color: var(--accent); }
+.outline-moves button:disabled { opacity: 0.25; cursor: not-allowed; }
+
+.edit-outline-foot {
+  display: flex; gap: 6px; align-items: stretch;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+}
+.edit-outline-foot .section-add-menu { flex: none; }
+.edit-outline-foot .btn {
+  padding: 6px 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.edit-outline-foot > .btn { flex: 1; }
+
+/* Destello al saltar a una sección o al crearla: para no perderla de vista */
+@keyframes section-flash {
+  0%   { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.55); }
+  100% { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0); }
+}
+.section-edit.flash { animation: section-flash 1.2s ease-out; }
+
+/* Sin sitio para apartar el formulario: el panel se superpone */
+@media (max-width: 1080px) {
+  .edit-form.with-outline { padding-right: 0; }
+  .edit-outline-panel { box-shadow: -10px 0 30px rgba(0, 0, 0, 0.4); }
+}
+@media (max-width: 620px) {
+  .edit-outline-panel { width: 200px; }
+  .outline-peek { display: none; }
+}
 .section-add-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -2115,6 +2511,61 @@ body.editing .sidebar::after {
   transition: background 0.12s, color 0.12s;
 }
 .section-add-dropdown button:hover { background: var(--bg-3); color: var(--accent); }
+
+/* Paleta de acordes: insertar [Am] sin pelearse con los corchetes.
+   Es un panel flotante que no roba el foco del campo (el caret no se mueve). */
+.chord-pal {
+  position: fixed;
+  z-index: 120;
+  width: min(380px, calc(100vw - 24px));
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 18px 44px rgba(0,0,0,0.55);
+  display: none;
+}
+.chord-pal.open { display: block; }
+.chord-pal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.chord-pal-title {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+}
+.chord-pal-preview {
+  margin-left: auto; font-size: 15px; font-weight: 800; color: var(--accent);
+}
+.chord-pal-close {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 0 2px; font-family: inherit;
+}
+.chord-pal-close:hover { color: var(--fg); }
+.chord-pal-sub {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); margin: 10px 0 6px;
+}
+.chord-pal-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chord-pal-roots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.chord-pal-roots .pal { padding: 10px 2px; font-size: 13px; font-weight: 800; }
+.chord-pal .pal {
+  background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+  border-radius: 8px; cursor: pointer; padding: 6px 9px;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.chord-pal .pal:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.chord-pal .pal.on {
+  border-color: var(--accent); color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+.chord-pal .pal:disabled { opacity: 0.28; cursor: not-allowed; }
+.chord-pal-hint { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
+@media (max-width: 700px) {
+  /* En móvil, hoja fija abajo: el teclado deja hueco arriba, no debajo. */
+  .chord-pal {
+    left: 8px !important; right: 8px; width: auto;
+    top: auto !important; bottom: 8px;
+    max-height: 55vh; overflow-y: auto;
+  }
+}
 
 /* Sidebar: New song button + pending delete */
 .new-song-btn {
@@ -2472,18 +2923,19 @@ body.editing .sidebar::after {
   text-transform: uppercase; letter-spacing: 0.12em;
   font-size: clamp(13px, 1.8vw, 18px); font-weight: 700; color: var(--accent);
 }
+/* --live-fit lo pone liveFitStage() cuando una diapositiva no cabe */
 .live-lyrics {
   font-weight: 700; line-height: 1.28;
-  font-size: clamp(30px, 6.2vw, 68px);
+  font-size: calc(clamp(30px, 6.2vw, 68px) * var(--live-fit, 1));
   white-space: pre-wrap; word-break: break-word;
 }
 .live-cue {
-  font-size: clamp(28px, 5vw, 56px); font-weight: 700; color: var(--muted);
+  font-size: calc(clamp(28px, 5vw, 56px) * var(--live-fit, 1)); font-weight: 700; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.08em;
 }
 .live-song-lead { display: flex; flex-direction: column; gap: 10px; }
 .live-song-lead .num { color: var(--accent); font-size: clamp(13px, 2vw, 18px); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
-.live-song-lead .t { font-size: clamp(34px, 7vw, 80px); font-weight: 800; line-height: 1.1; }
+.live-song-lead .t { font-size: calc(clamp(34px, 7vw, 80px) * var(--live-fit, 1)); font-weight: 800; line-height: 1.1; }
 .live-song-lead .a { color: var(--muted); font-size: clamp(18px, 3vw, 30px); font-weight: 600; }
 
 /* ---- Lo que viene de la setlist: bloques, momentos y anotaciones ---- */
@@ -2511,7 +2963,7 @@ body.editing .sidebar::after {
   letter-spacing: 0.14em; text-transform: uppercase;
 }
 .live-moment {
-  font-size: clamp(30px, 6vw, 68px); font-weight: 800; line-height: 1.12;
+  font-size: calc(clamp(30px, 6vw, 68px) * var(--live-fit, 1)); font-weight: 800; line-height: 1.12;
   text-transform: uppercase; letter-spacing: 0.01em;
 }
 
@@ -3374,6 +3826,52 @@ function defaultSectionNameFor(type) {
   return found ? found.label : "Nueva sección";
 }
 
+function sectionTypeOf(sec) {
+  const t = sec?.type;
+  return SECTION_TYPE_IDS.has(t) ? t : inferSectionType(sec?.name);
+}
+
+/* Las secciones ya no tienen nombre propio: el rótulo sale del tipo.
+   Si el tipo aparece varias veces con letras distintas se numera
+   (Estrofa 1, Estrofa 2…); si es único va suelto (Puente, Solo…).
+   Y una sección repetida tal cual repite número: el estribillo que vuelve
+   sigue siendo "Estribillo", no "Estribillo 2". */
+function sectionDisplayLabels(sections) {
+  const list = Array.isArray(sections) ? sections : [];
+  const types = list.map(sectionTypeOf);
+  const keyOf = sec => liveStripChords(sec?.lyrics || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const byType = {};
+  const numbers = list.map((sec, i) => {
+    const store = byType[types[i]] || (byType[types[i]] = { count: 0, seen: new Map() });
+    const key = keyOf(sec);
+    if (key && store.seen.has(key)) return store.seen.get(key);
+    store.count += 1;
+    if (key) store.seen.set(key, store.count);
+    return store.count;
+  });
+  return list.map((sec, i) => {
+    const t = types[i];
+    const base = t === "custom" ? "Sección" : (SECTION_TYPES.find(x => x.id === t)?.label || "Sección");
+    return byType[t].count > 1 ? `${base} ${numbers[i]}` : base;
+  });
+}
+
+function sectionDisplayLabel(sections, idx) {
+  return sectionDisplayLabels(sections)[idx] || "Sección";
+}
+
+/* Cuánto ocupa una sección en una diapositiva de directo: con acordes
+   inline cada verso arrastra otra línea encima. Por encima de este coste
+   conviene partirla para que no se salga de pantalla. */
+const LIVE_SAFE_LINES = 8;
+function sectionLineCount(sec) {
+  return String(sec?.lyrics || "").split("\n").filter(l => l.trim() !== "").length;
+}
+function liveLineCost(sec) {
+  const n = sectionLineCount(sec);
+  return /\[[^\]]+\]/.test(String(sec?.lyrics || "")) ? n * 2 : n;
+}
+
 function normalizeSection(sec) {
   const out = {
     name: sec?.name || "",
@@ -3623,7 +4121,14 @@ let editIsNew = false;
 let editDirty = false;
 let editActiveNoteRole = {};      // { [sectionIdx]: roleId }
 let editCollapsedSections = {};   // { [sectionIdx]: true }
+let editNotesUndo = {};           // { [sectionIdx]: notesSnapshot } — para "Deshacer" al vaciar
 let dragSourceIdx = null;
+let outlineDragIdx = null;        // arrastre dentro del panel de esquema
+
+// Notas desde la vista normal (sin entrar en modo edición)
+let inlineNote = null;            // { songId, idx, role, text, isNew }
+let inlineNoteBusy = false;
+let inlineNoteTrash = null;       // { songId, idx, role, text } — última nota borrada, para deshacer
 
 // Transpose (per song, runtime only — does not modify saved chords)
 let transposeAmount = 0;
@@ -5025,7 +5530,7 @@ function generateSongId(artist, title) {
 
 function emptySection(type = "custom") {
   return {
-    name: defaultSectionNameFor(type),
+    name: "",
     type,
     lyrics: "",
     chords: "",
@@ -5100,6 +5605,9 @@ function enterEdit(songId) {
   const song = songs.find(s => s.id === songId);
   if (!song) return;
   if (autoscrollPlaying) stopAutoscroll();
+  inlineNote = null;
+  inlineNoteTrash = null;
+  editNotesUndo = {};
   editDraft = deepClone(song);
   migrateVideoToLinks(editDraft);
   editMode = true;
@@ -5262,14 +5770,93 @@ async function saveEdit() {
 window.saveEdit = saveEdit;
 
 // ---- Section operations ----
+/* Colapsado y pestaña de notas se guardan por índice: al insertar o quitar
+   secciones hay que correrlos o se quedan apuntando a la sección de al lado. */
+function shiftSectionState(at, delta) {
+  const shiftMap = (map) => {
+    const out = {};
+    Object.keys(map || {}).forEach(k => {
+      const i = Number(k);
+      if (isNaN(i)) return;
+      if (delta < 0 && i === at) return;              // la que se borra desaparece
+      out[i >= at ? i + delta : i] = map[k];
+    });
+    return out;
+  };
+  editCollapsedSections = shiftMap(editCollapsedSections);
+  editActiveNoteRole = shiftMap(editActiveNoteRole);
+  editNotesUndo = shiftMap(editNotesUndo);
+}
+
+/* Mueve una sección y arrastra con ella su estado por índice (colapsado,
+   pestaña de notas, deshacer). Lo usan las flechas, el arrastre de la
+   tarjeta y el del esquema: un único sitio donde se reordena. */
+function reorderSections(from, to) {
+  const secs = editDraft?.sections;
+  if (!secs) return false;
+  if (isNaN(from) || isNaN(to) || from === to) return false;
+  if (from < 0 || to < 0 || from >= secs.length || to >= secs.length) return false;
+  const [moved] = secs.splice(from, 1);
+  secs.splice(to, 0, moved);
+  const remap = (map) => {
+    const out = {};
+    Object.keys(map || {}).forEach(k => {
+      const i = Number(k);
+      if (isNaN(i)) return;
+      let n = i;
+      if (i === from) n = to;
+      else if (from < to) n = (i > from && i <= to) ? i - 1 : i;
+      else n = (i >= to && i < from) ? i + 1 : i;
+      out[n] = map[k];
+    });
+    return out;
+  };
+  editCollapsedSections = remap(editCollapsedSections);
+  editActiveNoteRole = remap(editActiveNoteRole);
+  editNotesUndo = remap(editNotesUndo);
+  editDirty = true;
+  return true;
+}
+
+/* Dónde cae una sección nueva según su tipo. Una intro va arriba y un outro
+   al final: no tiene sentido crearla abajo para subirla a mano después. */
+function defaultInsertIndexFor(type) {
+  const secs = editDraft?.sections || [];
+  if (type === "intro") {
+    let i = 0;
+    while (i < secs.length && sectionTypeOf(secs[i]) === "intro") i++;
+    return i;
+  }
+  if (type === "outro") return secs.length;
+  // Lo demás va al final, pero por delante del outro si ya lo hay.
+  let i = secs.length;
+  while (i > 0 && sectionTypeOf(secs[i - 1]) === "outro") i--;
+  return i;
+}
+
 function addSection(type = "custom") {
   if (!editDraft) return;
   if (!editDraft.sections) editDraft.sections = [];
-  editDraft.sections.push(emptySection(type));
+  const at = defaultInsertIndexFor(type);
+  editDraft.sections.splice(at, 0, emptySection(type));
+  shiftSectionState(at, 1);
   editDirty = true;
-  renderEditForm({ focusSelector: `[data-field="sections.${editDraft.sections.length - 1}.lyrics"]` });
+  renderEditForm({ focusSelector: `[data-field="sections.${at}.lyrics"]`, flashSection: at });
 }
 window.addSection = addSection;
+
+/* Añade una sección vacía justo debajo, del mismo tipo que la de arriba
+   (lo normal al escribir: estrofa, estrofa, estrofa…). */
+function insertSectionAfter(idx, type) {
+  if (!editDraft) return;
+  if (!editDraft.sections) editDraft.sections = [];
+  const t = type || sectionTypeOf(editDraft.sections[idx]) || "custom";
+  editDraft.sections.splice(idx + 1, 0, emptySection(t));
+  shiftSectionState(idx + 1, 1);
+  editDirty = true;
+  renderEditForm({ focusSelector: `[data-field="sections.${idx + 1}.lyrics"]` });
+}
+window.insertSectionAfter = insertSectionAfter;
 
 function duplicateSection(idx) {
   if (!editDraft?.sections) return;
@@ -5277,6 +5864,7 @@ function duplicateSection(idx) {
   if (!original) return;
   const copy = JSON.parse(JSON.stringify(normalizeSection(original)));
   editDraft.sections.splice(idx + 1, 0, copy);
+  shiftSectionState(idx + 1, 1);
   editDirty = true;
   renderEditForm();
 }
@@ -5284,12 +5872,15 @@ window.duplicateSection = duplicateSection;
 
 function removeSection(idx) {
   if (!editDraft?.sections) return;
+  const label = sectionDisplayLabel(editDraft.sections, idx);
   showConfirm({
     title: "Borrar sección",
-    body: `¿Borrar la sección "${editDraft.sections[idx].name || 'Sin nombre'}"? Solo se borra del borrador, no se guarda hasta que pulses Guardar.`,
+    body: `¿Borrar "${label}"? Solo se borra del borrador, no se guarda hasta que pulses Guardar.`,
     confirmLabel: "Borrar sección",
     onConfirm: () => {
       editDraft.sections.splice(idx, 1);
+      shiftSectionState(idx, -1);
+      editDirty = true;
       renderEditForm();
     }
   });
@@ -5297,15 +5888,251 @@ function removeSection(idx) {
 window.removeSection = removeSection;
 
 function moveSection(idx, dir) {
-  if (!editDraft?.sections) return;
-  const newIdx = idx + dir;
-  if (newIdx < 0 || newIdx >= editDraft.sections.length) return;
-  const tmp = editDraft.sections[idx];
-  editDraft.sections[idx] = editDraft.sections[newIdx];
-  editDraft.sections[newIdx] = tmp;
-  renderEditForm();
+  const to = idx + dir;
+  if (reorderSections(idx, to)) renderEditForm({ flashSection: to });
 }
 window.moveSection = moveSection;
+
+/* Salta a una sección desde el esquema: si estaba plegada, se abre. */
+function focusSectionCard(idx) {
+  if (!editDraft?.sections?.[idx]) return;
+  if (editCollapsedSections[idx]) {
+    editCollapsedSections[idx] = false;
+    renderEditForm({ flashSection: idx });
+    return;
+  }
+  flashSectionCard(idx);
+}
+window.focusSectionCard = focusSectionCard;
+
+function flashSectionCard(idx) {
+  const card = document.querySelector(`.section-edit[data-section-idx="${idx}"]`);
+  if (!card) return;
+  card.scrollIntoView({ block: "center", behavior: "smooth" });
+  card.classList.remove("flash");
+  void card.offsetWidth;                 // reinicia la animación si se repite
+  card.classList.add("flash");
+  setTimeout(() => card.classList.remove("flash"), 1200);
+}
+
+const EDIT_OUTLINE_KEY = "besta_ensayos_outline";
+let editOutlineOpen = localStorage.getItem(EDIT_OUTLINE_KEY) !== "0";
+
+function toggleEditOutline() {
+  editOutlineOpen = !editOutlineOpen;
+  localStorage.setItem(EDIT_OUTLINE_KEY, editOutlineOpen ? "1" : "0");
+  renderEditForm();
+}
+window.toggleEditOutline = toggleEditOutline;
+
+/* Esquema de la canción: la lista de secciones en pequeño, siempre a mano.
+   Sirve para ver la estructura de un vistazo, saltar a una sección y
+   reordenarlas sin tener que arrastrar tarjetas de media pantalla. */
+function renderEditOutlineHtml(draft) {
+  const secs = draft.sections || [];
+  const labels = sectionDisplayLabels(secs);
+  const longOnes = secs.filter(sec => liveLineCost(sec) > LIVE_SAFE_LINES).length;
+
+  const rows = secs.map((sec, i) => {
+    const type = sectionTypeOf(sec);
+    const lines = sectionLineCount(sec);
+    const tooLong = liveLineCost(sec) > LIVE_SAFE_LINES;
+    const first = liveStripChords(sec.lyrics || "").split("\n").map(l => l.trim()).find(Boolean) || "";
+    return `
+      <li class="outline-item${tooLong ? " warn" : ""}" data-outline-idx="${i}" data-section-type-chip="${type}">
+        <span class="outline-grip" title="Arrastra para reordenar" aria-hidden="true">⋮⋮</span>
+        <button type="button" class="outline-go" onclick="focusSectionCard(${i})" title="Ir a esta sección">
+          <span class="outline-name">${escapeHtml(labels[i])}</span>
+          <span class="outline-peek">${escapeHtml(first || "— vacía —")}</span>
+        </button>
+        <span class="outline-len${tooLong ? " warn" : ""}" title="${tooLong
+          ? "No cabe en una diapositiva de directo: divídela"
+          : "Líneas de letra"}">${lines}${tooLong ? "!" : ""}</span>
+        <span class="outline-moves">
+          <button type="button" onclick="moveSection(${i}, -1)" ${i === 0 ? "disabled" : ""} title="Subir">↑</button>
+          <button type="button" onclick="moveSection(${i}, 1)" ${i === secs.length - 1 ? "disabled" : ""} title="Bajar">↓</button>
+        </span>
+      </li>`;
+  }).join("");
+
+  return `
+    <aside class="edit-outline${editOutlineOpen ? " open" : ""}" data-outline>
+      <button type="button" class="edit-outline-tab" onclick="toggleEditOutline()"
+              title="${editOutlineOpen ? "Ocultar el esquema" : "Ver el esquema de la canción"}">
+        <span class="edit-outline-tab-icon">${editOutlineOpen ? "›" : "‹"}</span>
+        <span class="edit-outline-tab-text">Esquema</span>
+      </button>
+      <div class="edit-outline-panel">
+        <div class="edit-outline-head">
+          <strong>Esquema</strong>
+          <span class="edit-outline-count">${secs.length} ${secs.length === 1 ? "sección" : "secciones"}</span>
+        </div>
+        ${longOnes ? `<p class="edit-outline-warn">${longOnes} ${longOnes === 1 ? "sección larga" : "secciones largas"} para el directo: divídelas o se saldrán de pantalla.</p>` : ""}
+        <ol class="edit-outline-list" data-outline-list>${rows ||
+          '<li class="outline-empty">Todavía no hay secciones.</li>'}</ol>
+        <div class="edit-outline-foot">
+          <button type="button" class="btn btn-secondary btn-xs" onclick="toggleAllSections()" title="Plegar o desplegar todas las secciones">Plegar / abrir</button>
+          <div class="section-add-menu">
+            <button type="button" class="btn btn-secondary btn-xs" data-section-add-toggle title="Añadir una sección">+ Sección ▾</button>
+            <div class="section-add-dropdown up" data-section-add-dropdown>
+              ${SECTION_TYPES.map(t => `<button type="button" onclick="addSection('${t.id}')">${escapeHtml(t.label)}</button>`).join("")}
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>`;
+}
+
+function toggleAllSections() {
+  if (!editDraft?.sections?.length) return;
+  const anyOpen = editDraft.sections.some((_, i) => !editCollapsedSections[i]);
+  editCollapsedSections = {};
+  if (anyOpen) editDraft.sections.forEach((_, i) => { editCollapsedSections[i] = true; });
+  renderEditForm();
+}
+window.toggleAllSections = toggleAllSections;
+
+/* ---- Partir y unir secciones ----
+   En directo cada sección es una diapositiva, así que las secciones largas
+   son el problema: hay que trocearlas. Se parte siempre por principio de
+   línea, nunca a mitad de un verso. */
+
+/* Deja el textarea y el borrador en el mismo sitio antes de tocar la letra:
+   el evento input puede no haber llegado si se pulsa el botón muy seguido. */
+function syncSectionLyricsFromDom(idx) {
+  const sec = editDraft?.sections?.[idx];
+  const ta = document.querySelector(`[data-field="sections.${idx}.lyrics"]`);
+  if (sec && ta && ta.value !== sec.lyrics) { sec.lyrics = ta.value; editDirty = true; }
+  return ta;
+}
+
+/* cuts: índices de línea (sobre la letra de la banda) donde empieza cada
+   trozo nuevo. El tipo se hereda; las notas y la línea de acordes se quedan
+   en el primer trozo, que es donde tenían sentido. */
+function splitSectionAtLines(idx, cuts) {
+  const sec = editDraft?.sections?.[idx];
+  if (!sec) return;
+  const bounds = [0, ...cuts, Infinity];
+  const type = sectionTypeOf(sec);
+  const bandLines = String(sec.lyrics || "").split("\n");
+  const roles = Object.keys(sec.chordsByRole || {});
+  const parts = [];
+  for (let n = 0; n < bounds.length - 1; n++) {
+    const from = bounds[n];
+    const to = bounds[n + 1] === Infinity ? undefined : bounds[n + 1];
+    const lyrics = bandLines.slice(from, to).join("\n").trim();
+    const part = {
+      name: "",
+      type,
+      lyrics,
+      chords: n === 0 ? (sec.chords || "") : "",
+      notes: n === 0 ? normalizeSectionNotes(sec.notes) : emptyNotes()
+    };
+    // Las versiones propias de acordes se reparten por las mismas líneas.
+    // Si a alguien no le cuadra el trozo, esa parte vuelve a la de la banda.
+    roles.forEach(role => {
+      const ov = sec.chordsByRole[role];
+      const slice = String(ov?.lyrics || "").split("\n").slice(from, to).join("\n").trim();
+      if (!slice) return;
+      part.chordsByRole = part.chordsByRole || {};
+      part.chordsByRole[role] = { lyrics: slice, chords: n === 0 ? (ov.chords || "") : "", baseLyrics: lyrics };
+    });
+    parts.push(part);
+  }
+  const usable = parts.filter(p => p.lyrics.trim() || p.chords.trim());
+  if (usable.length < 2) { alert("No hay por dónde dividir esta sección."); return; }
+  editDraft.sections.splice(idx, 1, ...usable.map(normalizeSection));
+  for (let n = 1; n < usable.length; n++) shiftSectionState(idx + 1, 1);
+  editDirty = true;
+  renderEditForm();
+}
+
+function splitSectionAtCaret(idx) {
+  const sec = editDraft?.sections?.[idx];
+  if (!sec) return;
+  const ta = syncSectionLyricsFromDom(idx);
+  const text = String(sec.lyrics || "");
+  const pos = (ta && typeof ta.selectionStart === "number") ? ta.selectionStart : -1;
+  if (pos < 0 || !text.trim()) { ta?.focus(); return; }
+  const lineIdx = text.slice(0, pos).split("\n").length - 1;
+  if (lineIdx <= 0 || lineIdx >= text.split("\n").length) {
+    alert("Pon el cursor en la letra, en la línea por la que quieres partir, y vuelve a pulsar.");
+    ta?.focus();
+    return;
+  }
+  splitSectionAtLines(idx, [lineIdx]);
+}
+window.splitSectionAtCaret = splitSectionAtCaret;
+
+/* Sin decidir nada: por las líneas en blanco (que es como se separan las
+   estrofas al pegar una letra) y, si no hay ninguna, en trozos del tamaño
+   que cabe en una diapositiva. */
+function splitSectionAuto(idx) {
+  const sec = editDraft?.sections?.[idx];
+  if (!sec) return;
+  syncSectionLyricsFromDom(idx);
+  const text = String(sec.lyrics || "");
+  const lines = text.split("\n");
+  const cuts = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i - 1].trim() === "" && lines[i].trim() !== "") cuts.push(i);
+  }
+  if (!cuts.length) {
+    const step = /\[[^\]]+\]/.test(text) ? Math.ceil(LIVE_SAFE_LINES / 2) : LIVE_SAFE_LINES;
+    if (sectionLineCount(sec) <= step) {
+      alert("Esta sección ya cabe en una diapositiva de directo; no hace falta dividirla.");
+      return;
+    }
+    for (let i = step; i < lines.length; i += step) cuts.push(i);
+  }
+  if (!cuts.length) { alert("No hay por dónde dividir esta sección."); return; }
+  splitSectionAtLines(idx, cuts);
+}
+window.splitSectionAuto = splitSectionAuto;
+
+/* Lo contrario: junta esta sección con la de arriba (para deshacer un corte
+   de más). Se respeta lo que ve cada miembro: si uno tenía acordes propios
+   en una mitad, en la otra se le pega la versión de la banda. */
+function mergeSectionUp(idx) {
+  if (!editDraft?.sections || idx <= 0) return;
+  syncSectionLyricsFromDom(idx - 1);
+  syncSectionLyricsFromDom(idx);
+  const prev = editDraft.sections[idx - 1];
+  const cur = editDraft.sections[idx];
+  if (!prev || !cur) return;
+
+  const join = (a, b, sep) => [a, b].map(t => String(t || "").trim()).filter(Boolean).join(sep);
+  const lyrics = join(prev.lyrics, cur.lyrics, "\n");
+  const chords = join(prev.chords, cur.chords, " | ");
+
+  const notes = normalizeSectionNotes(prev.notes);
+  const curNotes = normalizeSectionNotes(cur.notes);
+  ROLES.forEach(role => { notes[role] = join(notes[role], curNotes[role], " · "); });
+
+  const out = { name: "", type: sectionTypeOf(prev), lyrics, chords, notes };
+  const roles = new Set([
+    ...Object.keys(prev.chordsByRole || {}),
+    ...Object.keys(cur.chordsByRole || {})
+  ]);
+  if (roles.size) {
+    out.chordsByRole = {};
+    roles.forEach(role => {
+      const a = sectionChordsFor(prev, role);
+      const b = sectionChordsFor(cur, role);
+      out.chordsByRole[role] = {
+        lyrics: join(a.lyrics, b.lyrics, "\n"),
+        chords: join(a.chords, b.chords, " | "),
+        baseLyrics: lyrics
+      };
+    });
+  }
+
+  editDraft.sections.splice(idx - 1, 2, normalizeSection(out));
+  shiftSectionState(idx, -1);
+  editDirty = true;
+  renderEditForm();
+}
+window.mergeSectionUp = mergeSectionUp;
 
 // ---- Link operations ----
 function addLink() {
@@ -6215,14 +7042,16 @@ function buildLiveSongSlides(song, extra = {}) {
     notes: extra.notes || [],
     blockLabel: extra.blockLabel || ""
   }];
-  (Array.isArray(song.sections) ? song.sections : []).forEach(sec => {
+  const secs = Array.isArray(song.sections) ? song.sections : [];
+  const secLabels = sectionDisplayLabels(secs);
+  secs.forEach((sec, si) => {
     // Respeta la versión de acordes del miembro seleccionado, si la tiene.
     const res = sectionChordsFor(sec, currentRole);
     const raw = String(res.lyrics || "");
     const lyrics = liveStripChords(raw).trim();
-    const type = sec.type || inferSectionType(sec.name);
+    const type = sectionTypeOf(sec);
     const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
-    const name = sec.name || typeLabel || "Sección";
+    const name = secLabels[si] || typeLabel || "Sección";
     // Acordes de la sección: inline en la letra ([Am]hola) o línea aparte.
     const hasInlineChords = /\[[^\]]+\]/.test(raw);
     const chordsLine = String(res.chords || "").trim();
@@ -6393,6 +7222,7 @@ function renderLiveSlide() {
       ${lyricsHtml}`;
   }
   stage.scrollTop = 0;
+  liveFitStage(stage);
 
   const nextEl = document.getElementById("live-nextcue");
   if (nextEl) {
@@ -6405,6 +7235,19 @@ function renderLiveSlide() {
 
   if (titleEl) titleEl.innerHTML = `${escapeHtml(slide.title)}${slide.artist ? ` <span class="artist">· ${escapeHtml(slide.artist)}</span>` : ""}`;
   if (progEl) progEl.textContent = `${liveIndex + 1} / ${liveSlides.length}`;
+}
+
+/* Red de seguridad del directo: si la diapositiva no cabe, se encoge la
+   letra hasta que entre. Lo suyo sigue siendo partir la sección en el
+   editor (se lee más grande), pero así nunca queda nada fuera. */
+function liveFitStage(stage) {
+  stage.style.setProperty("--live-fit", "1");
+  let scale = 1;
+  for (let i = 0; i < 14 && scale > 0.45; i++) {
+    if (stage.scrollHeight <= stage.clientHeight + 1) break;
+    scale = Math.round((scale - 0.06) * 100) / 100;
+    stage.style.setProperty("--live-fit", String(scale));
+  }
 }
 
 function liveGo(delta) {
@@ -7804,6 +8647,7 @@ function renderSongList() {
 function selectSong(id) {
   if (autoscrollPlaying) stopAutoscroll();
   if (metroPlaying) stopMetronome();
+  if (id !== activeSongId) { inlineNote = null; inlineNoteTrash = null; }
   metroBpmOverride = null;   // cada canción arranca siguiendo su propio BPM
   activeSongId = id;
   localStorage.setItem(LAST_SONG_KEY, id);
@@ -7831,8 +8675,9 @@ function renderSong(song) {
   const savedScroll = isSameSong ? content.scrollTop : 0;
   const setlistNumber = getSetlistNumber(song);
   const folders = normalizeSongFolders(song.folders);
+  const songSectionLabels = sectionDisplayLabels(song.sections || []);
   const sectionsHtml = (song.sections && song.sections.length)
-    ? song.sections.map((sec, i) => renderSection(sec, i)).join("")
+    ? song.sections.map((sec, i) => renderSection(sec, i, songSectionLabels[i])).join("")
     : `<div class="section-empty">
          Esta canción aún no tiene secciones.<br>
          Pulsa <strong>Editar</strong> para añadir letras, acordes y notas.
@@ -7954,7 +8799,9 @@ function renderEditForm(opts = {}) {
   // (añadir/borrar/mover secciones no debería tirarnos arriba).
   // Solo reseteamos si el llamador lo pide explícitamente (opts.resetScroll).
   const savedScroll = opts.resetScroll ? 0 : content.scrollTop;
+  const savedOutlineScroll = content.querySelector("[data-outline-list]")?.scrollTop || 0;
   content.innerHTML = renderEditFormHtml(draft);
+  closeChordPal();
 
   // Bind delegated input/change events
   const form = content.querySelector(".edit-form");
@@ -7966,19 +8813,13 @@ function renderEditForm(opts = {}) {
       if (e.target.dataset.type === "number") value = value.trim();
       setByPath(editDraft, path, value);
       editDirty = true;
-      // Si cambia el tipo, actualizar chip + nombre si aún era el default
-      if (e.target.dataset.sectionTypeFor !== undefined) {
-        const idx = Number(e.target.dataset.sectionTypeFor);
-        const sec = editDraft.sections?.[idx];
-        if (sec) {
-          // Si el nombre era el label del tipo anterior, lo actualizamos al nuevo
-          const prevLabel = SECTION_TYPES.find(t => sec.name === t.label);
-          if (prevLabel) {
-            sec.name = defaultSectionNameFor(sec.type);
-          }
-          renderEditForm();
-        }
-      }
+      // Notas: el punto del rol y el botón de vaciar se refrescan en vivo,
+      // sin repintar el formulario (perderíamos el cursor mientras escribes).
+      const noteMatch = /^sections\.(\d+)\.notes\.([a-z_]+)$/.exec(path);
+      if (noteMatch) refreshNotesPanel(Number(noteMatch[1]), noteMatch[2]);
+      // El rótulo sale del tipo: al cambiarlo hay que repintar el chip, el
+      // color del borde y la numeración de las demás secciones del mismo tipo.
+      if (e.target.dataset.sectionTypeFor !== undefined) renderEditForm();
       // Aviso en vivo de si el link es un vídeo incrustable
       if (/^links\.\d+\.url$/.test(path)) updateLinkBadge(e.target);
     };
@@ -8000,6 +8841,8 @@ function renderEditForm(opts = {}) {
           panes?.querySelectorAll("[data-note-role-pane]").forEach(p => {
             p.classList.toggle("hidden", p.dataset.noteRolePane !== role);
           });
+          panes?.querySelector(`[data-note-role-pane="${role}"]`)?.focus();
+          refreshNotesPanel(idx, role);
         }
         return;
       }
@@ -8012,20 +8855,32 @@ function renderEditForm(opts = {}) {
       }
       const addToggle = e.target.closest("[data-section-add-toggle]");
       if (addToggle) {
-        const dd = form.querySelector("[data-section-add-dropdown]");
+        // Hay uno arriba y otro en el esquema: se abre el que se ha pulsado.
+        const dd = addToggle.parentElement?.querySelector("[data-section-add-dropdown]");
+        form.querySelectorAll("[data-section-add-dropdown]").forEach(x => { if (x !== dd) x.classList.remove("open"); });
         dd?.classList.toggle("open");
         return;
       }
       // Cerrar dropdown al clicar fuera
       if (!e.target.closest("[data-section-add-dropdown]")) {
-        form.querySelector("[data-section-add-dropdown]")?.classList.remove("open");
+        form.querySelectorAll("[data-section-add-dropdown]").forEach(x => x.classList.remove("open"));
       }
     });
 
-    // Drag-to-reorder
-    form.addEventListener("dragstart", (e) => {
+    // Drag-to-reorder: solo desde el asa (⋮⋮), para no romper la selección de texto
+    const clearDraggable = () => {
+      content.querySelectorAll(".section-edit[draggable=\"true\"]").forEach(c => { c.draggable = false; });
+    };
+    form.addEventListener("pointerdown", (e) => {
       const card = e.target.closest(".section-edit");
       if (!card) return;
+      card.draggable = !!e.target.closest(".drag-handle");
+    });
+    form.addEventListener("pointerup", clearDraggable);
+    form.addEventListener("pointercancel", clearDraggable);
+    form.addEventListener("dragstart", (e) => {
+      const card = e.target.closest(".section-edit");
+      if (!card || !card.draggable) return;
       dragSourceIdx = Number(card.dataset.sectionIdx);
       card.classList.add("dragging");
       e.dataTransfer.effectAllowed = "move";
@@ -8033,6 +8888,7 @@ function renderEditForm(opts = {}) {
     });
     form.addEventListener("dragend", () => {
       content.querySelectorAll(".section-edit").forEach(c => c.classList.remove("dragging", "drag-over"));
+      clearDraggable();
       dragSourceIdx = null;
     });
     form.addEventListener("dragover", (e) => {
@@ -8047,19 +8903,52 @@ function renderEditForm(opts = {}) {
       if (!card || dragSourceIdx === null) return;
       e.preventDefault();
       const target = Number(card.dataset.sectionIdx);
-      if (!isNaN(target) && target !== dragSourceIdx && editDraft?.sections) {
-        const [moved] = editDraft.sections.splice(dragSourceIdx, 1);
-        editDraft.sections.splice(target, 0, moved);
-        editDirty = true;
-        // Reset estados visuales que referencian índices
-        editActiveNoteRole = {};
-        editCollapsedSections = {};
-        renderEditForm();
-      }
+      if (reorderSections(dragSourceIdx, target)) renderEditForm({ flashSection: target });
+    });
+
+    // Arrastre dentro del esquema: mismo reordenado, lista pequeña.
+    form.addEventListener("pointerdown", (e) => {
+      const row = e.target.closest(".outline-item");
+      if (row) row.draggable = !!e.target.closest(".outline-grip");
+    });
+    form.addEventListener("dragstart", (e) => {
+      const row = e.target.closest(".outline-item");
+      if (!row || !row.draggable) return;
+      outlineDragIdx = Number(row.dataset.outlineIdx);
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", String(outlineDragIdx)); } catch (_) {}
+    });
+    form.addEventListener("dragover", (e) => {
+      const row = e.target.closest(".outline-item");
+      if (!row || outlineDragIdx === null) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      content.querySelectorAll(".outline-item").forEach(r => r.classList.toggle("drag-over", r === row));
+    });
+    form.addEventListener("drop", (e) => {
+      const row = e.target.closest(".outline-item");
+      if (!row || outlineDragIdx === null) return;
+      e.preventDefault();
+      const target = Number(row.dataset.outlineIdx);
+      const from = outlineDragIdx;
+      outlineDragIdx = null;
+      if (reorderSections(from, target)) renderEditForm({ flashSection: target });
+    });
+    form.addEventListener("dragend", () => {
+      content.querySelectorAll(".outline-item").forEach(r => {
+        r.classList.remove("dragging", "drag-over");
+        r.draggable = false;
+      });
+      outlineDragIdx = null;
     });
   }
 
-  // Optional focus
+  content.scrollTop = savedScroll;
+  const outlineList = content.querySelector("[data-outline-list]");
+  if (outlineList) outlineList.scrollTop = savedOutlineScroll;
+
+  // Foco y destello van después de recolocar el scroll, o se anularían.
   if (opts.focusSelector) {
     const el = content.querySelector(opts.focusSelector);
     if (el) {
@@ -8067,7 +8956,7 @@ function renderEditForm(opts = {}) {
       if (typeof el.select === "function") el.select();
     }
   }
-  content.scrollTop = savedScroll;
+  if (opts.flashSection !== undefined) flashSectionCard(opts.flashSection);
 }
 
 function renderEditFormHtml(draft) {
@@ -8092,7 +8981,8 @@ function renderEditFormHtml(draft) {
   `;
   }).join("");
 
-  const sectionsHtml = (draft.sections || []).map((sec, i) => renderSectionEditHtml(sec, i, draft.sections.length)).join("");
+  const sectionLabels = sectionDisplayLabels(draft.sections || []);
+  const sectionsHtml = (draft.sections || []).map((sec, i) => renderSectionEditHtml(sec, i, draft.sections.length, sectionLabels[i])).join("");
 
   const audioEditHtml = (draft.audio || []).map((a, i) => `
     <div class="audio-edit-row">
@@ -8106,7 +8996,8 @@ function renderEditFormHtml(draft) {
   `).join("");
 
   return `
-    <div class="edit-form">
+    <div class="edit-form${editOutlineOpen ? " with-outline" : ""}">
+      ${renderEditOutlineHtml(draft)}
       <header class="edit-header">
         <h2>${editIsNew ? "Nueva canción" : escapeHtml(draft.title || "Editar canción")}<span class="edit-pill">editando</span></h2>
         <div class="edit-actions">
@@ -8129,8 +9020,8 @@ function renderEditFormHtml(draft) {
           <input class="edit-input" data-field="setlist_number" data-type="number" type="number" min="1" step="1" value="${escapeAttr(setlistNumber)}" placeholder="1">
         </div>
         <div class="edit-field">
-          <label>Tono</label>
-          <input class="edit-input" data-field="key" value="${escapeAttr(draft.key || '')}" placeholder="Am">
+          <label>Tono <button type="button" class="btn-link" data-chord-pal="key" title="Elegir el acorde de una lista (⌘/Ctrl+K)">elegir</button></label>
+          <input class="edit-input" data-chord-field="single" data-field="key" value="${escapeAttr(draft.key || '')}" placeholder="Am">
         </div>
         <div class="edit-field">
           <label>BPM</label>
@@ -8173,6 +9064,7 @@ function renderEditFormHtml(draft) {
         <div class="edit-block-head">
           <h3>Secciones</h3>
           <div class="edit-block-actions">
+            <button class="btn btn-secondary" type="button" onclick="toggleAllSections()">Plegar / desplegar</button>
             <button class="btn btn-secondary" type="button" onclick="openBulkImport()">Pegar letra completa</button>
             <div class="section-add-menu">
               <button class="btn btn-secondary" type="button" data-section-add-toggle>+ Añadir sección ▾</button>
@@ -8205,12 +9097,33 @@ function renderEditFormHtml(draft) {
   `;
 }
 
-function renderSectionEditHtml(sec, i, total) {
+function renderSectionEditHtml(sec, i, total, labelText) {
   const notes = normalizeSectionNotes(sec.notes);
-  const type = sec.type || inferSectionType(sec.name);
+  const type = sectionTypeOf(sec);
   const activeNoteRole = (editActiveNoteRole[i] && ROLES.includes(editActiveNoteRole[i]))
     ? editActiveNoteRole[i] : "all";
   const collapsed = !!editCollapsedSections[i];
+  const label = labelText || defaultSectionNameFor(type);
+
+  // Aviso de sección larga: en directo cada una es una diapositiva.
+  const lines = sectionLineCount(sec);
+  const tooLong = liveLineCost(sec) > LIVE_SAFE_LINES;
+  const lenBadge = lines
+    ? `<span class="section-len${tooLong ? " warn" : ""}" title="${tooLong
+        ? "En directo puede no caber en una diapositiva: divídela."
+        : "Cabe en una diapositiva de directo."}">${lines} línea${lines === 1 ? "" : "s"}${tooLong ? " · larga" : ""}</span>`
+    : "";
+  // Colapsada solo se ve el rótulo: asomamos el primer verso para orientarse.
+  const firstLine = liveStripChords(sec.lyrics || "").split("\n").map(l => l.trim()).find(Boolean) || "";
+  const peek = (collapsed && firstLine)
+    ? `<span class="section-peek">${escapeHtml(firstLine)}</span>`
+    : `<span class="section-head-spacer"></span>`;
+
+  // Cuántos roles tienen nota aquí: se ve también con la sección plegada.
+  const notesCount = ROLES.filter(r => (notes[r] || "").trim() !== "").length;
+  const notesBadge = notesCount
+    ? `<span class="section-notes-badge" title="${notesCount} nota${notesCount === 1 ? "" : "s"} en esta sección">● ${notesCount} nota${notesCount === 1 ? "" : "s"}</span>`
+    : "";
 
   const typeOptions = SECTION_TYPES.map(t =>
     `<option value="${t.id}" ${t.id === type ? "selected" : ""}>${escapeHtml(t.label)}</option>`
@@ -8235,41 +9148,204 @@ function renderSectionEditHtml(sec, i, total) {
   `).join("");
 
   return `
-    <div class="section-edit ${collapsed ? "collapsed" : ""}" data-section-idx="${i}" draggable="true">
+    <div class="section-edit ${collapsed ? "collapsed" : ""}" data-section-idx="${i}">
       <div class="section-edit-head">
         <button type="button" class="drag-handle" title="Arrastra para reordenar" aria-label="Arrastrar">⋮⋮</button>
         <button type="button" class="collapse-btn" title="${collapsed ? "Expandir" : "Colapsar"}" data-collapse="${i}">${collapsed ? "▸" : "▾"}</button>
-        <span class="section-type-chip" data-section-type-chip="${type}">${escapeHtml(SECTION_TYPES.find(t => t.id === type)?.label || "—")}</span>
-        <input class="edit-input section-name-input" data-field="sections.${i}.name" value="${escapeAttr(sec.name || '')}" placeholder="Nombre (ej. Estribillo)">
-        <select class="edit-input section-type-select" data-field="sections.${i}.type" data-section-type-for="${i}">
+        <span class="section-type-chip" data-section-type-chip="${type}">${escapeHtml(label)}</span>
+        <select class="edit-input section-type-select" data-field="sections.${i}.type" data-section-type-for="${i}" title="Tipo de sección (es lo que se ve como nombre)">
           ${typeOptions}
         </select>
+        ${lenBadge}
+        ${notesBadge}
+        ${peek}
         <div class="section-controls">
           <button title="Subir" type="button" onclick="moveSection(${i}, -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
           <button title="Bajar" type="button" onclick="moveSection(${i}, 1)" ${i === total - 1 ? 'disabled' : ''}>↓</button>
-          <button title="Duplicar" type="button" onclick="duplicateSection(${i})">⎘</button>
+          <button title="Duplicar sección" type="button" onclick="duplicateSection(${i})">⎘</button>
+          <button title="Añadir una sección vacía debajo" type="button" onclick="insertSectionAfter(${i})">+</button>
           <button title="Borrar sección" class="btn-remove" type="button" onclick="removeSection(${i})">×</button>
         </div>
       </div>
       <div class="section-edit-body" ${collapsed ? 'hidden' : ''}>
-        <div class="edit-field">
-          <label>Letra <span class="hint">acordes inline con [Am]hola [F]mundo</span></label>
-          <textarea class="edit-textarea" data-field="sections.${i}.lyrics" rows="6" placeholder="Letra de la sección…">${escapeHtml(sec.lyrics || '')}</textarea>
-        </div>
-        <div class="edit-field">
-          <label>Línea de acordes <span class="hint">si la sección es solo instrumental</span></label>
-          <input class="edit-input" data-field="sections.${i}.chords" value="${escapeAttr(sec.chords || '')}" placeholder="Am | F | C | G">
+        <div class="edit-panel panel-band">
+          <div class="edit-panel-head">
+            <span class="edit-panel-title">Letra y acordes</span>
+            <span class="edit-panel-sub">la versión de la banda: la ve todo el mundo</span>
+          </div>
+          <div class="edit-field">
+            <label>Letra <span class="hint">acordes inline con [Am]hola [F]mundo</span></label>
+            <textarea class="edit-textarea" data-chord-field="inline" data-field="sections.${i}.lyrics" rows="6" placeholder="Letra de la sección…">${escapeHtml(sec.lyrics || '')}</textarea>
+            <div class="section-tools">
+              <button type="button" class="btn-link" data-chord-pal="sections.${i}.lyrics" title="Inserta un acorde donde tengas el cursor — o teclea ( o [ (⌘/Ctrl+K)">♫ Insertar acorde</button>
+            <button type="button" class="btn-link" onclick="splitSectionAtCaret(${i})" title="Parte la sección por la línea donde tengas el cursor">✂ Dividir por el cursor</button>
+              <button type="button" class="btn-link" onclick="splitSectionAuto(${i})" title="Una sección por cada bloque separado con línea en blanco; si no hay, en trozos que quepan en pantalla">⇥ Dividir en bloques</button>
+              <button type="button" class="btn-link" onclick="mergeSectionUp(${i})" ${i === 0 ? 'disabled' : ''} title="Junta esta sección con la de arriba">⤒ Unir con la anterior</button>
+              ${tooLong ? '<span class="section-tools-warn">Larga para el directo: divídela o se saldrá de pantalla.</span>' : ''}
+            </div>
+          </div>
+          <div class="edit-field">
+            <label>Línea de acordes <span class="hint">si la sección es solo instrumental</span></label>
+            <input class="edit-input" data-chord-field="line" data-field="sections.${i}.chords" value="${escapeAttr(sec.chords || '')}" placeholder="Am | F | C | G">
+            <div class="section-tools">
+              <button type="button" class="btn-link" data-chord-pal="sections.${i}.chords" title="Inserta un acorde donde tengas el cursor — o teclea ( o [ (⌘/Ctrl+K)">♫ Insertar acorde</button>
+            </div>
+          </div>
         </div>
         ${renderMyChordsEditHtml(sec, i)}
-        <div class="edit-field">
-          <label>Notas por rol <span class="hint">elige el rol, escribe debajo. El punto naranja indica que el rol tiene contenido.</span></label>
-          <div class="note-tabs" data-section="${i}">${noteTabs}</div>
-          <div class="note-panes">${noteTextareas}</div>
-        </div>
+        ${renderNotesEditHtml(sec, i, notes, activeNoteRole, noteTabs, noteTextareas)}
       </div>
     </div>
   `;
 }
+
+/* Bloque de notas del editor de sección. Va aparte de los acordes: son dos
+   cosas distintas y antes se leían como una sola. */
+function renderNotesEditHtml(sec, i, notes, activeRole, noteTabs, noteTextareas) {
+  const filled = ROLES.filter(r => (notes[r] || "").trim() !== "");
+  const activeHasText = (notes[activeRole] || "").trim() !== "";
+  const undo = editNotesUndo[i];
+  const saved = savedSectionNotes(i);
+  const canRestore = saved && JSON.stringify(saved) !== JSON.stringify(notes);
+
+  const summary = filled.length
+    ? `<p class="notes-summary">Con nota: ${filled.map(r =>
+         `<button type="button" class="chords-owner" data-role-color="${r}" title="Ver la nota de ${escapeAttr(roleLabel(r))}"
+            onclick="focusSectionNote(${i}, '${r}')">${escapeHtml(roleLabel(r))}</button>`).join(" ")}</p>`
+    : `<p class="notes-summary empty">Todavía no hay ninguna nota en esta sección.</p>`;
+
+  return `
+    <div class="edit-panel panel-notes">
+      <div class="edit-panel-head">
+        <span class="edit-panel-title">Notas</span>
+        <span class="edit-panel-sub">avisos de la sección: quién entra, dinámica, cortes…</span>
+        <div class="edit-panel-actions">
+          <button type="button" class="btn btn-secondary btn-xs" data-clear-note="${i}" data-note-role="${activeRole}"
+            ${activeHasText ? "" : "disabled"}
+            onclick="clearSectionNote(${i}, this.dataset.noteRole)">Vaciar esta nota</button>
+          ${filled.length > 1
+            ? `<button type="button" class="btn btn-secondary btn-xs danger" onclick="clearAllSectionNotes(${i})">Borrar las ${filled.length}</button>`
+            : ""}
+          ${undo
+            ? `<button type="button" class="btn btn-secondary btn-xs" onclick="undoSectionNotes(${i})">↺ Deshacer</button>`
+            : ""}
+          ${canRestore
+            ? `<button type="button" class="btn btn-secondary btn-xs" title="Vuelve a las notas tal y como están guardadas en la nube" onclick="restoreSavedSectionNotes(${i})">Restaurar guardadas</button>`
+            : ""}
+        </div>
+      </div>
+      ${summary}
+      <div class="edit-field">
+        <label>Escribiendo la nota de <span class="chords-owner" data-role-color="${activeRole}" data-notes-active-label>${escapeHtml(roleLabel(activeRole))}</span>
+          <span class="hint">cambia de pestaña para escribir la de otro; el punto naranja marca quién ya tiene nota</span></label>
+        <div class="note-tabs" data-section="${i}">${noteTabs}</div>
+        <div class="note-panes">${noteTextareas}</div>
+      </div>
+    </div>
+  `;
+}
+
+/* Refresca el bloque de notas sin repintar el formulario: rótulo del rol
+   activo, punto de "tiene contenido" y estado del botón de vaciar. */
+function refreshNotesPanel(i, role) {
+  const panel = document.querySelector(`.note-tabs[data-section="${i}"]`)?.closest(".panel-notes");
+  if (!panel) return;
+  const valueOf = (r) => panel.querySelector(`[data-note-role-pane="${r}"]`)?.value || "";
+
+  panel.querySelectorAll(".note-tab").forEach(tab => {
+    tab.classList.toggle("has-content", valueOf(tab.dataset.noteRole).trim() !== "");
+  });
+
+  const label = panel.querySelector("[data-notes-active-label]");
+  if (label && ROLES.includes(role)) {
+    label.textContent = roleLabel(role);
+    label.dataset.roleColor = role;
+  }
+
+  const clearBtn = panel.querySelector("[data-clear-note]");
+  if (clearBtn && ROLES.includes(role)) {
+    clearBtn.dataset.noteRole = role;
+    clearBtn.disabled = valueOf(role).trim() === "";
+  }
+}
+
+/* Notas de esta sección tal y como están guardadas en la nube. null si no
+   podemos emparejarla con seguridad (sección nueva, movida o partida). */
+function savedSectionNotes(i) {
+  if (editIsNew || !editDraft?.id) return null;
+  const saved = songs.find(s => s.id === editDraft.id);
+  const savedSec = saved?.sections?.[i];
+  const draftSec = editDraft?.sections?.[i];
+  if (!savedSec || !draftSec) return null;
+  if ((saved.sections || []).length !== (editDraft.sections || []).length) return null;
+  if ((savedSec.lyrics || "") !== (draftSec.lyrics || "")) return null;
+  return normalizeSectionNotes(savedSec.notes);
+}
+
+function setSectionNotes(i, notes, { snapshot = true } = {}) {
+  const sec = editDraft?.sections?.[i];
+  if (!sec) return;
+  if (snapshot) editNotesUndo[i] = normalizeSectionNotes(sec.notes);
+  sec.notes = normalizeSectionNotes(notes);
+  editDirty = true;
+  const role = editActiveNoteRole[i] || "all";
+  renderEditForm({ focusSelector: `[data-field="sections.${i}.notes.${role}"]` });
+}
+
+function clearSectionNote(i, role) {
+  const sec = editDraft?.sections?.[i];
+  if (!sec || !ROLES.includes(role)) return;
+  const notes = normalizeSectionNotes(sec.notes);
+  if (!(notes[role] || "").trim()) return;
+  notes[role] = "";
+  setSectionNotes(i, notes);
+}
+window.clearSectionNote = clearSectionNote;
+
+function clearAllSectionNotes(i) {
+  const sec = editDraft?.sections?.[i];
+  if (!sec) return;
+  const notes = normalizeSectionNotes(sec.notes);
+  const filled = ROLES.filter(r => (notes[r] || "").trim() !== "");
+  if (!filled.length) return;
+  showConfirm({
+    title: "Borrar las notas de la sección",
+    body: `Se vacían las ${filled.length} notas de esta sección (${filled.map(roleLabel).join(", ")}). Podrás deshacerlo desde el propio bloque mientras no cierres el editor.`,
+    confirmLabel: "Borrar las notas",
+    danger: true,
+    onConfirm: () => setSectionNotes(i, emptyNotes())
+  });
+}
+window.clearAllSectionNotes = clearAllSectionNotes;
+
+function undoSectionNotes(i) {
+  const prev = editNotesUndo[i];
+  if (!prev) return;
+  delete editNotesUndo[i];
+  setSectionNotes(i, prev, { snapshot: false });
+}
+window.undoSectionNotes = undoSectionNotes;
+
+function restoreSavedSectionNotes(i) {
+  const saved = savedSectionNotes(i);
+  if (!saved) return;
+  showConfirm({
+    title: "Restaurar las notas guardadas",
+    body: "Las notas de esta sección vuelven a como están guardadas en la nube. Lo que hayas escrito ahora se pierde.",
+    confirmLabel: "Restaurar",
+    danger: true,
+    onConfirm: () => setSectionNotes(i, saved)
+  });
+}
+window.restoreSavedSectionNotes = restoreSavedSectionNotes;
+
+/* Abre la pestaña de un rol y pone el cursor en su nota. */
+function focusSectionNote(i, role) {
+  if (!ROLES.includes(role)) return;
+  editActiveNoteRole[i] = role;
+  renderEditForm({ focusSelector: `[data-field="sections.${i}.notes.${role}"]` });
+}
+window.focusSectionNote = focusSectionNote;
 
 /* Bloque "mis acordes" del editor de sección: solo para el miembro
    seleccionado arriba. Para escribir los de otro, se cambia de miembro. */
@@ -8282,8 +9358,11 @@ function renderMyChordsEditHtml(sec, i) {
 
   if (currentRole === "all") {
     return `
-      <div class="edit-field my-chords">
-        <label>Acordes propios</label>
+      <div class="edit-panel panel-mine my-chords">
+        <div class="edit-panel-head">
+          <span class="edit-panel-title">Acordes propios</span>
+          <span class="edit-panel-sub">tu versión de los acordes — no tiene nada que ver con las notas</span>
+        </div>
         <p class="my-chords-hint">Estás como <strong>Todos</strong>, que es la versión de la banda. Elige tu instrumento en la barra de arriba para guardar tus propios acordes en esta sección.</p>
         ${othersHtml}
       </div>`;
@@ -8293,29 +9372,39 @@ function renderMyChordsEditHtml(sec, i) {
   const me = escapeHtml(roleLabel(currentRole));
   if (!ov) {
     return `
-      <div class="edit-field my-chords">
-        <label>Acordes propios <span class="hint">solo los verás tú (${me}); el resto sigue viendo los de la banda</span></label>
-        <button class="btn btn-secondary" type="button" onclick="useMyChords(${i})">Usar mis acordes en esta sección</button>
+      <div class="edit-panel panel-mine my-chords">
+        <div class="edit-panel-head">
+          <span class="edit-panel-title">Acordes propios</span>
+          <span class="edit-panel-sub">solo los verás tú (${me}); el resto sigue viendo los de la banda</span>
+        </div>
+        <button class="btn btn-secondary btn-xs" type="button" onclick="useMyChords(${i})">Usar mis acordes en esta sección</button>
         ${othersHtml}
       </div>`;
   }
 
   const stale = typeof ov.baseLyrics === "string" && ov.baseLyrics !== (sec.lyrics || "");
   return `
-    <div class="edit-field my-chords active">
-      <label>
-        Mis acordes <span class="chords-owner" data-role-color="${currentRole}">${me}</span>
-        <span class="hint">reemplazan a los de la banda solo para ti</span>
-      </label>
+    <div class="edit-panel panel-mine my-chords active">
+      <div class="edit-panel-head">
+        <span class="edit-panel-title">Mis acordes <span class="chords-owner" data-role-color="${currentRole}">${me}</span></span>
+        <span class="edit-panel-sub">reemplazan a los de la banda solo para ti</span>
+        <div class="edit-panel-actions">
+          <button class="btn btn-secondary btn-xs" type="button" onclick="resyncMyChords(${i})" title="Vuelve a copiar la letra y los acordes de la banda">↺ Copiar los de la banda</button>
+          <button class="btn btn-secondary btn-xs danger" type="button" onclick="clearMyChords(${i})">Quitar mis acordes</button>
+        </div>
+      </div>
       ${stale ? `<div class="chords-stale">
           La letra de la banda ha cambiado desde que guardaste esto.
           <button class="btn-link" type="button" onclick="resyncMyChords(${i})">Regenerar desde la de la banda</button>
           <span class="hint">(perderás tus cambios en esta sección)</span>
         </div>` : ""}
-      <textarea class="edit-textarea" data-field="sections.${i}.chordsByRole.${currentRole}.lyrics" rows="6" placeholder="Tu letra con tus [acordes]…">${escapeHtml(ov.lyrics || '')}</textarea>
-      <input class="edit-input" data-field="sections.${i}.chordsByRole.${currentRole}.chords" value="${escapeAttr(ov.chords || '')}" placeholder="Tu línea de acordes (si la sección es instrumental)">
-      <div class="my-chords-actions">
-        <button class="btn-link danger" type="button" onclick="clearMyChords(${i})">Quitar mis acordes y volver a los de la banda</button>
+      <textarea class="edit-textarea" data-chord-field="inline" data-field="sections.${i}.chordsByRole.${currentRole}.lyrics" rows="6" placeholder="Tu letra con tus [acordes]…">${escapeHtml(ov.lyrics || '')}</textarea>
+      <div class="section-tools">
+        <button type="button" class="btn-link" data-chord-pal="sections.${i}.chordsByRole.${currentRole}.lyrics" title="Inserta un acorde donde tengas el cursor — o teclea ( o [ (⌘/Ctrl+K)">♫ Insertar acorde</button>
+      </div>
+      <input class="edit-input" data-chord-field="line" data-field="sections.${i}.chordsByRole.${currentRole}.chords" value="${escapeAttr(ov.chords || '')}" placeholder="Tu línea de acordes (si la sección es instrumental)">
+      <div class="section-tools">
+        <button type="button" class="btn-link" data-chord-pal="sections.${i}.chordsByRole.${currentRole}.chords" title="Inserta un acorde donde tengas el cursor — o teclea ( o [ (⌘/Ctrl+K)">♫ Insertar acorde</button>
       </div>
       ${othersHtml}
     </div>`;
@@ -8383,7 +9472,7 @@ function askDeleteSong(songId) {
 }
 window.askDeleteSong = askDeleteSong;
 
-function renderSection(sec, idx) {
+function renderSection(sec, idx, labelText) {
   const notes = normalizeSectionNotes(sec.notes);
   const noteEntries = ROLES
     .filter(role => notes[role] && notes[role].trim() !== "")
@@ -8391,18 +9480,17 @@ function renderSection(sec, idx) {
       <div class="note" data-role="${role}">
         <span class="role-tag">${escapeHtml(roleLabel(role))}</span>
         <span class="text">${escapeHtml(notes[role])}</span>
+        <span class="note-actions">
+          <button type="button" class="note-act" title="Editar esta nota" onclick="startNoteEdit(${idx}, '${role}')">✎</button>
+          <button type="button" class="note-act danger" title="Quitar esta nota" onclick="deleteNoteInline(${idx}, '${role}')">×</button>
+        </span>
       </div>
     `).join("");
 
-  const type = sec.type || inferSectionType(sec.name);
-  const typeLabel = (SECTION_TYPES.find(t => t.id === type)?.label) || "";
-  // En lectura mostramos el TIPO (Intro, Estrofa, Pre-estribillo…), nunca "Sección N".
-  // El número/posición solo importa a nivel de edición.
-  const rawName = (sec.name || "").trim();
-  const isGenericNumbered = /^secci[oó]n\s*\d+$/i.test(rawName);
-  const primaryLabel = (rawName && !isGenericNumbered) ? rawName : (typeLabel || "Sección");
-  const showTypeBadge = type && type !== "custom" && typeLabel
-    && primaryLabel.toLowerCase() !== typeLabel.toLowerCase();
+  // El rótulo es el tipo (Intro, Estrofa 2, Estribillo…): las secciones no
+  // tienen nombre propio, se numeran solas cuando el tipo se repite.
+  const type = sectionTypeOf(sec);
+  const primaryLabel = labelText || defaultSectionNameFor(type);
 
   // Cada miembro puede tener sus propios acordes en esta sección.
   const res = sectionChordsFor(sec, currentRole);
@@ -8449,12 +9537,12 @@ function renderSection(sec, idx) {
     : "";
 
   const noNotes = !noteEntries;
+  const asideHtml = renderSectionNotesAside(idx, notes, noteEntries);
   return `
     <section class="song-section${noNotes ? ' no-notes' : ''}" data-section-type="${type}">
       <div class="section-content">
         <h3 class="section-label">
           <span class="section-label-name">${escapeHtml(primaryLabel)}</span>
-          ${showTypeBadge ? `<span class="section-label-type">${escapeHtml(typeLabel)}</span>` : ""}
           ${ownerBadge}
         </h3>
         ${staleHtml}
@@ -8462,9 +9550,192 @@ function renderSection(sec, idx) {
         ${chordsLineHtml}
         ${lyricsHtml || (chordsLineHtml ? '' : '<div style="color:var(--muted);font-size:13px;font-style:italic;">— sección sin contenido —</div>')}
       </div>
-      ${noNotes ? '' : `<aside class="section-notes-aside">${noteEntries}</aside>`}
+      ${asideHtml}
     </section>
   `;
+}
+
+/* =========================================================
+   NOTAS DESDE LA VISTA NORMAL
+   Crear / editar / quitar sin abrir el editor de la canción.
+   ========================================================= */
+
+/* Columna derecha de una sección: notas ya escritas, editor en línea
+   si se está editando esta sección, y el botón de crear. */
+function renderSectionNotesAside(idx, notes, noteEntries) {
+  const editing = inlineNote && inlineNote.songId === activeSongId && inlineNote.idx === idx;
+  const trash = inlineNoteTrash && inlineNoteTrash.songId === activeSongId && inlineNoteTrash.idx === idx;
+
+  const undoHtml = trash
+    ? `<div class="note-undo">
+         Nota de <strong>${escapeHtml(roleLabel(inlineNoteTrash.role))}</strong> borrada
+         <button type="button" class="btn-link" onclick="undoNoteDelete()">Deshacer</button>
+       </div>`
+    : "";
+
+  const editorHtml = editing ? renderInlineNoteEditor(idx, notes) : "";
+
+  const addHtml = editing
+    ? ""
+    : `<button type="button" class="note-add" onclick="startNoteEdit(${idx})" title="Escribir una nota en esta sección">+ Nota</button>`;
+
+  return `<aside class="section-notes-aside">${noteEntries}${editorHtml}${undoHtml}${addHtml}</aside>`;
+}
+
+function renderInlineNoteEditor(idx, notes) {
+  const role = inlineNote.role;
+  const chips = ROLES.map(r => {
+    const filled = notes[r] && notes[r].trim() ? " has-content" : "";
+    const active = r === role ? " active" : "";
+    return `<button type="button" class="note-tab${active}${filled}" data-role-color="${r}"
+              title="${escapeAttr(ROLE_INSTRUMENT[r] || '')}"
+              onclick="switchNoteEditRole('${r}')">${escapeHtml(roleLabel(r))}</button>`;
+  }).join("");
+
+  const hadNote = !!(notes[role] && notes[role].trim());
+
+  return `
+    <div class="note-editor" data-note-editor="${idx}">
+      <div class="note-editor-head">
+        <span class="note-editor-title">Nota para</span>
+        <div class="note-tabs compact">${chips}</div>
+      </div>
+      <textarea class="note-editor-ta" id="inline-note-ta" rows="3"
+        placeholder="Qué pasa aquí para ${escapeHtml(roleLabel(role))}…"
+        oninput="inlineNote && (inlineNote.text = this.value)"
+        onkeydown="onInlineNoteKey(event)">${escapeHtml(inlineNote.text || "")}</textarea>
+      <div class="note-editor-actions">
+        <button type="button" class="btn btn-primary btn-xs" onclick="saveNoteEdit()">Guardar</button>
+        <button type="button" class="btn btn-secondary btn-xs" onclick="cancelNoteEdit()">Cancelar</button>
+        ${hadNote
+          ? `<button type="button" class="btn-link danger" onclick="deleteNoteInline(${idx}, '${role}')">Quitar nota</button>`
+          : ""}
+      </div>
+      <p class="note-editor-hint">⌘/Ctrl+Enter guarda, Esc cancela. Se guarda para toda la banda. ${escapeHtml(roleLabel("all"))} = la ve todo el mundo.</p>
+    </div>
+  `;
+}
+
+/* Abre el editor en línea. Sin rol → el rol activo de la barra, y si estás
+   como "Todos" se escribe la nota general. */
+function startNoteEdit(idx, role) {
+  const song = songs.find(s => s.id === activeSongId);
+  if (!song) return;
+  const notes = normalizeSectionNotes(song.sections?.[idx]?.notes);
+  const r = ROLES.includes(role) ? role : (currentRole || "all");
+  inlineNote = { songId: activeSongId, idx, role: r, text: notes[r] || "" };
+  inlineNoteTrash = null;
+  renderSong(song);
+  const ta = document.getElementById("inline-note-ta");
+  if (ta) {
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.scrollIntoView({ block: "nearest" });
+  }
+}
+window.startNoteEdit = startNoteEdit;
+
+/* Cambiar de rol es cambiar de nota: se carga la del rol elegido. Si había
+   algo escrito sin guardar, se avisa antes de perderlo. */
+function switchNoteEditRole(role) {
+  if (!inlineNote || !ROLES.includes(role) || role === inlineNote.role) return;
+  const song = songs.find(s => s.id === inlineNote.songId);
+  const notes = normalizeSectionNotes(song?.sections?.[inlineNote.idx]?.notes);
+  const ta = document.getElementById("inline-note-ta");
+  const typed = ta ? ta.value : (inlineNote.text || "");
+  const idx = inlineNote.idx;
+
+  if (typed !== (notes[inlineNote.role] || "")) {
+    showConfirm({
+      title: "Nota sin guardar",
+      body: `Has escrito algo en la nota de ${roleLabel(inlineNote.role)} y no la has guardado. Si cambias de miembro, se pierde.`,
+      confirmLabel: "Cambiar y perder lo escrito",
+      danger: true,
+      onConfirm: () => startNoteEdit(idx, role)
+    });
+    return;
+  }
+  startNoteEdit(idx, role);
+}
+window.switchNoteEditRole = switchNoteEditRole;
+
+function onInlineNoteKey(e) {
+  if (e.key === "Escape") { e.preventDefault(); cancelNoteEdit(); return; }
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveNoteEdit(); }
+}
+window.onInlineNoteKey = onInlineNoteKey;
+
+function cancelNoteEdit() {
+  inlineNote = null;
+  const song = songs.find(s => s.id === activeSongId);
+  if (song) renderSong(song);
+}
+window.cancelNoteEdit = cancelNoteEdit;
+
+async function saveNoteEdit() {
+  if (!inlineNote || inlineNoteBusy) return;
+  const ta = document.getElementById("inline-note-ta");
+  if (ta) inlineNote.text = ta.value;
+  const { songId, idx, role, text } = inlineNote;
+  const ok = await writeSectionNote(songId, idx, role, text);
+  if (!ok) return;
+  inlineNote = null;
+  inlineNoteTrash = null;
+  const song = songs.find(s => s.id === songId);
+  if (song) renderSong(song);
+}
+window.saveNoteEdit = saveNoteEdit;
+
+async function deleteNoteInline(idx, role) {
+  const songId = activeSongId;
+  const song = songs.find(s => s.id === songId);
+  if (!song) return;
+  const previous = normalizeSectionNotes(song.sections?.[idx]?.notes)[role] || "";
+  const ok = await writeSectionNote(songId, idx, role, "");
+  if (!ok) return;
+  inlineNote = null;
+  inlineNoteTrash = previous.trim() ? { songId, idx, role, text: previous } : null;
+  renderSong(song);
+}
+window.deleteNoteInline = deleteNoteInline;
+
+async function undoNoteDelete() {
+  if (!inlineNoteTrash) return;
+  const { songId, idx, role, text } = inlineNoteTrash;
+  const ok = await writeSectionNote(songId, idx, role, text);
+  if (!ok) return;
+  inlineNoteTrash = null;
+  const song = songs.find(s => s.id === songId);
+  if (song) renderSong(song);
+}
+window.undoNoteDelete = undoNoteDelete;
+
+/* Escribe una nota de sección en Supabase y en la copia local.
+   Si falla, deja los datos como estaban y avisa. */
+async function writeSectionNote(songId, idx, role, text) {
+  const song = songs.find(s => s.id === songId);
+  const sec = song?.sections?.[idx];
+  if (!sec || !ROLES.includes(role)) return false;
+
+  const before = sec.notes;
+  const notes = normalizeSectionNotes(sec.notes);
+  notes[role] = text || "";
+  sec.notes = notes;
+
+  inlineNoteBusy = true;
+  document.querySelectorAll(".note-editor-actions .btn").forEach(b => { b.disabled = true; });
+  try {
+    const { id, _position, ...rest } = song;
+    const { error } = await supa.from("songs").update({ data: rest }).eq("id", id);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    sec.notes = before;
+    alert("No se ha podido guardar la nota: " + (err?.message || err));
+    return false;
+  } finally {
+    inlineNoteBusy = false;
+  }
 }
 
 function convertChordsString(s, semis = 0) {
@@ -8500,6 +9771,306 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 function escapeAttr(str) { return escapeHtml(str); }
+
+/* =========================================================
+   Paleta de acordes
+   Insertar "[Am]" a mano en mitad de la letra es lo más tedioso del editor:
+   este panel flotante escribe el acorde en el sitio del cursor. No roba el
+   foco (mousedown preventDefault), así el caret se queda donde estaba y se
+   pueden encadenar varios acordes sin volver a hacer clic en el campo.
+   Campos marcados con data-chord-field:
+     inline → letra, inserta "[Am]"   line → línea de acordes, inserta "Am "
+     single → tono de la canción, sustituye el valor entero
+   ========================================================= */
+const CHORD_PAL_ROOTS = ["C", "D", "E", "F", "G", "A", "B"];
+const CHORD_PAL_ACCS = [
+  { acc: "",  label: "♮" },
+  { acc: "#", label: "♯" },
+  { acc: "b", label: "♭" }
+];
+const CHORD_PAL_QUALITIES = [
+  { q: "",     label: "mayor" },
+  { q: "m",    label: "menor" },
+  { q: "7",    label: "7" },
+  { q: "m7",   label: "m7" },
+  { q: "maj7", label: "maj7" },
+  { q: "6",    label: "6" },
+  { q: "m6",   label: "m6" },
+  { q: "sus4", label: "sus4" },
+  { q: "sus2", label: "sus2" },
+  { q: "dim",  label: "dim" },
+  { q: "aug",  label: "aug" },
+  { q: "5",    label: "5" },
+  { q: "9",    label: "9" }
+];
+const CHORD_PAL_MAX_RECENT = 10;
+
+let chordPalEl = null;
+let chordPalTarget = null;
+let chordPalAcc = "";
+let chordPalQual = "";
+let chordPalRecent = [];
+
+function chordPalOpen() { return !!chordPalEl && chordPalEl.classList.contains("open"); }
+function chordPalMode() { return chordPalTarget?.dataset?.chordField || "inline"; }
+function chordPalRootName(root) { return root + chordPalAcc; }
+function chordPalChordName(root) { return chordPalRootName(root) + chordPalQual; }
+/* Mi♯ o Do♭ no existen en la tabla de semitonos (ni en los diagramas): fuera. */
+function chordPalRootValid(root) { return SEMITONES[chordPalRootName(root)] !== undefined; }
+/* Se muestra en la notación elegida (Do/Re/Mi) pero se guarda siempre en ABC. */
+function chordPalLabel(name) { return convertChordToken(name, 0); }
+
+/* Acordes que ya se usan en la canción que se está editando: lo más rápido
+   suele ser repetir uno de ellos. */
+function chordPalSongChords() {
+  const out = [];
+  (editDraft?.sections || []).forEach(sec => {
+    extractChordsFromSection({ lyrics: sec.lyrics || "", chords: sec.chords || "" })
+      .forEach(c => { if (!out.includes(c)) out.push(c); });
+    const ov = sec?.chordsByRole?.[currentRole];
+    if (ov) {
+      extractChordsFromSection({ lyrics: ov.lyrics || "", chords: ov.chords || "" })
+        .forEach(c => { if (!out.includes(c)) out.push(c); });
+    }
+  });
+  return out.slice(0, 18);
+}
+
+function ensureChordPal() {
+  if (chordPalEl) return chordPalEl;
+  chordPalEl = document.createElement("div");
+  chordPalEl.className = "chord-pal";
+  chordPalEl.setAttribute("role", "dialog");
+  chordPalEl.setAttribute("aria-label", "Insertar acorde");
+  chordPalEl.addEventListener("mousedown", e => e.preventDefault());
+  chordPalEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-pal-act]");
+    if (!btn) return;
+    const act = btn.dataset.palAct;
+    if (act === "close") { closeChordPal(); return; }
+    if (act === "acc")  { chordPalAcc = btn.dataset.palVal; renderChordPal(); return; }
+    if (act === "qual") { chordPalQual = btn.dataset.palVal; renderChordPal(); return; }
+    if (act === "ins")  { chordPalInsert(btn.dataset.palVal); return; }
+  });
+  document.body.appendChild(chordPalEl);
+  return chordPalEl;
+}
+
+function renderChordPal() {
+  if (!chordPalEl) return;
+  const mode = chordPalMode();
+  const sample = chordPalChordName(chordPalRootValid("A") ? "A" : "C");
+  const preview = mode === "inline" ? `[${chordPalLabel(sample)}]` : chordPalLabel(sample);
+
+  const accs = CHORD_PAL_ACCS.map(a =>
+    `<button type="button" class="pal${a.acc === chordPalAcc ? " on" : ""}" data-pal-act="acc" data-pal-val="${a.acc}" title="${a.acc === "#" ? "Sostenido" : a.acc === "b" ? "Bemol" : "Natural"}">${a.label}</button>`
+  ).join("");
+
+  const roots = CHORD_PAL_ROOTS.map(r => {
+    const name = chordPalChordName(r);
+    const ok = chordPalRootValid(r);
+    return `<button type="button" class="pal" data-pal-act="ins" data-pal-val="${escapeAttr(name)}" ${ok ? "" : "disabled"} title="${ok ? "Insertar " + escapeAttr(chordPalLabel(name)) : "No existe: usa el equivalente natural"}">${escapeHtml(chordPalLabel(name))}</button>`;
+  }).join("");
+
+  const quals = CHORD_PAL_QUALITIES.map(q =>
+    `<button type="button" class="pal${q.q === chordPalQual ? " on" : ""}" data-pal-act="qual" data-pal-val="${escapeAttr(q.q)}">${escapeHtml(q.label)}</button>`
+  ).join("");
+
+  const song = chordPalSongChords();
+  const songHtml = song.length
+    ? `<div class="chord-pal-sub">En esta canción</div>
+       <div class="chord-pal-row">${song.map(c =>
+         `<button type="button" class="pal" data-pal-act="ins" data-pal-val="${escapeAttr(c)}">${escapeHtml(chordPalLabel(c))}</button>`).join("")}</div>`
+    : "";
+
+  const recentHtml = chordPalRecent.length
+    ? `<div class="chord-pal-sub">Recientes</div>
+       <div class="chord-pal-row">${chordPalRecent.map(c =>
+         `<button type="button" class="pal" data-pal-act="ins" data-pal-val="${escapeAttr(c)}">${escapeHtml(chordPalLabel(c))}</button>`).join("")}</div>`
+    : "";
+
+  const hint = mode === "single"
+    ? "Se guarda como tono de la canción."
+    : (mode === "line"
+        ? "Se añade al final del cursor, separado por un espacio."
+        : "Se inserta [acorde] donde tengas el cursor, justo antes de la sílaba.")
+      + " También se abre tecleando ( o [ en el campo.";
+  const transposeWarn = transposeAmount
+    ? " Ojo: tienes el transporte activo, pero se guarda el acorde tal cual lo ves aquí."
+    : "";
+
+  chordPalEl.innerHTML = `
+    <div class="chord-pal-head">
+      <span class="chord-pal-title">Insertar acorde</span>
+      <span class="chord-pal-preview">${escapeHtml(preview)}</span>
+      <button type="button" class="chord-pal-close" data-pal-act="close" title="Cerrar (Esc)">×</button>
+    </div>
+    <div class="chord-pal-row">${accs}</div>
+    <div class="chord-pal-sub">Fundamental</div>
+    <div class="chord-pal-roots">${roots}</div>
+    <div class="chord-pal-sub">Tipo</div>
+    <div class="chord-pal-row">${quals}</div>
+    ${songHtml}
+    ${recentHtml}
+    <p class="chord-pal-hint">${escapeHtml(hint + transposeWarn)}</p>
+  `;
+}
+
+function placeChordPal() {
+  if (!chordPalOpen() || !chordPalTarget?.isConnected) return;
+  if (window.innerWidth <= 700) {   // en móvil manda el CSS (hoja abajo)
+    chordPalEl.style.top = "";
+    chordPalEl.style.left = "";
+    return;
+  }
+  const r = chordPalTarget.getBoundingClientRect();
+  const h = chordPalEl.offsetHeight || 320;
+  const w = chordPalEl.offsetWidth || 380;
+  let top = r.bottom + 8;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 12));
+  chordPalEl.style.top = `${top}px`;
+  chordPalEl.style.left = `${left}px`;
+}
+
+function openChordPal(el) {
+  if (!el) return;
+  chordPalTarget = el;
+  ensureChordPal();
+  chordPalEl.classList.add("open");
+  renderChordPal();
+  placeChordPal();
+  el.focus();
+}
+
+function closeChordPal() {
+  chordPalEl?.classList.remove("open");
+  chordPalTarget = null;
+  chordPalTrigger = null;
+}
+
+/* Atajo de escritura: al teclear "(" o "[" en un campo de acordes se abre la
+   paleta ahí mismo, sin ir al botón ni acordarse de ⌘K. El carácter se queda
+   escrito mientras eliges; si eliges acorde se borra con lo que hayas puesto
+   detrás, y si no eliges nada (Esc, o sigues escribiendo) se queda tal cual. */
+const CHORD_PAL_TRIGGERS = "([";
+let chordPalTrigger = null;        // { el, pos } dónde está el carácter que la abrió
+
+/* Trozo a sustituir: el disparador y lo tecleado detrás, mientras siga
+   pareciendo un acorde a medias. */
+function chordPalTriggerRange() {
+  const t = chordPalTrigger;
+  if (!t || !t.el?.isConnected || t.el !== chordPalTarget) return null;
+  const value = t.el.value || "";
+  if (!CHORD_PAL_TRIGGERS.includes(value[t.pos])) return null;
+  const caret = t.el.selectionStart ?? value.length;
+  if (caret <= t.pos) return null;
+  if (/[\s)\]]/.test(value.slice(t.pos + 1, caret))) return null;
+  return { from: t.pos, to: caret };
+}
+
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  const mode = el?.dataset?.chordField;
+  if (!mode || mode === "single") return;   // el Tono se elige entero, no se teclea dentro
+  if (e.inputType === "insertText" && CHORD_PAL_TRIGGERS.includes(e.data)) {
+    chordPalTrigger = { el, pos: (el.selectionStart ?? 1) - 1 };
+    openChordPal(el);
+    return;
+  }
+  // Si ya no hay un acorde a medias detrás del disparador, la paleta sobra.
+  if (chordPalTrigger && chordPalTrigger.el === el && !chordPalTriggerRange()) {
+    chordPalTrigger = null;
+    if (chordPalOpen()) closeChordPal();
+  }
+});
+
+function chordPalInsert(chord) {
+  const el = chordPalTarget;
+  if (!el || !el.isConnected || !chord) return;
+  const mode = chordPalMode();
+
+  if (mode === "single") {
+    el.value = chord;
+  } else {
+    // Abierta tecleando "(" o "[": ese carácter y lo escrito detrás son el
+    // hueco del acorde, no letra. Se sustituyen en vez de dejar basura.
+    const trigger = chordPalTriggerRange();
+    if (trigger) { try { el.setSelectionRange(trigger.from, trigger.to); } catch (_) {} }
+    chordPalTrigger = null;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? start;
+    const before = el.value.slice(0, start);
+    const after = el.value.slice(end);
+    let text = mode === "line" ? chord : `[${chord}]`;
+    if (mode === "line") {
+      if (before && !/[\s|]$/.test(before)) text = " " + text;
+      if (after && !/^[\s|]/.test(after)) text += " ";
+      else if (!after) text += " ";
+    }
+    el.value = before + text + after;
+    const caret = start + text.length;
+    try { el.setSelectionRange(caret, caret); } catch (_) {}
+  }
+
+  // El editor guarda en el borrador por el evento input delegado.
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.focus();
+
+  chordPalRecent = [chord, ...chordPalRecent.filter(c => c !== chord)].slice(0, CHORD_PAL_MAX_RECENT);
+  if (mode === "single") { closeChordPal(); return; }
+  renderChordPal();
+  placeChordPal();
+}
+
+document.addEventListener("click", (e) => {
+  const trigger = e.target.closest("[data-chord-pal]");
+  if (trigger) {
+    const field = document.querySelector(`[data-field="${trigger.dataset.chordPal}"]`);
+    if (!field) return;
+    if (chordPalOpen() && chordPalTarget === field) closeChordPal();
+    else openChordPal(field);
+    return;
+  }
+  if (chordPalOpen() && !e.target.closest(".chord-pal") && e.target !== chordPalTarget) {
+    closeChordPal();
+  }
+});
+
+/* Si el cursor se va a otro campo de acordes, la paleta le sigue. */
+document.addEventListener("focusin", (e) => {
+  const el = e.target;
+  if (!chordPalOpen() || !el?.dataset?.chordField || el === chordPalTarget) return;
+  chordPalTarget = el;
+  renderChordPal();
+  placeChordPal();
+});
+
+/* Captura: Escape debe cerrar la paleta sin cerrar además el editor. */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && chordPalOpen()) {
+    const el = chordPalTarget;
+    closeChordPal();
+    el?.focus();
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === "k" || e.key === "K")) {
+    const el = document.activeElement;
+    if (el?.dataset?.chordField) {
+      // Cmd/Ctrl+K abre el buscador en el resto de la app: aquí manda la paleta.
+      e.preventDefault();
+      e.stopPropagation();
+      if (chordPalOpen() && chordPalTarget === el) closeChordPal();
+      else openChordPal(el);
+    }
+  }
+}, true);
+
+window.addEventListener("resize", placeChordPal);
+document.addEventListener("scroll", placeChordPal, true);
+
 </script>
 </body>
 </html>
