@@ -19,11 +19,16 @@ body.ready { visibility: visible; }
 
 /* ---------- resumen ---------- */
 .stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 26px; }
-.stat { background: var(--bg-2); border: 1px solid var(--line); border-radius: 13px; padding: 14px 16px; }
+.stat {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 13px;
+  padding: 14px 16px; text-align: left; width: 100%; cursor: pointer; color: var(--fg);
+}
+.stat:hover { border-color: var(--line-strong); }
 .stat .k { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .stat .v { font-size: 24px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .stat .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 3px; }
 .stat.accent .v { color: var(--accent); }
+.stat.warn .v { color: var(--warn); }
 
 /* ---------- pestañas ---------- */
 .tabs { display: flex; gap: 5px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
@@ -33,6 +38,64 @@ body.ready { visibility: visible; }
 }
 .tab.on { color: var(--fg); border-bottom-color: var(--accent); }
 .tab .n { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 5px; }
+.tab .n.warn:not(:empty) {
+  color: #241c00; background: var(--warn); font-weight: 700;
+  padding: 1px 6px; border-radius: 999px;
+}
+
+/* ---------- filtros rápidos ---------- */
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.chip {
+  width: auto; padding: 5px 12px; font-size: 12px; border-radius: 999px;
+  background: none; border: 1px solid var(--line); color: var(--muted);
+}
+.chip.on { background: rgba(var(--accent-rgb), .16); border-color: rgba(var(--accent-rgb), .5); color: var(--fg); }
+
+/* ---------- separadores de día ---------- */
+.day {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); margin: 18px 0 8px; display: flex; align-items: center; gap: 10px;
+}
+.day::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.movs > .day:first-child { margin-top: 0; }
+
+/* ---------- reservas por persona ---------- */
+.who-card {
+  background: var(--bg-2); border: 1px solid rgba(244,211,94,.28);
+  border-radius: 13px; padding: 13px 15px; margin-bottom: 11px;
+}
+.who-head {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+  align-items: center; padding-bottom: 11px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.who-head b { font-size: 17px; font-weight: 700; }
+.who-head span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.who-total { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--warn); }
+.who-head button { width: auto; padding: 7px 13px; font-size: 12px; border-radius: 9px; }
+.res {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+  align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line);
+}
+.who-card .res:last-child { border-bottom: 0; padding-bottom: 0; }
+.res-what b { font-weight: 600; font-size: 14px; }
+.res-what span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.res-amount { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; }
+.res .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.res .acts button { width: auto; padding: 5px 10px; font-size: 11px; border-radius: 7px; }
+@media (max-width: 720px) {
+  .who-head { grid-template-columns: 1fr auto; }
+  .who-head button { grid-column: 1 / -1; }
+  .res { grid-template-columns: 1fr auto; }
+  .res .acts { grid-column: 1 / -1; }
+}
+
+/* ---------- cabeceras dentro del panel del producto ---------- */
+.panel-h {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); margin: 4px 0 2px;
+}
+.panel-h.warn { color: var(--warn); }
 
 .bar { display: flex; gap: 9px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
 .bar input[type=search] { flex: 1; min-width: 160px; }
@@ -152,6 +215,8 @@ body.ready { visibility: visible; }
 @media (max-width: 720px) {
   .mov { grid-template-columns: 84px 1fr; }
   .mov .amount, .mov .acts { grid-column: 2; text-align: left; }
+  .mov .acts button, .size-acts button, .res .acts button { padding: 9px 14px; font-size: 12px; }
+  .prod-acts button { padding: 9px 14px; font-size: 13px; }
 }
 
 .empty { padding: 46px 20px; text-align: center; color: var(--muted); }
@@ -214,6 +279,7 @@ body.ready { visibility: visible; }
 
   <nav class="tabs">
     <button class="tab on" data-tab="products">productos <span class="n" id="n-products"></span></button>
+    <button class="tab" data-tab="reservas">reservas <span class="n warn" id="n-reservas"></span></button>
     <button class="tab" data-tab="movements">movimientos <span class="n" id="n-movements"></span></button>
   </nav>
 
@@ -227,23 +293,18 @@ body.ready { visibility: visible; }
     <div class="prods" id="prods"></div>
   </div>
 
+  <div id="view-reservas" hidden>
+    <div class="bar">
+      <input type="search" id="rq" placeholder="buscar por persona, producto o bolo…">
+    </div>
+    <div id="reservas"></div>
+  </div>
+
   <div id="view-movements" hidden>
     <div class="bar">
-      <select id="filter-kind">
-        <option value="">todos los tipos</option>
-        <option value="sale">ventas</option>
-        <option value="reserve">reservas</option>
-        <option value="restock">reposiciones</option>
-        <option value="gift">regalos</option>
-        <option value="adjust">recuentos</option>
-      </select>
-      <select id="filter-status">
-        <option value="">cualquier estado</option>
-        <option value="open">reservas abiertas</option>
-        <option value="done">cerrados</option>
-        <option value="cancelled">cancelados</option>
-      </select>
+      <input type="search" id="mq" placeholder="buscar por persona, bolo, producto…">
     </div>
+    <div class="chips" id="chips"></div>
     <div class="movs" id="movs"></div>
   </div>
 </main>
@@ -258,6 +319,11 @@ body.ready { visibility: visible; }
   let variants = [];
   let movements = [];
   let tab = "products";
+  let movKind = "";                // chip activo en movimientos
+  let me = "";                     // quién ha entrado, como valor por defecto
+  const KINDS = [["", "todo"], ["sale", "ventas"], ["reserve", "reservas"],
+                 ["restock", "reposiciones"], ["gift", "regalos"], ["adjust", "recuentos"]];
+  const PAYMENTS = ["efectivo", "bizum", "tarjeta", "otro"];
   let openProduct = null;          // qué producto tiene el panel desplegado
 
   const KIND_LABEL = {
@@ -266,6 +332,30 @@ body.ready { visibility: visible; }
 
   const eur = n => (Number(n) || 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  /* Los dos campos que dan trazabilidad, iguales en todos los formularios
+     que mueven dinero o género. */
+  const paymentField = (value = "") => `
+    <label class="field"><span>cómo se paga</span><select name="payment">
+      <option value="">sin especificar</option>
+      ${PAYMENTS.map(x => `<option value="${x}" ${x === value ? "selected" : ""}>${x}</option>`).join("")}
+    </select></label>`;
+
+  const byField = (value = "") => `
+    <label class="field"><span>quién atiende</span><input name="by_name" value="${esc(value)}" placeholder="nombre"></label>`;
+
+  const traceOf = fd => ({
+    payment: String(fd.get("payment") || ""),
+    by_name: String(fd.get("by_name") || "").trim()
+  });
+
+  /* Con qué nombre se firman los apuntes: el del perfil si lo hay, y si no
+     el trozo del correo antes de la arroba. */
+  function displayName(session) {
+    const u = session?.user || {};
+    const meta = u.user_metadata || {};
+    return String(meta.name || meta.full_name || (u.email || "").split("@")[0] || "").trim();
+  }
 
   function showError(msg) {
     const box = $("error");
@@ -307,6 +397,42 @@ body.ready { visibility: visible; }
   const totals = p => sizesOf(p).reduce((t, v) => {
     t.stock += v.stock; t.held += heldFor(v.id); t.free += freeOf(v); return t;
   }, { stock: 0, held: 0, free: 0 });
+
+  /* --------------------------------------------------------
+     Fechas. Las listas se agrupan por día porque «lo de hoy» y
+     «lo del bolo del sábado» es como se busca de verdad, no por
+     una marca de tiempo exacta.
+     -------------------------------------------------------- */
+  const dayKey = iso => { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+
+  function dayLabel(iso) {
+    const d = new Date(iso), now = new Date();
+    const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) -
+                             new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+    if (days === 0) return "hoy";
+    if (days === 1) return "ayer";
+    const txt = d.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit", month: "short" });
+    return d.getFullYear() === now.getFullYear() ? txt : txt + " " + d.getFullYear();
+  }
+
+  // Espera la lista ya ordenada por fecha: solo corta cuando cambia el día.
+  function byDay(rows) {
+    const out = [];
+    for (const r of rows) {
+      const k = dayKey(r.created_at);
+      const last = out[out.length - 1];
+      if (last && last.key === k) last.rows.push(r);
+      else out.push({ key: k, label: dayLabel(r.created_at), rows: [r] });
+    }
+    return out;
+  }
+
+  const openReserves = () => movements.filter(m => m.kind === "reserve" && m.status === "open");
+
+  // Texto sobre el que buscan las cajas de búsqueda de reservas y movimientos.
+  const haystack = m => [variantName(variantById(m.variant_id)), m.customer, m.event,
+                         m.note, m.payment, m.by_name]
+    .filter(Boolean).join(" ").toLowerCase();
 
   function variantName(v) {
     const p = v && productById(v.product_id);
@@ -353,11 +479,13 @@ body.ready { visibility: visible; }
     const value = live.reduce((s, p) => s + sizesOf(p).reduce((a, v) => a + v.stock * priceOf(v), 0), 0);
     const held = movements.filter(m => m.kind === "reserve" && m.status === "open").reduce((s, m) => s + m.qty, 0);
     const revenue = movements.filter(m => m.kind === "sale").reduce((s, m) => s + m.qty * Number(m.unit_price), 0);
+    // Cada tarjeta es un atajo a la lista que resume: ver «12 reservadas»
+    // y no poder llegar a ellas de un toque era el mayor engorro.
     $("stats").innerHTML = `
-      <div class="stat"><div class="k">en stock</div><div class="v">${units}<small>uds</small></div></div>
-      <div class="stat"><div class="k">valor del stock</div><div class="v">${eur(value)}</div></div>
-      <div class="stat"><div class="k">reservado</div><div class="v">${held}<small>uds</small></div></div>
-      <div class="stat accent"><div class="k">vendido</div><div class="v">${eur(revenue)}</div></div>`;
+      <button class="stat" data-go="products"><div class="k">en stock</div><div class="v">${units}<small>uds</small></div></button>
+      <button class="stat" data-go="products"><div class="k">valor del stock</div><div class="v">${eur(value)}</div></button>
+      <button class="stat ${held ? "warn" : ""}" data-go="reservas"><div class="k">reservado</div><div class="v">${held}<small>uds</small></div></button>
+      <button class="stat accent" data-go="movements:sale"><div class="k">vendido</div><div class="v">${eur(revenue)}</div></button>`;
   }
 
   function renderProducts() {
@@ -370,7 +498,6 @@ body.ready { visibility: visible; }
       return hay.toLowerCase().includes(q);
     });
 
-    $("n-products").textContent = products.filter(p => !p.archived).length || "";
     const box = $("prods");
     if (!list.length) {
       box.innerHTML = `<div class="empty">${products.length ? "Nada coincide con la búsqueda." : "Todavía no hay productos. Empieza con « + producto »."}</div>`;
@@ -436,11 +563,24 @@ body.ready { visibility: visible; }
     // Incluye las tallas archivadas: lo que se vendió, se vendió.
     const mine = variants.filter(v => v.product_id === p.id).map(v => v.id);
     const rows = movements.filter(m => mine.includes(m.variant_id));
-    const hist = rows.length
-      ? `<div class="hist">${rows.map(m => movRow(m, sized ? "label" : "none")).join("")}</div>`
-      : `<div class="empty">Todavía no le ha pasado nada a este producto.</div>`;
+    const naming = sized ? "label" : "none";
 
-    return `<div class="prod-hist">${sizes}${hist}</div>`;
+    // Lo que está apartado es lo único que pide acción, así que va primero
+    // y separado; el resto es historia y puede esperar debajo.
+    const held = rows.filter(m => m.kind === "reserve" && m.status === "open");
+    const past = rows.filter(m => !(m.kind === "reserve" && m.status === "open"));
+
+    const heldBlock = held.length
+      ? `<div class="panel-h warn">apartado — ${held.length} sin entregar</div>
+         <div class="hist">${held.map(m => movRow(m, naming)).join("")}</div>`
+      : "";
+    const pastBlock = past.length
+      ? `<div class="panel-h">historial</div><div class="hist">${past.map(m => movRow(m, naming)).join("")}</div>`
+      : "";
+    const body = heldBlock + pastBlock ||
+      `<div class="empty">Todavía no le ha pasado nada a este producto.</div>`;
+
+    return `<div class="prod-hist">${sizes}${body}</div>`;
   }
 
   /* Una fila de movimiento. La misma en la pestaña de movimientos y en el
@@ -450,7 +590,9 @@ body.ready { visibility: visible; }
     const who = naming === "full" ? variantName(v) : naming === "label" ? (v?.label || "") : "";
     const isOpen = m.kind === "reserve" && m.status === "open";
     const when = new Date(m.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" });
-    const meta = [when, m.customer, m.event, m.note, m.status === "cancelled" ? "cancelado" : ""]
+    const meta = [when, m.customer, m.event, m.payment,
+                  m.by_name ? "por " + m.by_name : "",
+                  m.note, m.status === "cancelled" ? "cancelado" : ""]
       .filter(Boolean).map(esc).join(" · ");
     const money = (m.kind === "sale" || (m.kind === "reserve" && m.status !== "cancelled"))
       ? eur(m.qty * Number(m.unit_price)) : "—";
@@ -460,25 +602,117 @@ body.ready { visibility: visible; }
       <div class="amount">${money}${m.kind === "adjust" ? "<small>stock fijado</small>" : ""}</div>
       <div class="acts">${isOpen
         ? `<button class="btn-ghost" data-mov="deliver" data-id="${m.id}">entregar</button>
+           <button class="btn-ghost" data-mov="edit" data-id="${m.id}">editar</button>
            <button class="btn-ghost btn-danger" data-mov="cancel" data-id="${m.id}">anular</button>`
         : `<button class="btn-ghost btn-danger" data-mov="delete" data-id="${m.id}">borrar</button>`}</div>
     </div>`;
   }
 
+  /* En el puesto atiendes a una persona, no a un apunte suelto: viene Ana
+     y quiere lo suyo, sea una camiseta o cuatro cosas. Por eso las reservas
+     abiertas se agrupan por quién las tiene, con su total. */
+  function renderReservas() {
+    const q = $("rq").value.trim().toLowerCase();
+    // Las más viejas arriba: son las que llevan más tiempo ocupando caja.
+    const list = openReserves()
+      .filter(m => !q || haystack(m).includes(q))
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    const total = openReserves().length;
+
+    const box = $("reservas");
+    if (!list.length) {
+      box.innerHTML = `<div class="empty">${total
+        ? "Nadie coincide con la búsqueda."
+        : "Nada apartado ahora mismo. Lo que reserves aparecerá aquí hasta que lo entregues."}</div>`;
+      return;
+    }
+
+    const people = [];
+    for (const m of list) {
+      const who = m.customer.trim() || "sin nombre";
+      let g = people.find(x => x.who.toLowerCase() === who.toLowerCase());
+      if (!g) people.push(g = { who, rows: [] });
+      g.rows.push(m);
+    }
+
+    box.innerHTML = people.map(g => {
+      const money = g.rows.reduce((s, m) => s + m.qty * Number(m.unit_price), 0);
+      const units = g.rows.reduce((s, m) => s + m.qty, 0);
+      const since = dayLabel(g.rows[0].created_at);
+      return `<div class="who-card">
+        <div class="who-head">
+          <div>
+            <b>${esc(g.who)}</b>
+            <span>${units} ud${units === 1 ? "" : "s"} · desde ${esc(since)}</span>
+          </div>
+          <div class="who-total">${eur(money)}</div>
+          <button class="btn-primary" data-deliver-all="${g.rows.map(m => m.id).join(",")}">entregar todo</button>
+        </div>
+        ${g.rows.map(m => {
+          const meta = [esc(dayLabel(m.created_at)), esc(m.event),
+                        m.by_name ? "apuntó " + esc(m.by_name) : "", esc(m.note)]
+            .filter(Boolean).join(" · ");
+          return `<div class="res">
+            <div class="res-what">
+              <b>${m.qty}× ${esc(variantName(variantById(m.variant_id)))}</b>
+              <span>${meta}</span>
+            </div>
+            <div class="res-amount">${eur(m.qty * Number(m.unit_price))}</div>
+            <div class="acts">
+              <button class="btn-ghost" data-mov="deliver" data-id="${m.id}">entregar</button>
+              <button class="btn-ghost" data-mov="edit" data-id="${m.id}">editar</button>
+              <button class="btn-ghost btn-danger" data-mov="cancel" data-id="${m.id}">anular</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+    }).join("");
+  }
+
+  function renderChips() {
+    $("chips").innerHTML = KINDS.map(([k, label]) =>
+      `<button class="chip ${movKind === k ? "on" : ""}" data-kind="${k}">${label}</button>`).join("");
+  }
+
   function renderMovements() {
-    const k = $("filter-kind").value, st = $("filter-status").value;
-    const list = movements.filter(m => (!k || m.kind === k) && (!st || m.status === st));
-    const open = movements.filter(m => m.kind === "reserve" && m.status === "open").length;
-    $("n-movements").textContent = open ? open + " abiertas" : "";
+    const q = $("mq").value.trim().toLowerCase();
+    const list = movements.filter(m =>
+      (!movKind || m.kind === movKind) && (!q || haystack(m).includes(q)));
+    renderChips();
 
     const box = $("movs");
-    if (!list.length) { box.innerHTML = `<div class="empty">Sin movimientos que enseñar.</div>`; return; }
-    box.innerHTML = list.map(m => movRow(m, "full")).join("");
+    if (!list.length) {
+      box.innerHTML = `<div class="empty">${movements.length
+        ? "Nada coincide con este filtro."
+        : "Sin movimientos que enseñar."}</div>`;
+      return;
+    }
+    box.innerHTML = byDay(list).map(g =>
+      `<div class="day">${esc(g.label)}</div>${g.rows.map(m => movRow(m, "full")).join("")}`).join("");
+  }
+
+  function renderBadges() {
+    $("n-products").textContent = products.filter(p => !p.archived).length || "";
+    $("n-reservas").textContent = openReserves().length || "";
+    $("n-movements").textContent = movements.length || "";
   }
 
   function render() {
     renderStats();
-    if (tab === "products") renderProducts(); else renderMovements();
+    renderBadges();
+    if (tab === "products") renderProducts();
+    else if (tab === "reservas") renderReservas();
+    else renderMovements();
+  }
+
+  function goTab(name) {
+    tab = name;
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === name));
+    $("view-products").hidden = name !== "products";
+    $("view-reservas").hidden = name !== "reservas";
+    $("view-movements").hidden = name !== "movements";
+    render();
   }
 
   /* ---------------- modales ---------------- */
@@ -691,8 +925,12 @@ body.ready { visibility: visible; }
         ? `<label class="field"><span>${kind === "reserve" ? "para quién" : "cliente (opcional)"}</span><input name="customer" ${kind === "reserve" ? "required" : ""} placeholder="Nombre o @instagram"></label>`
         : ""}
       <div class="row2">
+        ${pricey ? paymentField() : "<div></div>"}
+        ${byField(me)}
+      </div>
+      <div class="row2">
         <label class="field"><span>bolo / sitio</span><input name="event" placeholder="Sala X, 12 mar"></label>
-        <label class="field"><span>nota</span><input name="note" placeholder="pagó bizum"></label>
+        <label class="field"><span>nota</span><input name="note" placeholder="se lo lleva puesto"></label>
       </div>
       <div class="modal-acts">
         <button type="button" class="btn-ghost" data-cancel>cancelar</button>
@@ -713,6 +951,7 @@ body.ready { visibility: visible; }
         customer: String(fd.get("customer") || "").trim(),
         event: String(fd.get("event") || "").trim(),
         note: String(fd.get("note") || "").trim(),
+        ...traceOf(fd),
         status: kind === "reserve" ? "open" : "done"
       });
       if (error) throw error;
@@ -738,6 +977,76 @@ body.ready { visibility: visible; }
     sel.addEventListener("change", sync);
   }
 
+  /* Editar una reserva abierta. Se puede tocar todo, la talla incluida,
+     porque una reserva todavía no ha movido stock: solo aparta unidades.
+     Así un «mejor la L» o un «que sean dos» no obliga a anular y rehacer,
+     que perdía la fecha desde la que esa persona lleva esperando. */
+  function editReserveModal(m) {
+    const v0 = variantById(m.variant_id);
+    const p = v0 && productById(v0.product_id);
+    if (!p) { alert("El producto de esta reserva ya no existe."); return; }
+    const list = sizesOf(p);
+
+    // Lo que cabe en una talla contando que esta misma reserva le devuelve
+    // lo que ya le tenía apartado; si no, ni dejarla igual sería posible.
+    const roomFor = v => freeOf(v) + (v.id === m.variant_id ? m.qty : 0);
+
+    const form = openModal(`
+      <h2>Editar reserva</h2>
+      <p class="lead">${esc(p.name)}<span id="mv-free"></span></p>
+      ${list.length > 1
+        ? `<label class="field"><span>talla</span><select name="variant_id">${
+            list.map(v => `<option value="${v.id}" ${v.id === m.variant_id ? "selected" : ""}>${esc(v.label)} — ${roomFor(v)} disponibles</option>`).join("")
+          }</select></label>`
+        : `<input type="hidden" name="variant_id" value="${m.variant_id}">`}
+      <div class="row2">
+        <label class="field"><span>unidades</span><input name="qty" type="number" min="1" value="${m.qty}" required></label>
+        <label class="field"><span>precio unidad</span><input name="unit_price" type="number" step="0.01" min="0" value="${m.unit_price}"></label>
+      </div>
+      <label class="field"><span>para quién</span><input name="customer" required value="${esc(m.customer)}"></label>
+      <div class="row2">
+        ${paymentField(m.payment)}
+        ${byField(m.by_name)}
+      </div>
+      <div class="row2">
+        <label class="field"><span>bolo / sitio</span><input name="event" value="${esc(m.event)}" placeholder="Sala X, 12 mar"></label>
+        <label class="field"><span>nota</span><input name="note" value="${esc(m.note)}" placeholder="pagó bizum"></label>
+      </div>
+      <div class="modal-acts">
+        <button type="button" class="btn-ghost" data-cancel>cancelar</button>
+        <button type="submit" class="btn-primary">guardar</button>
+      </div>`, async fd => {
+      const v = variantById(String(fd.get("variant_id")));
+      if (!v) throw new Error("Elige una talla.");
+      const qty = Math.max(1, Number(fd.get("qty")) || 0);
+      const room = roomFor(v);
+      if (qty > room) throw new Error(`Solo hay ${room} disponibles${v.label ? " de la talla " + v.label : ""}.`);
+      const { error } = await supa.from("merch_movements").update({
+        variant_id: v.id,
+        qty,
+        unit_price: Number(fd.get("unit_price")) || 0,
+        customer: String(fd.get("customer")).trim(),
+        event: String(fd.get("event") || "").trim(),
+        note: String(fd.get("note") || "").trim(),
+        ...traceOf(fd)
+      }).eq("id", m.id);
+      if (error) throw error;
+    });
+
+    // El precio no se toca al cambiar de talla: lo hablado con esa persona
+    // manda sobre la tarifa, aunque la XXL cueste más.
+    const sel = form.querySelector("[name=variant_id]");
+    const qtyEl = form.querySelector("[name=qty]");
+    const freeEl = form.querySelector("#mv-free");
+    const sync = () => {
+      const v = variantById(sel.value) || v0;
+      freeEl.textContent = (v.label ? " · " + v.label : "") + ` — ${roomFor(v)} disponibles de ${v.stock} en caja`;
+      qtyEl.max = roomFor(v);
+    };
+    sync();
+    sel.addEventListener("change", sync);
+  }
+
   /* La caja se cuenta entera, talla por talla, no de una en una. */
   function countModal(p) {
     const vs = sizesOf(p);
@@ -747,7 +1056,10 @@ body.ready { visibility: visible; }
       ${vs.map(v => `<label class="field">
         <span>${v.label ? esc(v.label) : "unidades"} <i>(la app dice ${v.stock})</i></span>
         <input name="q_${v.id}" type="number" min="0" value="${v.stock}" required></label>`).join("")}
-      <label class="field"><span>nota</span><input name="note" placeholder="tras el bolo de marzo"></label>
+      <div class="row2">
+        ${byField(me)}
+        <label class="field"><span>nota</span><input name="note" placeholder="tras el bolo de marzo"></label>
+      </div>
       <div class="modal-acts">
         <button type="button" class="btn-ghost" data-cancel>cancelar</button>
         <button type="submit" class="btn-primary">cuadrar</button>
@@ -758,6 +1070,7 @@ body.ready { visibility: visible; }
         if (counted === v.stock) continue;
         const { error } = await supa.from("merch_movements").insert({
           variant_id: v.id, kind: "adjust", qty: counted, unit_price: 0,
+          by_name: String(fd.get("by_name") || "").trim(),
           note: note || `antes ${v.stock}`
         });
         if (error) throw error;
@@ -821,26 +1134,73 @@ body.ready { visibility: visible; }
   }
 
   /* ---------------- acciones ---------------- */
+
+  /* Entregar una reserva = cerrarla y anotar la venta que la sustituye.
+     Devuelve el mensaje de error, o null si fue bien: quien la llama en
+     bucle («entregar todo») necesita poder parar sin tragarse el fallo. */
+  async function deliverReserve(m, trace = {}) {
+    if (!m) return "Ese apunte ya no está.";
+    const v = variantById(m.variant_id);
+    if (!v) return "Esa talla ya no existe.";
+    const { error: e1 } = await supa.from("merch_movements")
+      .update({ status: "done" }).eq("id", m.id);
+    if (e1) return e1.message;
+    const { error: e2 } = await supa.from("merch_movements").insert({
+      variant_id: m.variant_id, kind: "sale", qty: m.qty, unit_price: m.unit_price,
+      customer: m.customer, event: m.event,
+      payment: trace.payment || "",
+      by_name: trace.by_name || "",
+      note: trace.note || "reserva entregada"
+    });
+    if (e2) return e2.message;
+    try {
+      await setStock(v.id, v.stock - m.qty);
+      // Aún no se ha recargado, así que el siguiente apunte de la misma
+      // talla tiene que partir del stock ya descontado.
+      v.stock -= m.qty;
+    } catch (err) { return err.message; }
+    return null;
+  }
+
+  /* Entregar pregunta lo que hace falta para cuadrar la caja después:
+     cómo se pagó y quién estaba atendiendo. Sirve para una reserva o para
+     todas las de una persona, que es el caso normal en el puesto. */
+  function deliverModal(rows) {
+    if (!rows.length) return;
+    const total = rows.reduce((s, m) => s + m.qty * Number(m.unit_price), 0);
+    const units = rows.reduce((s, m) => s + m.qty, 0);
+    const many = rows.length > 1;
+    openModal(`
+      <h2>${many ? "Entregar " + rows.length + " apuntes" : "Entregar reserva"}</h2>
+      <p class="lead">${esc(rows[0].customer || "sin nombre")} — ${units} ud${units === 1 ? "" : "s"} · ${eur(total)}</p>
+      ${many ? `<p class="sz-hint" style="margin:0 0 14px">${rows.map(m =>
+        esc(m.qty + "× " + variantName(variantById(m.variant_id)))).join("<br>")}</p>` : ""}
+      <div class="row2">
+        ${paymentField()}
+        ${byField(me)}
+      </div>
+      <label class="field"><span>nota</span><input name="note" placeholder="pagó justo"></label>
+      <div class="modal-acts">
+        <button type="button" class="btn-ghost" data-cancel>cancelar</button>
+        <button type="submit" class="btn-primary">entregar</button>
+      </div>`, async fd => {
+      const trace = { ...traceOf(fd), note: String(fd.get("note") || "").trim() };
+      // De uno en uno y parando al primer fallo: media entrega a medias es
+      // peor que una entrega que no se hizo.
+      for (const m of rows) {
+        const err = await deliverReserve(m, trace);
+        if (err) throw new Error(err);
+      }
+    });
+  }
+
   async function movAction(btn) {
     const m = movements.find(x => x.id === btn.dataset.id);
     if (!m) return;
     const action = btn.dataset.mov;
 
-    if (action === "deliver") {
-      const v = variantById(m.variant_id);
-      if (!v) return alert("Esa talla ya no existe.");
-      // Entregar una reserva = cerrarla y anotar la venta que la sustituye.
-      const { error: e1 } = await supa.from("merch_movements")
-        .update({ status: "done" }).eq("id", m.id);
-      if (e1) return alert(e1.message);
-      const { error: e2 } = await supa.from("merch_movements").insert({
-        variant_id: m.variant_id, kind: "sale", qty: m.qty, unit_price: m.unit_price,
-        customer: m.customer, event: m.event, note: "reserva entregada"
-      });
-      if (e2) return alert(e2.message);
-      try { await setStock(v.id, v.stock - m.qty); } catch (err) { alert(err.message); }
-      return load();
-    }
+    if (action === "deliver") return deliverModal([m]);
+    if (action === "edit") return editReserveModal(m);
     if (action === "cancel") {
       if (!confirm("Anular esta reserva. Las unidades vuelven a quedar libres.")) return;
       const { error } = await supa.from("merch_movements").update({ status: "cancelled" }).eq("id", m.id);
@@ -889,23 +1249,46 @@ body.ready { visibility: visible; }
     if (btn) movAction(btn);
   });
 
+  $("reservas").addEventListener("click", async e => {
+    const all = e.target.closest("button[data-deliver-all]");
+    if (all) {
+      const rows = all.dataset.deliverAll.split(",")
+        .map(id => movements.find(m => m.id === id)).filter(Boolean);
+      return deliverModal(rows);
+    }
+    const btn = e.target.closest("button[data-mov]");
+    if (btn) movAction(btn);
+  });
+
+  // Las tarjetas de resumen llevan a su lista, y la de vendido además deja
+  // el filtro puesto en ventas.
+  $("stats").addEventListener("click", e => {
+    const b = e.target.closest("[data-go]");
+    if (!b) return;
+    const [where, kind] = b.dataset.go.split(":");
+    if (kind !== undefined) movKind = kind;
+    goTab(where);
+  });
+
+  $("chips").addEventListener("click", e => {
+    const b = e.target.closest("button[data-kind]");
+    if (!b) return;
+    movKind = b.dataset.kind;
+    renderMovements();
+  });
+
   $("new-product").addEventListener("click", () => productModal(null));
   $("q").addEventListener("input", renderProducts);
   $("show-archived").addEventListener("change", renderProducts);
-  $("filter-kind").addEventListener("change", renderMovements);
-  $("filter-status").addEventListener("change", renderMovements);
+  $("mq").addEventListener("input", renderMovements);
+  $("rq").addEventListener("input", renderReservas);
 
-  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
-    tab = t.dataset.tab;
-    document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
-    $("view-products").hidden = tab !== "products";
-    $("view-movements").hidden = tab !== "movements";
-    render();
-  }));
+  document.querySelectorAll(".tab").forEach(t =>
+    t.addEventListener("click", () => goTab(t.dataset.tab)));
 
   /* ---------------- arranque ---------------- */
   (async function () {
-    await BestaSuite.guard();
+    me = displayName(await BestaSuite.guard());
     document.body.classList.add("ready");
     BestaSuite.mountNav({ active: "merch" });
     supa = await BestaSuite.client();
