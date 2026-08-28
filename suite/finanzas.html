@@ -162,6 +162,9 @@
   .member-card .rows b {
     color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums;
   }
+  .member-card .remove-member {
+    width: auto; padding: 6px 9px; border-radius: 8px; font-size: 11px;
+  }
 
   .modal {
     position: fixed; inset: 0; background: rgba(5,5,8,0.7); backdrop-filter: blur(3px);
@@ -201,9 +204,30 @@
     color: var(--muted); text-align: center; font-size: 13px;
   }
 
+  .audit-list {
+    display: grid; gap: 9px;
+  }
+  .audit-item {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center;
+    padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px;
+    background: rgba(255,255,255,0.015);
+  }
+  .audit-tag {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 92px; padding: 4px 8px; border-radius: 999px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: .11em; text-transform: uppercase;
+  }
+  .audit-tag.create { background: rgba(95,214,165,.12); color: var(--ok); border: 1px solid rgba(95,214,165,.3); }
+  .audit-tag.delete { background: rgba(255,107,107,.12); color: var(--bad); border: 1px solid rgba(255,107,107,.3); }
+  .audit-tag.system { background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid var(--line); }
+  .audit-copy strong { display: block; font-size: 14px; margin-bottom: 3px; }
+  .audit-copy span { color: var(--muted); font-size: 12px; }
+  .audit-date { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
   @media (max-width: 820px) {
     .board { grid-template-columns: 1fr; }
     .form-grid { grid-template-columns: 1fr; }
+    .audit-item { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -276,9 +300,22 @@
         <span>cuentas</span>
         <h2>desglose por miembro</h2>
       </div>
-      <button class="btn-ghost sm" type="button">exportar</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn-ghost sm" type="button">exportar</button>
+        <button id="addMemberBtn" class="btn-primary" type="button" style="max-width: 160px; width: auto; padding: 8px 12px;">+ miembro</button>
+      </div>
     </div>
     <div id="memberGrid" class="member-grid"></div>
+  </section>
+
+  <section class="panel full" style="margin-top: 18px;">
+    <div class="panel-head">
+      <div>
+        <span>trazabilidad</span>
+        <h2>logs y auditoría</h2>
+      </div>
+    </div>
+    <div id="auditList" class="audit-list"></div>
   </section>
 </main>
 
@@ -333,6 +370,29 @@
   </div>
 </div>
 
+<div id="memberModal" class="modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="memberTitle">
+    <div class="modal-head">
+      <h3 id="memberTitle">Nuevo miembro</h3>
+      <button class="btn-ghost sm close-btn" type="button" data-close-member>×</button>
+    </div>
+
+    <form id="memberForm">
+      <div class="form-grid">
+        <label class="field field-full">
+          <span>nombre</span>
+          <input name="memberName" type="text" placeholder="Ej. Alex" required />
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-ghost sm" type="button" data-close-member>cancelar</button>
+        <button class="btn-primary" type="submit" style="max-width: 160px;">guardar miembro</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 (async function () {
   await BestaSuite.guard();
@@ -356,20 +416,27 @@
     { id: 6, title: "Compra de agua + hielo", amount: 26, payer: "Leo", date: "2026-08-08", category: "directo", participants: ["Pilar", "Mikel", "Leo"] }
   ];
 
+  const DEFAULT_LOGS = [
+    { id: "seed-1", type: "system", actor: "sistema", createdAt: "2026-08-08T12:00:00.000Z", message: "Cargada la trazabilidad inicial de la banda." },
+    { id: "seed-2", type: "system", actor: "sistema", createdAt: "2026-08-24T12:00:00.000Z", message: "Sincronizado el primer bloque de gastos del mes." }
+  ];
+
   const money = (n) => new Intl.NumberFormat("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
   const formatDate = (value) => new Date(value + "T12:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  const formatLogDate = (value) => new Date(value).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
   function getState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { members: DEFAULT_MEMBERS, expenses: DEFAULT_EXPENSES };
+      if (!raw) return { members: DEFAULT_MEMBERS, expenses: DEFAULT_EXPENSES, logs: DEFAULT_LOGS };
       const parsed = JSON.parse(raw);
       return {
         members: Array.isArray(parsed.members) && parsed.members.length ? parsed.members : DEFAULT_MEMBERS,
-        expenses: Array.isArray(parsed.expenses) ? parsed.expenses : DEFAULT_EXPENSES
+        expenses: Array.isArray(parsed.expenses) ? parsed.expenses : DEFAULT_EXPENSES,
+        logs: Array.isArray(parsed.logs) && parsed.logs.length ? parsed.logs : DEFAULT_LOGS
       };
     } catch (_) {
-      return { members: DEFAULT_MEMBERS, expenses: DEFAULT_EXPENSES };
+      return { members: DEFAULT_MEMBERS, expenses: DEFAULT_EXPENSES, logs: DEFAULT_LOGS };
     }
   }
 
@@ -377,9 +444,16 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  function findMemberInitials(name) {
-    const match = DEFAULT_MEMBERS.find(member => member.name === name);
-    return match ? match.initials : name.slice(0, 1).toUpperCase();
+  function recordLog(state, type, message, actor = "usuario") {
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      type,
+      actor,
+      createdAt: new Date().toISOString(),
+      message
+    };
+    state.logs = [entry, ...(state.logs || [])].slice(0, 20);
+    saveState(state);
   }
 
   function getExpenseSummary(state) {
@@ -487,9 +561,33 @@
             <div><span>parte</span><b>${money(member.share)}€</b></div>
             <div><span>estado</span><b>${isPositive ? "cobra" : "debe"}</b></div>
           </div>
+          <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+            <button class="btn-ghost sm remove-member" type="button" data-member-name="${member.name}">eliminar</button>
+          </div>
         </div>
       `;
     }).join("");
+  }
+
+  function renderAudit(state) {
+    const list = document.getElementById("auditList");
+    const entries = (state.logs || []).slice(0, 12);
+
+    if (!entries.length) {
+      list.innerHTML = '<div class="muted-empty">No hay trazabilidad todavía.</div>';
+      return;
+    }
+
+    list.innerHTML = entries.map(entry => `
+      <div class="audit-item">
+        <div class="audit-tag ${entry.type === "delete" ? "delete" : entry.type === "create" ? "create" : "system"}">${entry.type === "delete" ? "baja" : entry.type === "create" ? "alta" : "sistema"}</div>
+        <div class="audit-copy">
+          <strong>${entry.message}</strong>
+          <span>${entry.actor}</span>
+        </div>
+        <div class="audit-date">${formatLogDate(entry.createdAt)}</div>
+      </div>
+    `).join("");
   }
 
   function renderAll() {
@@ -498,6 +596,7 @@
     renderBalance(state);
     renderExpenses(state);
     renderMembers(state);
+    renderAudit(state);
   }
 
   function populateFormSelects(state) {
@@ -528,6 +627,70 @@
     populateFormSelects(getState());
   }
 
+  function openMemberModal() {
+    const modal = document.getElementById("memberModal");
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeMemberModal() {
+    const modal = document.getElementById("memberModal");
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.getElementById("memberForm").reset();
+  }
+
+  function normalizeMemberName(value) {
+    return String(value || "").trim().replace(/\s+/g, " ");
+  }
+
+  function addMember(event) {
+    event.preventDefault();
+    const state = getState();
+    const form = event.currentTarget;
+    const name = normalizeMemberName(new FormData(form).get("memberName"));
+
+    if (!name) return;
+    const exists = state.members.some(member => member.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      window.alert("Ese miembro ya existe.");
+      return;
+    }
+
+    const initials = name.split(" ").filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || name.slice(0, 2).toUpperCase();
+    state.members.push({ name, initials });
+    recordLog(state, "create", `Miembro añadido: ${name}.`, "usuario");
+    saveState(state);
+    closeMemberModal();
+    renderAll();
+    populateFormSelects(getState());
+  }
+
+  function removeMember(name) {
+    const state = getState();
+    const member = state.members.find(item => item.name.toLowerCase() === String(name).toLowerCase());
+    if (!member) return;
+    if (state.members.length <= 1) {
+      window.alert("Debes dejar al menos un miembro en la cuenta.");
+      return;
+    }
+
+    const confirmed = window.confirm(`¿Seguro que quieres eliminar a ${member.name} y quitarlo de todos los gastos?`);
+    if (!confirmed) return;
+
+    state.members = state.members.filter(item => item.name.toLowerCase() !== String(name).toLowerCase());
+    state.expenses = state.expenses.map(expense => ({
+      ...expense,
+      payer: expense.payer && expense.payer.toLowerCase() === String(name).toLowerCase() ? state.members[0]?.name || "" : expense.payer,
+      participants: (expense.participants || []).filter(participant => participant.toLowerCase() !== String(name).toLowerCase())
+    })).filter(expense => expense.participants.length > 0);
+
+    recordLog(state, "delete", `Miembro eliminado: ${member.name}.`, "usuario");
+    saveState(state);
+    renderAll();
+    populateFormSelects(getState());
+  }
+
   function addExpense(event) {
     event.preventDefault();
     const state = getState();
@@ -554,6 +717,7 @@
       participants: selectedParticipants
     });
 
+    recordLog(state, "create", `Gasto añadido: ${title} (${money(amount)}€) pagado por ${payer}.`, "usuario");
     saveState(state);
     closeModal();
     renderAll();
@@ -561,20 +725,39 @@
 
   function deleteExpense(id) {
     const state = getState();
-    state.expenses = state.expenses.filter(item => String(item.id) !== String(id));
+    const item = state.expenses.find(entry => String(entry.id) === String(id));
+    if (!item) return;
+
+    if (!window.confirm(`¿Seguro que quieres borrar el gasto "${item.title}" por ${money(item.amount)}€?`)) {
+      return;
+    }
+
+    state.expenses = state.expenses.filter(entry => String(entry.id) !== String(id));
+    recordLog(state, "delete", `Gasto eliminado: ${item.title} (${money(item.amount)}€) por ${item.payer}.`, "usuario");
     saveState(state);
     renderAll();
   }
 
   document.querySelector(".finance-hero .btn-primary").addEventListener("click", openModal);
+  document.getElementById("addMemberBtn").addEventListener("click", openMemberModal);
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));
+  document.querySelectorAll("[data-close-member]").forEach(button => button.addEventListener("click", closeMemberModal));
   document.getElementById("expenseForm").addEventListener("submit", addExpense);
+  document.getElementById("memberForm").addEventListener("submit", addMember);
 
   document.addEventListener("click", (event) => {
-    const button = event.target.closest(".delete-expense");
-    if (!button) return;
-    const { id } = button.dataset;
-    if (id) deleteExpense(id);
+    const deleteButton = event.target.closest(".delete-expense");
+    if (deleteButton) {
+      const { id } = deleteButton.dataset;
+      if (id) deleteExpense(id);
+      return;
+    }
+
+    const removeButton = event.target.closest(".remove-member");
+    if (removeButton) {
+      const { memberName } = removeButton.dataset;
+      if (memberName) removeMember(memberName);
+    }
   });
 
   const initialState = getState();
