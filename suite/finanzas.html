@@ -278,7 +278,7 @@
           <span>equilibrio</span>
           <h2>balance por persona</h2>
         </div>
-        <button class="btn-ghost sm" type="button">repartir</button>
+        <button id="liquidateBtn" class="btn-ghost sm" type="button">liquidar saldos</button>
       </div>
       <div id="balanceList" class="balance-list"></div>
     </article>
@@ -306,6 +306,17 @@
       </div>
     </div>
     <div id="memberGrid" class="member-grid"></div>
+  </section>
+
+  <section class="panel full" style="margin-top: 18px;">
+    <div class="panel-head">
+      <div>
+        <span>liquidación</span>
+        <h2>transferencias y saldos</h2>
+      </div>
+      <button id="settleManualBtn" class="btn-primary" type="button" style="max-width: 175px; width: auto; padding: 8px 12px;">+ liquidación manual</button>
+    </div>
+    <div id="settlementList" class="audit-list"></div>
   </section>
 
   <section class="panel full" style="margin-top: 18px;">
@@ -393,6 +404,44 @@
   </div>
 </div>
 
+<div id="settlementModal" class="modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settlementTitle">
+    <div class="modal-head">
+      <h3 id="settlementTitle">Liquidación manual</h3>
+      <button class="btn-ghost sm close-btn" type="button" data-close-settlement>×</button>
+    </div>
+
+    <form id="settlementForm">
+      <div class="form-grid">
+        <label class="field">
+          <span>debe</span>
+          <select name="debtorId"></select>
+        </label>
+
+        <label class="field">
+          <span>cobra</span>
+          <select name="creditorId"></select>
+        </label>
+
+        <label class="field field-full">
+          <span>cantidad</span>
+          <input name="amount" type="number" min="1" step="0.01" placeholder="0,00" required />
+        </label>
+
+        <label class="field field-full">
+          <span>nota</span>
+          <input name="note" type="text" placeholder="Ej. Pago de la gasolina" />
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-ghost sm" type="button" data-close-settlement>cancelar</button>
+        <button class="btn-primary" type="submit" style="max-width: 170px;">guardar liquidación</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 (async function () {
   await BestaSuite.guard();
@@ -401,108 +450,189 @@
 
   const STORAGE_KEY = "besta_finanzas_state_v1";
   const DEFAULT_MEMBERS = [
-    { name: "Pilar", initials: "P" },
-    { name: "Adri", initials: "A" },
-    { name: "Mikel", initials: "M" },
-    { name: "Leo", initials: "L" }
+    { id: "seed-pilar", name: "Pilar", initials: "P" },
+    { id: "seed-adri", name: "Adri", initials: "A" },
+    { id: "seed-mikel", name: "Mikel", initials: "M" },
+    { id: "seed-leo", name: "Leo", initials: "L" }
   ];
 
-  const DEFAULT_EXPENSES = [
-    { id: 1, title: "Furgo + aparcamiento", amount: 146, payer: "Pilar", date: "2026-08-24", category: "traslado", participants: ["Pilar", "Adri", "Mikel", "Leo"] },
-    { id: 2, title: "Cuerdas y afinación", amount: 82, payer: "Adri", date: "2026-08-22", category: "instrumentos", participants: ["Pilar", "Adri", "Mikel", "Leo"] },
-    { id: 3, title: "Local ensayo", amount: 210, payer: "Mikel", date: "2026-08-18", category: "local", participants: ["Pilar", "Adri", "Mikel", "Leo"] },
-    { id: 4, title: "Póster y flyers", amount: 64, payer: "Leo", date: "2026-08-14", category: "material", participants: ["Pilar", "Adri", "Mikel", "Leo"] },
-    { id: 5, title: "Comida de reunión", amount: 48, payer: "Pilar", date: "2026-08-10", category: "comida", participants: ["Pilar", "Adri", "Mikel"] },
-    { id: 6, title: "Compra de agua + hielo", amount: 26, payer: "Leo", date: "2026-08-08", category: "directo", participants: ["Pilar", "Mikel", "Leo"] }
-  ];
-
-  const DEFAULT_LOGS = [
-    { id: "seed-1", type: "system", actor: "sistema", createdAt: "2026-08-08T12:00:00.000Z", message: "Cargada la trazabilidad inicial de la banda." },
-    { id: "seed-2", type: "system", actor: "sistema", createdAt: "2026-08-24T12:00:00.000Z", message: "Sincronizado el primer bloque de gastos del mes." }
-  ];
-
-  const money = (n) => new Intl.NumberFormat("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
+  const money = (n) => new Intl.NumberFormat("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(n || 0));
   const formatDate = (value) => new Date(value + "T12:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
   const formatLogDate = (value) => new Date(value).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-  function getState() {
+  function round2(value) {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  function getMemberMap(members) {
+    return new Map(members.map(member => [member.name.toLowerCase(), member]));
+  }
+
+  function getLocalFallbackState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { members: DEFAULT_MEMBERS, expenses: DEFAULT_EXPENSES, logs: DEFAULT_LOGS };
+      if (!raw) return { members: DEFAULT_MEMBERS, expenses: [], settlements: [], logs: [] };
       const parsed = JSON.parse(raw);
       return {
         members: Array.isArray(parsed.members) && parsed.members.length ? parsed.members : DEFAULT_MEMBERS,
-        expenses: Array.isArray(parsed.expenses) ? parsed.expenses : DEFAULT_EXPENSES,
-        logs: Array.isArray(parsed.logs) && parsed.logs.length ? parsed.logs : DEFAULT_LOGS
+        expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
+        settlements: Array.isArray(parsed.settlements) ? parsed.settlements : [],
+        logs: Array.isArray(parsed.logs) ? parsed.logs : []
       };
     } catch (_) {
-      return { members: DEFAULT_MEMBERS, expenses: DEFAULT_EXPENSES, logs: DEFAULT_LOGS };
+      return { members: DEFAULT_MEMBERS, expenses: [], settlements: [], logs: [] };
     }
   }
 
-  function saveState(state) {
+  function saveLocalFallbackState(state) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  function recordLog(state, type, message, actor = "usuario") {
-    const entry = {
-      id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-      type,
-      actor,
-      createdAt: new Date().toISOString(),
-      message
+  function normalizeExpenseRow(row) {
+    const participants = Array.isArray(row.participants) ? row.participants : Array.isArray(row.participant_ids) ? row.participant_ids : [];
+    return {
+      id: row.id,
+      title: row.title || "Gasto",
+      amount: Number(row.amount || 0),
+      payer: row.payer_name || row.payer || "",
+      payerId: row.payer_id || null,
+      date: row.date || row.created_at ? String(row.created_at || row.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+      category: row.category || "otros",
+      participants: participants,
+      created_at: row.created_at || null
     };
-    state.logs = [entry, ...(state.logs || [])].slice(0, 20);
-    saveState(state);
+  }
+
+  function normalizeMemberRow(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      initials: row.initials || (row.name || "").split(" ").filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || "M"
+    };
+  }
+
+  function normalizeSettlementRow(row, membersById) {
+    const debtor = membersById.get(row.debtor_id) || null;
+    const creditor = membersById.get(row.creditor_id) || null;
+    return {
+      id: row.id,
+      debtorId: row.debtor_id,
+      debtor: debtor ? debtor.name : "Desconocido",
+      creditorId: row.creditor_id,
+      creditor: creditor ? creditor.name : "Desconocido",
+      amount: Number(row.amount || 0),
+      note: row.note || "",
+      created_at: row.created_at || new Date().toISOString()
+    };
+  }
+
+  function normalizeAuditRow(row) {
+    return {
+      id: row.id,
+      type: row.action && row.action.includes("delete") ? "delete" : row.action && row.action.includes("create") ? "create" : "system",
+      actor: row.actor || "usuario",
+      createdAt: row.created_at || new Date().toISOString(),
+      message: row.details?.message || row.details?.summary || row.entity || "Acción registrada"
+    };
+  }
+
+  async function ensureSeedMembers(supa) {
+    const fallback = getLocalFallbackState();
+    const existing = await supa.from("finance_members").select("id, name, initials");
+    if (!existing.error && Array.isArray(existing.data) && existing.data.length) return existing.data;
+
+    const names = ["Pilar", "Adri", "Mikel", "Leo"];
+    const payload = names.map((name, index) => ({
+      name,
+      initials: name.split(" ").filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || `M${index + 1}`
+    }));
+
+    const inserted = await supa.from("finance_members").insert(payload).select();
+    if (!inserted.error && Array.isArray(inserted.data)) return inserted.data;
+    return fallback.members;
+  }
+
+  async function fetchFinanceState() {
+    const supa = await BestaSuite.client();
+    try {
+      const [membersRes, expensesRes, settlementsRes, auditRes] = await Promise.all([
+        supa.from("finance_members").select("*").order("name", { ascending: true }),
+        supa.from("finance_expenses").select("*").order("created_at", { ascending: false }),
+        supa.from("finance_settlements").select("*").order("created_at", { ascending: false }),
+        supa.from("finance_audit").select("*").order("created_at", { ascending: false })
+      ]);
+
+      const financeErrors = [membersRes.error, expensesRes.error, settlementsRes.error, auditRes.error].filter(Boolean);
+      if (financeErrors.length) {
+        throw new Error(financeErrors.map(error => error.message || "").join(" | "));
+      }
+
+      let members = Array.isArray(membersRes.data) ? membersRes.data.map(normalizeMemberRow) : [];
+      if (!members.length) members = await ensureSeedMembers(supa);
+
+      const membersById = new Map(members.map(member => [member.id, member]));
+      const expenses = Array.isArray(expensesRes.data) ? expensesRes.data.map(row => {
+        const payer = membersById.get(row.payer_id) || null;
+        const participantIds = Array.isArray(row.participant_ids) ? row.participant_ids : [];
+        const participantNames = participantIds
+          .map(id => membersById.get(id))
+          .filter(Boolean)
+          .map(member => member.name);
+        return {
+          ...normalizeExpenseRow({
+            ...row,
+            payer_name: payer ? payer.name : row.payer_name || "",
+            participants: participantNames.length ? participantNames : (Array.isArray(row.participants) ? row.participants : [])
+          }),
+          payerId: row.payer_id || null,
+          participantIds: participantIds
+        };
+      }) : [];
+
+      const settlements = Array.isArray(settlementsRes.data)
+        ? settlementsRes.data.map(row => normalizeSettlementRow(row, membersById))
+        : [];
+
+      const audit = Array.isArray(auditRes.data) ? auditRes.data.map(normalizeAuditRow) : [];
+      return { members, expenses, settlements, audit };
+    } catch (error) {
+      console.warn("Supabase finance fallback", error);
+      return getLocalFallbackState();
+    }
   }
 
   function getExpenseSummary(state) {
-    const summary = state.members.map(member => ({
-      ...member,
-      paid: 0,
-      share: 0,
-      balance: 0
-    }));
-
+    const summary = state.members.map(member => ({ ...member, paid: 0, share: 0, balance: 0 }));
     state.expenses.forEach(expense => {
-      const participants = expense.participants.length || 1;
-      const share = expense.amount / participants;
-
+      const participants = expense.participants && expense.participants.length ? expense.participants : state.members.map(member => member.name);
+      const share = Number(expense.amount || 0) / Math.max(participants.length, 1);
       summary.forEach(member => {
-        if (expense.participants.includes(member.name)) member.share += share;
-        if (member.name === expense.payer) member.paid += expense.amount;
+        if (participants.includes(member.name)) member.share += share;
+        if (member.name === expense.payer) member.paid += Number(expense.amount || 0);
       });
     });
-
     summary.forEach(member => {
-      member.balance = member.paid - member.share;
+      member.balance = round2(member.paid - member.share);
     });
-
     return summary;
   }
 
-  function renderStats(state) {
+  async function renderStats(state) {
     const total = state.expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const summary = getExpenseSummary(state);
     const paid = summary.reduce((sum, member) => sum + Number(member.paid || 0), 0);
     const share = summary.reduce((sum, member) => sum + Number(member.share || 0), 0);
     const net = total - paid;
 
-    const totalEl = document.querySelector('[data-total]');
-    const paidEl = document.querySelector('[data-paid]');
-    const shareEl = document.querySelector('[data-share]');
-    const netEl = document.querySelector('[data-net]');
-
-    totalEl.textContent = money(total);
-    paidEl.textContent = money(paid);
-    shareEl.textContent = money(share);
-    netEl.textContent = money(net);
+    document.querySelector('[data-total]').textContent = money(total);
+    document.querySelector('[data-paid]').textContent = money(paid);
+    document.querySelector('[data-share]').textContent = money(share);
+    document.querySelector('[data-net]').textContent = money(net);
   }
 
   function renderBalance(state) {
     const list = document.getElementById("balanceList");
     const summary = getExpenseSummary(state).sort((a, b) => b.balance - a.balance);
-
     list.innerHTML = summary.map(member => {
       const isPositive = member.balance > 0;
       return `
@@ -511,9 +641,7 @@
             <strong>${member.name}</strong>
             <span>${member.paid > 0 ? "ha pagado" : "sin pagos"}</span>
           </div>
-          <div class="balance-amount ${isPositive ? "positive" : "negative"}">
-            ${isPositive ? "+" : "-"}${money(Math.abs(member.balance))}€
-          </div>
+          <div class="balance-amount ${isPositive ? "positive" : "negative"}">${isPositive ? "+" : "-"}${money(Math.abs(member.balance))}€</div>
           <div class="balance-tag ${isPositive ? "positive" : "negative"}">${isPositive ? "cobra" : "debe"}</div>
         </div>
       `;
@@ -522,7 +650,7 @@
 
   function renderExpenses(state) {
     const list = document.getElementById("expenseList");
-    const sorted = [...state.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sorted = [...state.expenses].sort((a, b) => new Date(b.date || b.created_at || Date.now()) - new Date(a.date || a.created_at || Date.now()));
 
     if (!sorted.length) {
       list.innerHTML = '<div class="muted-empty">Todavía no hay gastos. Añade el primero.</div>';
@@ -533,10 +661,10 @@
       <div class="expense-item">
         <div class="meta">
           <strong>${item.title}</strong>
-          <span>${item.category} · ${item.payer} · ${formatDate(item.date)}</span>
+          <span>${item.category} · ${item.payer || "sin pagador"} · ${formatDate(item.date || item.created_at?.slice(0, 10) || new Date().toISOString().slice(0, 10))}</span>
         </div>
         <div class="actions">
-          <div class="sum">${money(item.amount)}€<small>${item.participants.length} personas</small></div>
+          <div class="sum">${money(item.amount)}€<small>${(item.participants || []).length || 1} personas</small></div>
           <button class="btn-ghost sm delete-expense" type="button" data-id="${item.id}">borrar</button>
         </div>
       </div>
@@ -546,7 +674,6 @@
   function renderMembers(state) {
     const grid = document.getElementById("memberGrid");
     const summary = getExpenseSummary(state);
-
     grid.innerHTML = summary.map(member => {
       const isPositive = member.balance > 0;
       return `
@@ -569,15 +696,32 @@
     }).join("");
   }
 
+  function renderSettlements(state) {
+    const list = document.getElementById("settlementList");
+    const entries = (state.settlements || []).slice(0, 12);
+    if (!entries.length) {
+      list.innerHTML = '<div class="muted-empty">Todavía no hay liquidaciones. Usa “liquidar saldos” para cerrar la cuenta.</div>';
+      return;
+    }
+    list.innerHTML = entries.map(item => `
+      <div class="audit-item">
+        <div class="audit-tag ${item.amount > 0 ? "create" : "system"}">${item.debtor} → ${item.creditor}</div>
+        <div class="audit-copy">
+          <strong>${money(item.amount)}€</strong>
+          <span>${item.note || "liquidación automática"}</span>
+        </div>
+        <div class="audit-date">${formatLogDate(item.created_at)}</div>
+      </div>
+    `).join("");
+  }
+
   function renderAudit(state) {
     const list = document.getElementById("auditList");
-    const entries = (state.logs || []).slice(0, 12);
-
+    const entries = (state.audit || []).slice(0, 12);
     if (!entries.length) {
       list.innerHTML = '<div class="muted-empty">No hay trazabilidad todavía.</div>';
       return;
     }
-
     list.innerHTML = entries.map(entry => `
       <div class="audit-item">
         <div class="audit-tag ${entry.type === "delete" ? "delete" : entry.type === "create" ? "create" : "system"}">${entry.type === "delete" ? "baja" : entry.type === "create" ? "alta" : "sistema"}</div>
@@ -590,33 +734,48 @@
     `).join("");
   }
 
-  function renderAll() {
-    const state = getState();
-    renderStats(state);
+  async function renderAll() {
+    const state = await fetchFinanceState();
+    await renderStats(state);
     renderBalance(state);
     renderExpenses(state);
     renderMembers(state);
+    renderSettlements(state);
     renderAudit(state);
+    populateFormSelects(state);
   }
 
   function populateFormSelects(state) {
     const payerSelect = document.querySelector('[name="payer"]');
-    payerSelect.innerHTML = state.members.map(member => `<option value="${member.name}">${member.name}</option>`).join("");
-    payerSelect.value = state.members[0].name;
+    if (payerSelect && state.members.length) {
+      payerSelect.innerHTML = state.members.map(member => `<option value="${member.name}">${member.name}</option>`).join("");
+      payerSelect.value = state.members[0].name;
+    }
+
+    const debtorSelect = document.querySelector('[name="debtorId"]');
+    const creditorSelect = document.querySelector('[name="creditorId"]');
+    if (debtorSelect && creditorSelect && state.members.length) {
+      const options = state.members.map(member => `<option value="${member.id}">${member.name}</option>`).join("");
+      debtorSelect.innerHTML = options;
+      creditorSelect.innerHTML = options;
+      debtorSelect.value = state.members[0].id;
+      creditorSelect.value = state.members[Math.min(1, state.members.length - 1)].id;
+    }
 
     const list = document.getElementById("participantList");
-    list.innerHTML = state.members.map(member => `
-      <label class="check-pill">
-        <input type="checkbox" value="${member.name}" checked />
-        <span>${member.name}</span>
-      </label>
-    `).join("");
+    if (list && state.members.length) {
+      list.innerHTML = state.members.map(member => `
+        <label class="check-pill">
+          <input type="checkbox" value="${member.name}" checked />
+          <span>${member.name}</span>
+        </label>
+      `).join("");
+    }
   }
 
   function openModal() {
-    const modal = document.getElementById("expenseModal");
-    modal.classList.add("open");
-    modal.setAttribute("aria-hidden", "false");
+    document.getElementById("expenseModal").classList.add("open");
+    document.getElementById("expenseModal").setAttribute("aria-hidden", "false");
   }
 
   function closeModal() {
@@ -624,7 +783,6 @@
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
     document.getElementById("expenseForm").reset();
-    populateFormSelects(getState());
   }
 
   function openMemberModal() {
@@ -640,17 +798,44 @@
     document.getElementById("memberForm").reset();
   }
 
+  function openSettlementModal() {
+    document.getElementById("settlementModal").classList.add("open");
+    document.getElementById("settlementModal").setAttribute("aria-hidden", "false");
+  }
+
+  function closeSettlementModal() {
+    const modal = document.getElementById("settlementModal");
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.getElementById("settlementForm").reset();
+  }
+
   function normalizeMemberName(value) {
     return String(value || "").trim().replace(/\s+/g, " ");
   }
 
-  function addMember(event) {
+  async function writeAudit(supa, action, entity, details, actor = "usuario") {
+    const payload = {
+      actor,
+      action,
+      entity,
+      details: {
+        ...details,
+        message: details.message || `${action} ${entity}`
+      },
+      entity_id: String(details.entityId || "")
+    };
+    await supa.from("finance_audit").insert(payload);
+  }
+
+  async function addMember(event) {
     event.preventDefault();
-    const state = getState();
+    const supa = await BestaSuite.client();
     const form = event.currentTarget;
     const name = normalizeMemberName(new FormData(form).get("memberName"));
-
     if (!name) return;
+
+    const state = await fetchFinanceState();
     const exists = state.members.some(member => member.name.toLowerCase() === name.toLowerCase());
     if (exists) {
       window.alert("Ese miembro ya existe.");
@@ -658,16 +843,20 @@
     }
 
     const initials = name.split(" ").filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || name.slice(0, 2).toUpperCase();
-    state.members.push({ name, initials });
-    recordLog(state, "create", `Miembro añadido: ${name}.`, "usuario");
-    saveState(state);
+    const insert = await supa.from("finance_members").insert({ name, initials }).select();
+    if (insert.error) {
+      window.alert(insert.error.message || "No se pudo guardar el miembro.");
+      return;
+    }
+
+    await writeAudit(supa, "create_member", "finance_members", { entityId: insert.data?.[0]?.id || "", message: `Miembro añadido: ${name}.` }, "usuario");
+    await renderAll();
     closeMemberModal();
-    renderAll();
-    populateFormSelects(getState());
   }
 
-  function removeMember(name) {
-    const state = getState();
+  async function removeMember(name) {
+    const supa = await BestaSuite.client();
+    const state = await fetchFinanceState();
     const member = state.members.find(item => item.name.toLowerCase() === String(name).toLowerCase());
     if (!member) return;
     if (state.members.length <= 1) {
@@ -678,72 +867,203 @@
     const confirmed = window.confirm(`¿Seguro que quieres eliminar a ${member.name} y quitarlo de todos los gastos?`);
     if (!confirmed) return;
 
-    state.members = state.members.filter(item => item.name.toLowerCase() !== String(name).toLowerCase());
-    state.expenses = state.expenses.map(expense => ({
-      ...expense,
-      payer: expense.payer && expense.payer.toLowerCase() === String(name).toLowerCase() ? state.members[0]?.name || "" : expense.payer,
-      participants: (expense.participants || []).filter(participant => participant.toLowerCase() !== String(name).toLowerCase())
-    })).filter(expense => expense.participants.length > 0);
+    const del = await supa.from("finance_members").delete().eq("id", member.id);
+    if (del.error) {
+      window.alert(del.error.message || "No se pudo eliminar el miembro.");
+      return;
+    }
 
-    recordLog(state, "delete", `Miembro eliminado: ${member.name}.`, "usuario");
-    saveState(state);
-    renderAll();
-    populateFormSelects(getState());
+    await supa.from("finance_expenses").update({ participant_ids: [] }).eq("payer_id", member.id);
+    await supa.from("finance_expenses").delete().eq("payer_id", member.id);
+    await writeAudit(supa, "delete_member", "finance_members", { entityId: member.id, message: `Miembro eliminado: ${member.name}.` }, "usuario");
+    await renderAll();
   }
 
-  function addExpense(event) {
+  async function addExpense(event) {
     event.preventDefault();
-    const state = getState();
+    const supa = await BestaSuite.client();
     const form = event.currentTarget;
     const data = new FormData(form);
     const title = String(data.get("title") || "").trim();
     const amount = Number(data.get("amount"));
-    const payer = String(data.get("payer") || "");
+    const payerName = String(data.get("payer") || "");
     const category = String(data.get("category") || "otros");
     const selectedParticipants = [...document.querySelectorAll('#participantList input:checked')].map(input => input.value);
 
-    if (!title || !Number.isFinite(amount) || amount <= 0 || selectedParticipants.length === 0) {
+    if (!title || !Number.isFinite(amount) || amount <= 0 || selectedParticipants.length === 0) return;
+
+    const state = await fetchFinanceState();
+    const payerMember = state.members.find(member => member.name === payerName);
+    if (!payerMember) return;
+    const participantMap = new Map(state.members.map(member => [member.name, member]));
+    const participantIds = selectedParticipants.map(name => participantMap.get(name)?.id).filter(Boolean);
+
+    const session = await BestaSuite.guard();
+    const userId = session && session.user ? session.user.id : null;
+
+    const insert = await supa.from("finance_expenses").insert({
+      title,
+      amount: round2(amount),
+      payer_id: payerMember.id,
+      category,
+      participant_ids: participantIds,
+      created_by: userId,
+      date: new Date().toISOString().slice(0, 10)
+    }).select();
+
+    if (insert.error) {
+      window.alert(insert.error.message || "No se pudo guardar el gasto.");
       return;
     }
 
-    const nextId = state.expenses.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
-    state.expenses.unshift({
-      id: nextId,
-      title,
-      amount,
-      payer,
-      date: new Date().toISOString().slice(0, 10),
-      category,
-      participants: selectedParticipants
-    });
+    await writeAudit(supa, "create_expense", "finance_expenses", {
+      entityId: insert.data?.[0]?.id || "",
+      message: `Gasto añadido: ${title} (${money(amount)}€) pagado por ${payerName}.`
+    }, "usuario");
 
-    recordLog(state, "create", `Gasto añadido: ${title} (${money(amount)}€) pagado por ${payer}.`, "usuario");
-    saveState(state);
+    await renderAll();
     closeModal();
-    renderAll();
   }
 
-  function deleteExpense(id) {
-    const state = getState();
+  async function deleteExpense(id) {
+    const supa = await BestaSuite.client();
+    const state = await fetchFinanceState();
     const item = state.expenses.find(entry => String(entry.id) === String(id));
     if (!item) return;
+    if (!window.confirm(`¿Seguro que quieres borrar el gasto "${item.title}" por ${money(item.amount)}€?`)) return;
 
-    if (!window.confirm(`¿Seguro que quieres borrar el gasto "${item.title}" por ${money(item.amount)}€?`)) {
+    const del = await supa.from("finance_expenses").delete().eq("id", item.id);
+    if (del.error) {
+      window.alert(del.error.message || "No se pudo borrar el gasto.");
       return;
     }
 
-    state.expenses = state.expenses.filter(entry => String(entry.id) !== String(id));
-    recordLog(state, "delete", `Gasto eliminado: ${item.title} (${money(item.amount)}€) por ${item.payer}.`, "usuario");
-    saveState(state);
-    renderAll();
+    await writeAudit(supa, "delete_expense", "finance_expenses", {
+      entityId: item.id,
+      message: `Gasto eliminado: ${item.title} (${money(item.amount)}€) por ${item.payer}.`
+    }, "usuario");
+
+    await renderAll();
+  }
+
+  function computeSuggestedSettlements(state) {
+    const summary = getExpenseSummary(state);
+    const debtors = summary.filter(member => member.balance < 0).map(member => ({ ...member, amount: round2(Math.abs(member.balance)) }));
+    const creditors = summary.filter(member => member.balance > 0).map(member => ({ ...member, amount: round2(member.balance) }));
+    const transfers = [];
+    let i = 0;
+    let j = 0;
+
+    while (i < debtors.length && j < creditors.length) {
+      const debtor = debtors[i];
+      const creditor = creditors[j];
+      const amount = Math.min(round2(debtor.amount), round2(creditor.amount));
+      if (amount <= 0) break;
+      transfers.push({
+        debtorId: debtor.id,
+        creditorId: creditor.id,
+        debtor: debtor.name,
+        creditor: creditor.name,
+        amount,
+        note: "Liquidación automática de saldos"
+      });
+      debtor.amount = round2(debtor.amount - amount);
+      creditor.amount = round2(creditor.amount - amount);
+      if (debtor.amount <= 0.01) i += 1;
+      if (creditor.amount <= 0.01) j += 1;
+    }
+    return transfers;
+  }
+
+  async function liquidateBalances() {
+    const supa = await BestaSuite.client();
+    const state = await fetchFinanceState();
+    const transfers = computeSuggestedSettlements(state);
+    if (!transfers.length) {
+      window.alert("No hay saldos pendientes para liquidar.");
+      return;
+    }
+
+    const ok = window.confirm(`Se van a generar ${transfers.length} transferencias para cerrar la cuenta. ¿Continuar?`);
+    if (!ok) return;
+
+    const session = await BestaSuite.guard();
+    const userId = session && session.user ? session.user.id : null;
+
+    const inserted = await supa.from("finance_settlements").insert(transfers.map(item => ({
+      debtor_id: item.debtorId,
+      creditor_id: item.creditorId,
+      amount: item.amount,
+      note: item.note,
+      created_by: userId
+    }))).select();
+
+    if (inserted.error) {
+      window.alert(inserted.error.message || "No se pudo guardar la liquidación.");
+      return;
+    }
+
+    const summary = transfers.map(item => `${item.debtor} paga ${money(item.amount)}€ a ${item.creditor}`).join("; ");
+    await writeAudit(supa, "create_settlement", "finance_settlements", {
+      entityId: inserted.data?.[0]?.id || "",
+      message: `Liquidación automática: ${summary}.`
+    }, "usuario");
+
+    await renderAll();
+  }
+
+  async function addManualSettlement(event) {
+    event.preventDefault();
+    const supa = await BestaSuite.client();
+    const data = new FormData(event.currentTarget);
+    const debtorId = String(data.get("debtorId") || "");
+    const creditorId = String(data.get("creditorId") || "");
+    const amount = Number(data.get("amount"));
+    const note = String(data.get("note") || "Liquidación manual");
+
+    if (!debtorId || !creditorId || debtorId === creditorId || !Number.isFinite(amount) || amount <= 0) {
+      window.alert("Revisa los datos de la liquidación.");
+      return;
+    }
+
+    const session = await BestaSuite.guard();
+    const userId = session && session.user ? session.user.id : null;
+
+    const insert = await supa.from("finance_settlements").insert({
+      debtor_id: debtorId,
+      creditor_id: creditorId,
+      amount: round2(amount),
+      note,
+      created_by: userId
+    }).select();
+
+    if (insert.error) {
+      window.alert(insert.error.message || "No se pudo registrar la liquidación.");
+      return;
+    }
+
+    const state = await fetchFinanceState();
+    const debtorName = state.members.find(member => member.id === debtorId)?.name || "usuario";
+    const creditorName = state.members.find(member => member.id === creditorId)?.name || "usuario";
+    await writeAudit(supa, "create_settlement", "finance_settlements", {
+      entityId: insert.data?.[0]?.id || "",
+      message: `Liquidación manual: ${debtorName} paga ${money(amount)}€ a ${creditorName}.`
+    }, "usuario");
+
+    closeSettlementModal();
+    await renderAll();
   }
 
   document.querySelector(".finance-hero .btn-primary").addEventListener("click", openModal);
   document.getElementById("addMemberBtn").addEventListener("click", openMemberModal);
+  document.getElementById("liquidateBtn").addEventListener("click", liquidateBalances);
+  document.getElementById("settleManualBtn").addEventListener("click", openSettlementModal);
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));
   document.querySelectorAll("[data-close-member]").forEach(button => button.addEventListener("click", closeMemberModal));
+  document.querySelectorAll("[data-close-settlement]").forEach(button => button.addEventListener("click", closeSettlementModal));
   document.getElementById("expenseForm").addEventListener("submit", addExpense);
   document.getElementById("memberForm").addEventListener("submit", addMember);
+  document.getElementById("settlementForm").addEventListener("submit", addManualSettlement);
 
   document.addEventListener("click", (event) => {
     const deleteButton = event.target.closest(".delete-expense");
@@ -760,9 +1080,7 @@
     }
   });
 
-  const initialState = getState();
-  populateFormSelects(initialState);
-  renderAll();
+  await renderAll();
 })();
 </script>
 </body>

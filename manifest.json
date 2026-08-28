@@ -1,11 +1,12 @@
 {
   "name": "BESTA Suite",
   "short_name": "BESTA",
-  "start_url": "/suite/?next=%2Fsuite%2Fensayos.html",
+  "start_url": "/suite/ensayos.html",
   "scope": "/suite/",
   "display": "standalone",
   "background_color": "#050508",
   "theme_color": "#050508",
+  "description": "Directo de ensayos y setlist de BESTA",
   "icons": [
     {
       "src": "/assets/favicons/android-chrome-192x192.png",
