@@ -204,6 +204,17 @@
     color: var(--muted); text-align: center; font-size: 13px;
   }
 
+  .category-item {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
+    padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px;
+    background: rgba(255,255,255,0.015);
+  }
+  .category-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 110px; padding: 4px 10px; border-radius: 999px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+    background: rgba(var(--accent-rgb), .12); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .3);
+  }
   .audit-list {
     display: grid; gap: 9px;
   }
@@ -306,6 +317,17 @@
       </div>
     </div>
     <div id="memberGrid" class="member-grid"></div>
+  </section>
+
+  <section class="panel full" style="margin-top: 18px;">
+    <div class="panel-head">
+      <div>
+        <span>categorías</span>
+        <h2>tipos de gasto</h2>
+      </div>
+      <button id="addCategoryBtn" class="btn-primary" type="button" style="max-width: 175px; width: auto; padding: 8px 12px;">+ categoría</button>
+    </div>
+    <div id="categoryList" class="audit-list"></div>
   </section>
 
   <section class="panel full" style="margin-top: 18px;">
@@ -442,6 +464,29 @@
   </div>
 </div>
 
+<div id="categoryModal" class="modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="categoryTitle">
+    <div class="modal-head">
+      <h3 id="categoryTitle">Nueva categoría</h3>
+      <button class="btn-ghost sm close-btn" type="button" data-close-category>×</button>
+    </div>
+
+    <form id="categoryForm">
+      <div class="form-grid">
+        <label class="field field-full">
+          <span>nombre</span>
+          <input name="categoryName" type="text" placeholder="Ej. festival" required />
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-ghost sm" type="button" data-close-category>cancelar</button>
+        <button class="btn-primary" type="submit" style="max-width: 160px;">guardar categoría</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 (async function () {
   await BestaSuite.guard();
@@ -449,6 +494,7 @@
   BestaSuite.mountNav({ active: "finanzas" });
 
   const STORAGE_KEY = "besta_finanzas_state_v1";
+  const DEFAULT_CATEGORIES = ["traslado", "local", "instrumentos", "material", "comida", "directo", "otros"];
   const DEFAULT_MEMBERS = [
     { id: "seed-pilar", name: "Pilar", initials: "P" },
     { id: "seed-adri", name: "Adri", initials: "A" },
@@ -468,24 +514,39 @@
     return new Map(members.map(member => [member.name.toLowerCase(), member]));
   }
 
+  function normalizeCategories(value) {
+    const list = Array.isArray(value) ? value : DEFAULT_CATEGORIES;
+    const cleaned = list
+      .map(item => String(item || "").trim())
+      .filter(Boolean)
+      .map(item => item.toLowerCase())
+      .filter((item, index, arr) => arr.indexOf(item) === index);
+
+    return cleaned.length ? cleaned : DEFAULT_CATEGORIES;
+  }
+
   function getLocalFallbackState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { members: DEFAULT_MEMBERS, expenses: [], settlements: [], logs: [] };
+      if (!raw) return { members: DEFAULT_MEMBERS, expenses: [], settlements: [], logs: [], categories: DEFAULT_CATEGORIES };
       const parsed = JSON.parse(raw);
       return {
         members: Array.isArray(parsed.members) && parsed.members.length ? parsed.members : DEFAULT_MEMBERS,
         expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
         settlements: Array.isArray(parsed.settlements) ? parsed.settlements : [],
-        logs: Array.isArray(parsed.logs) ? parsed.logs : []
+        logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+        categories: DEFAULT_CATEGORIES
       };
     } catch (_) {
-      return { members: DEFAULT_MEMBERS, expenses: [], settlements: [], logs: [] };
+      return { members: DEFAULT_MEMBERS, expenses: [], settlements: [], logs: [], categories: DEFAULT_CATEGORIES };
     }
   }
 
   function saveLocalFallbackState(state) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...state,
+      categories: DEFAULT_CATEGORIES
+    }));
   }
 
   function normalizeExpenseRow(row) {
@@ -496,7 +557,7 @@
       amount: Number(row.amount || 0),
       payer: row.payer_name || row.payer || "",
       payerId: row.payer_id || null,
-      date: row.date || row.created_at ? String(row.created_at || row.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+      date: row.created_at ? String(row.created_at).slice(0, 10) : new Date().toISOString().slice(0, 10),
       category: row.category || "otros",
       participants: participants,
       created_at: row.created_at || null
@@ -552,14 +613,30 @@
     return fallback.members;
   }
 
+  async function ensureDefaultCategories(supa) {
+    const existing = await supa.from("finance_categories").select("name");
+    if (!existing.error && Array.isArray(existing.data) && existing.data.length) {
+      return existing.data.map(row => String(row.name || "").trim().toLowerCase()).filter(Boolean);
+    }
+
+    const payload = DEFAULT_CATEGORIES.map(name => ({ name }));
+    const inserted = await supa.from("finance_categories").insert(payload).select();
+    if (!inserted.error && Array.isArray(inserted.data)) {
+      return inserted.data.map(row => String(row.name || "").trim().toLowerCase()).filter(Boolean);
+    }
+
+    return DEFAULT_CATEGORIES;
+  }
+
   async function fetchFinanceState() {
     const supa = await BestaSuite.client();
     try {
-      const [membersRes, expensesRes, settlementsRes, auditRes] = await Promise.all([
+      const [membersRes, expensesRes, settlementsRes, auditRes, categoriesRes] = await Promise.all([
         supa.from("finance_members").select("*").order("name", { ascending: true }),
         supa.from("finance_expenses").select("*").order("created_at", { ascending: false }),
         supa.from("finance_settlements").select("*").order("created_at", { ascending: false }),
-        supa.from("finance_audit").select("*").order("created_at", { ascending: false })
+        supa.from("finance_audit").select("*").order("created_at", { ascending: false }),
+        supa.from("finance_categories").select("*").order("name", { ascending: true })
       ]);
 
       const financeErrors = [membersRes.error, expensesRes.error, settlementsRes.error, auditRes.error].filter(Boolean);
@@ -594,7 +671,17 @@
         : [];
 
       const audit = Array.isArray(auditRes.data) ? auditRes.data.map(normalizeAuditRow) : [];
-      return { members, expenses, settlements, audit };
+      let categories = Array.isArray(categoriesRes.data) && categoriesRes.data.length
+        ? categoriesRes.data.map(row => String(row.name || "").trim().toLowerCase()).filter(Boolean)
+        : await ensureDefaultCategories(supa);
+
+      return {
+        members,
+        expenses,
+        settlements,
+        audit,
+        categories: normalizeCategories(categories)
+      };
     } catch (error) {
       console.warn("Supabase finance fallback", error);
       return getLocalFallbackState();
@@ -696,6 +783,19 @@
     }).join("");
   }
 
+  function renderCategories(state) {
+    const list = document.getElementById("categoryList");
+    const categories = normalizeCategories(state.categories || DEFAULT_CATEGORIES);
+
+    list.innerHTML = categories.map(category => `
+      <div class="category-item">
+        <div class="category-pill">${category}</div>
+        <button class="btn-ghost sm" type="button" data-edit-category="${category}">renombrar</button>
+        <button class="btn-ghost sm" type="button" data-delete-category="${category}">borrar</button>
+      </div>
+    `).join("");
+  }
+
   function renderSettlements(state) {
     const list = document.getElementById("settlementList");
     const entries = (state.settlements || []).slice(0, 12);
@@ -736,10 +836,12 @@
 
   async function renderAll() {
     const state = await fetchFinanceState();
+    state.categories = normalizeCategories(state.categories || DEFAULT_CATEGORIES);
     await renderStats(state);
     renderBalance(state);
     renderExpenses(state);
     renderMembers(state);
+    renderCategories(state);
     renderSettlements(state);
     renderAudit(state);
     populateFormSelects(state);
@@ -750,6 +852,14 @@
     if (payerSelect && state.members.length) {
       payerSelect.innerHTML = state.members.map(member => `<option value="${member.name}">${member.name}</option>`).join("");
       payerSelect.value = state.members[0].name;
+    }
+
+    const categorySelect = document.querySelector('[name="category"]');
+    const categories = normalizeCategories(state.categories || DEFAULT_CATEGORIES);
+    if (categorySelect) {
+      categorySelect.innerHTML = categories.map(category => `<option value="${category}">${category}</option>`).join("");
+      const currentValue = categorySelect.value || categories[0];
+      categorySelect.value = categories.includes(currentValue) ? currentValue : categories[0];
     }
 
     const debtorSelect = document.querySelector('[name="debtorId"]');
@@ -776,6 +886,19 @@
   function openModal() {
     document.getElementById("expenseModal").classList.add("open");
     document.getElementById("expenseModal").setAttribute("aria-hidden", "false");
+  }
+
+  function openCategoryModal() {
+    const modal = document.getElementById("categoryModal");
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeCategoryModal() {
+    const modal = document.getElementById("categoryModal");
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.getElementById("categoryForm").reset();
   }
 
   function closeModal() {
@@ -826,6 +949,74 @@
       entity_id: String(details.entityId || "")
     };
     await supa.from("finance_audit").insert(payload);
+  }
+
+  async function addCategory(event) {
+    event.preventDefault();
+    const supa = await BestaSuite.client();
+    const state = await fetchFinanceState();
+    const name = String(new FormData(event.currentTarget).get("categoryName") || "").trim();
+    if (!name) return;
+
+    const normalized = name.toLowerCase();
+    const exists = normalizeCategories(state.categories || DEFAULT_CATEGORIES).includes(normalized);
+    if (exists) {
+      window.alert("Esa categoría ya existe.");
+      return;
+    }
+
+    const insert = await supa.from("finance_categories").insert({ name: normalized }).select();
+    if (insert.error) {
+      window.alert(insert.error.message || "No se pudo guardar la categoría.");
+      return;
+    }
+
+    closeCategoryModal();
+    await renderAll();
+  }
+
+  async function renameCategory(oldName, newName) {
+    const supa = await BestaSuite.client();
+    const state = await fetchFinanceState();
+    const categories = normalizeCategories(state.categories || DEFAULT_CATEGORIES);
+    const cleanedOld = String(oldName || "").trim().toLowerCase();
+    const cleanedNew = String(newName || "").trim().toLowerCase();
+    if (!cleanedOld || !cleanedNew || cleanedOld === cleanedNew) return;
+    if (categories.includes(cleanedNew)) {
+      window.alert("Ya existe una categoría con ese nombre.");
+      return;
+    }
+
+    const update = await supa.from("finance_categories").update({ name: cleanedNew }).eq("name", cleanedOld);
+    if (update.error) {
+      window.alert(update.error.message || "No se pudo renombrar la categoría.");
+      return;
+    }
+
+    await supa.from("finance_expenses").update({ category: cleanedNew }).eq("category", cleanedOld);
+    await renderAll();
+  }
+
+  async function deleteCategory(categoryName) {
+    const supa = await BestaSuite.client();
+    const state = await fetchFinanceState();
+    const normalized = String(categoryName || "").trim().toLowerCase();
+    if (!normalized) return;
+    if (normalizeCategories(state.categories || DEFAULT_CATEGORIES).length <= 1) {
+      window.alert("Debe quedar al menos una categoría.");
+      return;
+    }
+    const confirmed = window.confirm(`¿Quieres borrar la categoría "${normalized}" y cambiar los gastos que la usen a "otros"?`);
+    if (!confirmed) return;
+
+    const del = await supa.from("finance_categories").delete().eq("name", normalized);
+    if (del.error) {
+      window.alert(del.error.message || "No se pudo borrar la categoría.");
+      return;
+    }
+
+    await supa.from("finance_expenses").update({ category: "otros" }).eq("category", normalized);
+    await renderAll();
   }
 
   async function addMember(event) {
@@ -907,8 +1098,7 @@
       payer_id: payerMember.id,
       category,
       participant_ids: participantIds,
-      created_by: userId,
-      date: new Date().toISOString().slice(0, 10)
+      created_by: userId
     }).select();
 
     if (insert.error) {
@@ -1056,13 +1246,16 @@
 
   document.querySelector(".finance-hero .btn-primary").addEventListener("click", openModal);
   document.getElementById("addMemberBtn").addEventListener("click", openMemberModal);
+  document.getElementById("addCategoryBtn").addEventListener("click", openCategoryModal);
   document.getElementById("liquidateBtn").addEventListener("click", liquidateBalances);
   document.getElementById("settleManualBtn").addEventListener("click", openSettlementModal);
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));
   document.querySelectorAll("[data-close-member]").forEach(button => button.addEventListener("click", closeMemberModal));
+  document.querySelectorAll("[data-close-category]").forEach(button => button.addEventListener("click", closeCategoryModal));
   document.querySelectorAll("[data-close-settlement]").forEach(button => button.addEventListener("click", closeSettlementModal));
   document.getElementById("expenseForm").addEventListener("submit", addExpense);
   document.getElementById("memberForm").addEventListener("submit", addMember);
+  document.getElementById("categoryForm").addEventListener("submit", addCategory);
   document.getElementById("settlementForm").addEventListener("submit", addManualSettlement);
 
   document.addEventListener("click", (event) => {
@@ -1077,6 +1270,23 @@
     if (removeButton) {
       const { memberName } = removeButton.dataset;
       if (memberName) removeMember(memberName);
+      return;
+    }
+
+    const deleteCategoryButton = event.target.closest("[data-delete-category]");
+    if (deleteCategoryButton) {
+      const { deleteCategory: categoryName } = deleteCategoryButton.dataset;
+      if (categoryName) deleteCategory(categoryName);
+      return;
+    }
+
+    const editCategoryButton = event.target.closest("[data-edit-category]");
+    if (editCategoryButton) {
+      const { editCategory: categoryName } = editCategoryButton.dataset;
+      if (categoryName) {
+        const newName = window.prompt("Renombra la categoría", categoryName);
+        if (newName && newName.trim()) renameCategory(categoryName, newName);
+      }
     }
   });
 
