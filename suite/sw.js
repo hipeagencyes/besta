@@ -10,11 +10,17 @@ const RUNTIME = "runtime-" + VERSION;
 
 /* Lo imprescindible para que el atril arranque en modo avión. */
 const SHELL_URLS = [
+  "/suite/",
+  "/suite/index.html",
   "/suite/ensayos.html",
   "/suite/suite.js",
+  "/suite/suite-shell.css",
+  "/manifest.json",
   "/assets/images/besta_color.png",
   "/assets/images/besta.png",
   "/assets/favicons/favicon-32x32.png",
+  "/assets/favicons/android-chrome-192x192.png",
+  "/assets/favicons/android-chrome-512x512.png",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
   "https://unpkg.com/svguitar@2.4.0/dist/svguitar.umd.js"
 ];
@@ -86,7 +92,7 @@ self.addEventListener("fetch", event => {
 
   // Scripts, imágenes y tipografías: lo cacheado manda, y si no está se
   // busca y se guarda para la próxima.
-  if (["script", "image", "style", "font"].includes(req.destination) || isFont(url)) {
+  if (["script", "image", "style", "font", "manifest"].includes(req.destination) || isFont(url)) {
     event.respondWith((async () => {
       const hit = await caches.match(req);
       if (hit) return hit;
