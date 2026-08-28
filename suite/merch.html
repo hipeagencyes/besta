@@ -102,6 +102,10 @@ body.ready { visibility: visible; }
   background: rgba(255,107,107,.1); border: 1px solid rgba(255,107,107,.3); color: #ffb3b3; font-size: 14px;
 }
 .err code { font-family: var(--mono); font-size: 12px; }
+.err .relogin {
+  font: inherit; color: inherit; cursor: pointer; padding: 0;
+  background: none; border: 0; border-bottom: 1px solid currentColor;
+}
 
 /* ---------- menú «···» ---------- */
 .pop { position: fixed; inset: 0; z-index: 2400; }
@@ -229,8 +233,16 @@ body.ready { visibility: visible; }
     ]);
     const bad = pr.error || mv.error;
     if (bad) {
-      if (bad.code === "42P01" || /does not exist/i.test(bad.message)) {
-        showError("Las tablas de merch todavía no existen. Ejecuta <code>suite/merch-setup.sql</code> en el SQL Editor de Supabase y recarga.");
+      // PostgREST no ve la tabla de dos maneras: 42P01 viene de Postgres y
+      // PGRST205 de su caché de esquema. Las dos significan lo mismo aquí.
+      if (bad.code === "42P01" || bad.code === "PGRST205" || /does not exist|schema cache/i.test(bad.message)) {
+        showError("Las tablas de merch todavía no existen. Falta aplicar <code>supabase/migrations/20260828120000_merch.sql</code> (<code>supabase db push</code>) y recargar.");
+      } else if (/jwt|token/i.test(bad.message)) {
+        // Token rechazado por desfase de reloj o sesión caducada: el que hay
+        // guardado ya no sirve, hay que pedir uno nuevo entrando otra vez.
+        showError("La sesión guardada ya no vale (<code>" + esc(bad.message) + "</code>). " +
+          "Comprueba que la fecha y hora del equipo sean automáticas y " +
+          "<button type=\"button\" class=\"relogin\" onclick=\"BestaSuite.logout()\">vuelve a entrar</button>.");
       } else {
         showError("Error cargando: <code>" + esc(bad.message) + "</code>");
       }

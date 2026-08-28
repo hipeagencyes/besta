@@ -1,6 +1,6 @@
 -- =========================================================
 -- BESTA · suite → merch
--- Pegar entero en el SQL Editor de Supabase y ejecutar.
+-- La aplica `supabase db push` (a mano, o el workflow al hacer push a main).
 -- Es idempotente: se puede volver a lanzar sin romper nada.
 -- =========================================================
 

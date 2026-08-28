@@ -1,0 +1,44 @@
+name: Aplicar migraciones en Supabase
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/supabase.yml"
+  workflow_dispatch:           # boton "Run workflow" para lanzarlo a mano
+
+# Dos pushes seguidos no pueden tocar la base de datos a la vez.
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+    env:
+      # Ajustes → API → Project ID. No es secreto: ya esta en suite/suite.js.
+      SUPABASE_PROJECT_REF: vjydiddybwutbcfigtie
+      # Cuenta → Access Tokens (el token personal de la CLI).
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      # Ajustes → Database → la contrasena de postgres.
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Enlazar el proyecto
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      # Enseña que va a tocar antes de tocarlo: queda en el log del run
+      # por si algun dia hay que averiguar cuando entro una tabla.
+      - name: Migraciones pendientes
+        run: supabase migration list --linked
+
+      # Solo aplica las que aun no estan registradas en la base de datos.
+      # Si una falla, corta aqui y el resto no llega a ejecutarse.
+      - name: Aplicar
+        run: supabase db push
