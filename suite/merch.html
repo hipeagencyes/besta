@@ -59,8 +59,66 @@ body.ready { visibility: visible; }
 .prod-nums .v { font-size: 17px; font-weight: 700; }
 .prod-nums .v.zero { color: var(--bad); }
 .prod-nums .v.held { color: var(--warn); }
-.prod-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.prod-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; cursor: default; }
 .prod-acts button { padding: 6px 11px; font-size: 12px; border-radius: 8px; width: auto; }
+
+/* La tarjeta entera abre el historial, menos la zona de botones. */
+.prod { cursor: pointer; }
+.prod-id .caret {
+  display: inline-block; margin-left: 8px; font-size: 11px;
+  color: var(--muted); transition: transform .15s;
+}
+.prod-wrap.open .prod-id .caret { transform: rotate(90deg); }
+.prod-wrap.open .prod {
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+}
+.prod-hist {
+  display: grid; gap: 7px; padding: 12px 14px 14px;
+  background: var(--bg-2); border: 1px solid var(--line); border-top: 0;
+  border-radius: 0 0 13px 13px;
+}
+.prod-hist .mov { background: var(--bg-3); }
+.prod-hist .empty { padding: 12px 0; font-size: 13px; }
+.hist { display: grid; gap: 7px; }
+
+/* ---------- desglose por talla ---------- */
+.sizes { display: grid; gap: 6px; }
+.size {
+  display: grid; gap: 10px; align-items: center; grid-template-columns: 58px 1fr auto;
+  padding: 9px 12px; background: var(--bg-3);
+  border: 1px solid var(--line); border-radius: 9px;
+}
+.size.out { border-color: rgba(255,107,107,.28); }
+.size > b {
+  font-family: var(--mono); font-size: 13px; letter-spacing: .06em; text-transform: uppercase;
+}
+.size-nums {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.size-nums .zero { color: var(--bad); }
+.size-nums .held { color: var(--warn); }
+.size-acts { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.size-acts button { padding: 4px 9px; font-size: 11px; border-radius: 7px; width: auto; }
+@media (max-width: 720px) {
+  .size { grid-template-columns: 1fr; }
+  .size-acts { justify-content: flex-start; }
+}
+
+/* ---------- editor de tallas (dentro del modal) ---------- */
+.chk { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin: 2px 0 14px; }
+.chk input { width: auto; }
+.szrow { display: grid; grid-template-columns: 1fr 92px auto; gap: 7px; margin-bottom: 7px; align-items: center; }
+.szrow.new { grid-template-columns: 1fr 92px 74px auto; }
+.szrow input { margin: 0; }
+.szrow .szdel {
+  width: 30px; height: 30px; padding: 0; border-radius: 8px; background: none;
+  border: 1px solid var(--line-strong); color: var(--muted); font-size: 15px; line-height: 1;
+}
+.sz-add { width: auto; padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+.sz-hint { font-size: 12px; color: var(--muted); margin: 9px 0 0; }
+.field span i { font-style: normal; text-transform: none; letter-spacing: 0; opacity: .7; }
 @media (max-width: 720px) {
   .prod { grid-template-columns: 1fr; }
   .prod-nums { justify-content: flex-start; text-align: left; }
@@ -197,8 +255,10 @@ body.ready { visibility: visible; }
   const $ = id => document.getElementById(id);
   let supa = null;
   let products = [];
+  let variants = [];
   let movements = [];
   let tab = "products";
+  let openProduct = null;          // qué producto tiene el panel desplegado
 
   const KIND_LABEL = {
     sale: "venta", restock: "repone", reserve: "reserva", gift: "regalo", adjust: "recuento"
@@ -214,29 +274,60 @@ body.ready { visibility: visible; }
     box.innerHTML = msg;
   }
 
+  /* --------------------------------------------------------
+     Productos y tallas.
+     El stock vive en la talla, no en el producto: una camiseta es
+     UN producto con cuatro filas. Lo que no tiene tallas lleva una
+     sola fila con la etiqueta vacía y aquí no se nota.
+     -------------------------------------------------------- */
+  const productById = id => products.find(p => p.id === id);
+  const variantById = id => variants.find(v => v.id === id);
+
+  // Las archivadas siguen en `variants` porque su historial cuenta,
+  // pero no se venden ni suman stock.
+  const sizesOf = p => variants
+    .filter(v => v.product_id === p.id && !v.archived)
+    .sort((a, b) => a.position - b.position || a.label.localeCompare(b.label));
+
+  // Un producto "sin tallas" es el que solo tiene la fila sin etiqueta.
+  const hasSizes = p => { const vs = sizesOf(p); return vs.length > 1 || (vs.length === 1 && !!vs[0].label); };
+
+  // La talla puede llevar precio propio (la XXL suele costar más); si no, el del producto.
+  const priceOf = v => v.price ?? productById(v.product_id)?.price ?? 0;
+
   /* Unidades apartadas por reservas todavía abiertas. Están en la caja pero
      ya tienen dueño, así que no se pueden vender dos veces. */
-  function heldFor(productId) {
+  function heldFor(variantId) {
     return movements
-      .filter(m => m.product_id === productId && m.kind === "reserve" && m.status === "open")
+      .filter(m => m.variant_id === variantId && m.kind === "reserve" && m.status === "open")
       .reduce((sum, m) => sum + m.qty, 0);
   }
+  const freeOf = v => v.stock - heldFor(v.id);
 
-  const productById = id => products.find(p => p.id === id);
+  const totals = p => sizesOf(p).reduce((t, v) => {
+    t.stock += v.stock; t.held += heldFor(v.id); t.free += freeOf(v); return t;
+  }, { stock: 0, held: 0, free: 0 });
+
+  function variantName(v) {
+    const p = v && productById(v.product_id);
+    if (!p) return "producto borrado";
+    return p.name + (v.label ? " · " + v.label : "");
+  }
 
   /* ---------------- carga ---------------- */
   async function load() {
     showError("");
-    const [pr, mv] = await Promise.all([
+    const [pr, va, mv] = await Promise.all([
       supa.from("merch_products").select("*").order("name", { ascending: true }),
+      supa.from("merch_variants").select("*").order("position", { ascending: true }),
       supa.from("merch_movements").select("*").order("created_at", { ascending: false }).limit(500)
     ]);
-    const bad = pr.error || mv.error;
+    const bad = pr.error || va.error || mv.error;
     if (bad) {
       // PostgREST no ve la tabla de dos maneras: 42P01 viene de Postgres y
       // PGRST205 de su caché de esquema. Las dos significan lo mismo aquí.
       if (bad.code === "42P01" || bad.code === "PGRST205" || /does not exist|schema cache/i.test(bad.message)) {
-        showError("Las tablas de merch todavía no existen. Falta aplicar <code>supabase/migrations/20260828120000_merch.sql</code> (<code>supabase db push</code>) y recargar.");
+        showError("Faltan migraciones de merch por aplicar. Lanza <code>supabase db push</code> y recarga.");
       } else if (/jwt|token/i.test(bad.message)) {
         // Token rechazado por desfase de reloj o sesión caducada: el que hay
         // guardado ya no sirve, hay que pedir uno nuevo entrando otra vez.
@@ -246,9 +337,10 @@ body.ready { visibility: visible; }
       } else {
         showError("Error cargando: <code>" + esc(bad.message) + "</code>");
       }
-      products = []; movements = [];
+      products = []; variants = []; movements = [];
     } else {
       products = pr.data || [];
+      variants = va.data || [];
       movements = mv.data || [];
     }
     render();
@@ -257,8 +349,8 @@ body.ready { visibility: visible; }
   /* ---------------- pintado ---------------- */
   function renderStats() {
     const live = products.filter(p => !p.archived);
-    const units = live.reduce((s, p) => s + p.stock, 0);
-    const value = live.reduce((s, p) => s + p.stock * Number(p.price), 0);
+    const units = live.reduce((s, p) => s + totals(p).stock, 0);
+    const value = live.reduce((s, p) => s + sizesOf(p).reduce((a, v) => a + v.stock * priceOf(v), 0), 0);
     const held = movements.filter(m => m.kind === "reserve" && m.status === "open").reduce((s, m) => s + m.qty, 0);
     const revenue = movements.filter(m => m.kind === "sale").reduce((s, m) => s + m.qty * Number(m.unit_price), 0);
     $("stats").innerHTML = `
@@ -274,7 +366,8 @@ body.ready { visibility: visible; }
     const list = products.filter(p => {
       if (!showArchived && p.archived) return false;
       if (!q) return true;
-      return (p.name + " " + p.variant + " " + p.info).toLowerCase().includes(q);
+      const hay = p.name + " " + p.info + " " + sizesOf(p).map(v => v.label).join(" ");
+      return hay.toLowerCase().includes(q);
     });
 
     $("n-products").textContent = products.filter(p => !p.archived).length || "";
@@ -284,27 +377,92 @@ body.ready { visibility: visible; }
       return;
     }
     box.innerHTML = list.map(p => {
-      const held = heldFor(p.id);
-      const free = p.stock - held;
-      return `<div class="prod ${free <= 0 ? "out" : ""} ${p.archived ? "arch" : ""}">
-        <div class="prod-id">
-          <b>${esc(p.name)}</b>${p.variant ? `<span class="var">${esc(p.variant)}</span>` : ""}
-          ${p.info ? `<span class="info">${esc(p.info)}</span>` : ""}
+      const vs = sizesOf(p);
+      const { stock, held, free } = totals(p);
+      const sized = hasSizes(p);
+      const open = openProduct === p.id;
+      // Con precios distintos por talla, un número solo mentiría.
+      const prices = [...new Set(vs.map(priceOf))];
+      const price = prices.length > 1 ? "desde " + eur(Math.min(...prices)) : eur(prices.length ? prices[0] : p.price);
+      return `<div class="prod-wrap ${open ? "open" : ""}">
+        <div class="prod ${free <= 0 ? "out" : ""} ${p.archived ? "arch" : ""}" data-prod="${p.id}">
+          <div class="prod-id">
+            <b>${esc(p.name)}</b>
+            ${sized ? `<span class="var">${vs.length} tallas</span>` : ""}
+            <span class="caret">›</span>
+            ${p.info ? `<span class="info">${esc(p.info)}</span>` : ""}
+          </div>
+          <div class="prod-nums">
+            <div><div class="n">precio</div><div class="v">${price}</div></div>
+            <div><div class="n">stock</div><div class="v ${stock <= 0 ? "zero" : ""}">${stock}</div></div>
+            ${held ? `<div><div class="n">apartado</div><div class="v held">${held}</div></div>` : ""}
+            <div><div class="n">libre</div><div class="v ${free <= 0 ? "zero" : ""}">${free}</div></div>
+          </div>
+          <div class="prod-acts">
+            <button class="btn-ghost" data-act="sale"    data-id="${p.id}" ${free <= 0 ? "disabled" : ""}>vender</button>
+            <button class="btn-ghost" data-act="reserve" data-id="${p.id}" ${free <= 0 ? "disabled" : ""}>reservar</button>
+            <button class="btn-ghost" data-act="restock" data-id="${p.id}">+ stock</button>
+            <button class="btn-ghost" data-act="more"    data-id="${p.id}">···</button>
+          </div>
         </div>
-        <div class="prod-nums">
-          <div><div class="n">precio</div><div class="v">${eur(p.price)}</div></div>
-          <div><div class="n">stock</div><div class="v ${p.stock <= 0 ? "zero" : ""}">${p.stock}</div></div>
-          ${held ? `<div><div class="n">apartado</div><div class="v held">${held}</div></div>` : ""}
-          <div><div class="n">libre</div><div class="v ${free <= 0 ? "zero" : ""}">${free}</div></div>
-        </div>
-        <div class="prod-acts">
-          <button class="btn-ghost" data-act="sale"    data-id="${p.id}" ${free <= 0 ? "disabled" : ""}>vender</button>
-          <button class="btn-ghost" data-act="reserve" data-id="${p.id}" ${free <= 0 ? "disabled" : ""}>reservar</button>
-          <button class="btn-ghost" data-act="restock" data-id="${p.id}">+ stock</button>
-          <button class="btn-ghost" data-act="more"    data-id="${p.id}">···</button>
-        </div>
+        ${open ? renderPanel(p) : ""}
       </div>`;
     }).join("");
+  }
+
+  /* Lo que se despliega al clicar la tarjeta: el desglose por talla, si las
+     tiene, y todo lo que le ha pasado al producto. Aquí y no en un modal
+     porque de un vistazo quieres ver varios productos abiertos a la vez. */
+  function renderPanel(p) {
+    const sized = hasSizes(p);
+    const sizes = !sized ? "" : `<div class="sizes">${sizesOf(p).map(v => {
+      const held = heldFor(v.id), free = freeOf(v);
+      return `<div class="size ${free <= 0 ? "out" : ""}">
+        <b>${esc(v.label)}</b>
+        <div class="size-nums">
+          <span>${eur(priceOf(v))}</span>
+          <span class="${v.stock <= 0 ? "zero" : ""}">${v.stock} en caja</span>
+          ${held ? `<span class="held">${held} apartadas</span>` : ""}
+          <span class="${free <= 0 ? "zero" : ""}">${free} libres</span>
+        </div>
+        <div class="size-acts">
+          <button class="btn-ghost" data-vact="sale"    data-id="${v.id}" ${free <= 0 ? "disabled" : ""}>vender</button>
+          <button class="btn-ghost" data-vact="reserve" data-id="${v.id}" ${free <= 0 ? "disabled" : ""}>reservar</button>
+          <button class="btn-ghost" data-vact="restock" data-id="${v.id}">+ stock</button>
+        </div>
+      </div>`;
+    }).join("")}</div>`;
+
+    // Incluye las tallas archivadas: lo que se vendió, se vendió.
+    const mine = variants.filter(v => v.product_id === p.id).map(v => v.id);
+    const rows = movements.filter(m => mine.includes(m.variant_id));
+    const hist = rows.length
+      ? `<div class="hist">${rows.map(m => movRow(m, sized ? "label" : "none")).join("")}</div>`
+      : `<div class="empty">Todavía no le ha pasado nada a este producto.</div>`;
+
+    return `<div class="prod-hist">${sizes}${hist}</div>`;
+  }
+
+  /* Una fila de movimiento. La misma en la pestaña de movimientos y en el
+     historial del producto; allí sobra repetir el nombre, que ya está arriba. */
+  function movRow(m, naming) {
+    const v = variantById(m.variant_id);
+    const who = naming === "full" ? variantName(v) : naming === "label" ? (v?.label || "") : "";
+    const isOpen = m.kind === "reserve" && m.status === "open";
+    const when = new Date(m.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" });
+    const meta = [when, m.customer, m.event, m.note, m.status === "cancelled" ? "cancelado" : ""]
+      .filter(Boolean).map(esc).join(" · ");
+    const money = (m.kind === "sale" || (m.kind === "reserve" && m.status !== "cancelled"))
+      ? eur(m.qty * Number(m.unit_price)) : "—";
+    return `<div class="mov ${isOpen ? "open" : ""}">
+      <div class="kind ${m.kind}">${KIND_LABEL[m.kind]}</div>
+      <div class="what"><b>${m.qty}×${who ? " " + esc(who) : ""}</b><span>${meta}</span></div>
+      <div class="amount">${money}${m.kind === "adjust" ? "<small>stock fijado</small>" : ""}</div>
+      <div class="acts">${isOpen
+        ? `<button class="btn-ghost" data-mov="deliver" data-id="${m.id}">entregar</button>
+           <button class="btn-ghost btn-danger" data-mov="cancel" data-id="${m.id}">anular</button>`
+        : `<button class="btn-ghost btn-danger" data-mov="delete" data-id="${m.id}">borrar</button>`}</div>
+    </div>`;
   }
 
   function renderMovements() {
@@ -315,25 +473,7 @@ body.ready { visibility: visible; }
 
     const box = $("movs");
     if (!list.length) { box.innerHTML = `<div class="empty">Sin movimientos que enseñar.</div>`; return; }
-    box.innerHTML = list.map(m => {
-      const p = productById(m.product_id);
-      const name = p ? p.name + (p.variant ? " · " + p.variant : "") : "producto borrado";
-      const isOpen = m.kind === "reserve" && m.status === "open";
-      const when = new Date(m.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" });
-      const meta = [when, m.customer, m.event, m.note, m.status === "cancelled" ? "cancelado" : ""]
-        .filter(Boolean).map(esc).join(" · ");
-      const money = (m.kind === "sale" || (m.kind === "reserve" && m.status !== "cancelled"))
-        ? eur(m.qty * Number(m.unit_price)) : "—";
-      return `<div class="mov ${isOpen ? "open" : ""}">
-        <div class="kind ${m.kind}">${KIND_LABEL[m.kind]}</div>
-        <div class="what"><b>${m.qty}× ${esc(name)}</b><span>${meta}</span></div>
-        <div class="amount">${money}${m.kind === "adjust" ? "<small>stock fijado</small>" : ""}</div>
-        <div class="acts">${isOpen
-          ? `<button class="btn-ghost" data-mov="deliver" data-id="${m.id}">entregar</button>
-             <button class="btn-ghost btn-danger" data-mov="cancel" data-id="${m.id}">anular</button>`
-          : `<button class="btn-ghost btn-danger" data-mov="delete" data-id="${m.id}">borrar</button>`}</div>
-      </div>`;
-    }).join("");
+    box.innerHTML = list.map(m => movRow(m, "full")).join("");
   }
 
   function render() {
@@ -364,68 +504,185 @@ body.ready { visibility: visible; }
       }
     });
     form.querySelector("input, select, textarea")?.focus();
+    return form;
+  }
+
+  /* Una fila del editor de tallas. Las que ya existen no llevan stock:
+     ese se mueve con movimientos, no escribiéndolo a mano. */
+  function sizeRowHTML(v) {
+    const isNew = !v;
+    return `<div class="szrow ${isNew ? "new" : ""}" data-vid="${v?.id || ""}">
+      <input name="sz_label" value="${esc(v?.label || "")}" placeholder="talla (S, M, L…)" required>
+      <input name="sz_price" type="number" step="0.01" min="0" value="${v?.price ?? ""}" placeholder="precio">
+      ${isNew ? `<input name="sz_stock" type="number" min="0" value="0" placeholder="uds">` : ""}
+      <button type="button" class="szdel" title="quitar esta talla">×</button>
+    </div>`;
   }
 
   function productModal(p) {
     const edit = !!p;
-    openModal(`
+    const sized = edit && hasSizes(p);
+    const rows = edit ? sizesOf(p) : [];
+    let form;
+
+    form = openModal(`
       <h2>${edit ? "Editar producto" : "Producto nuevo"}</h2>
       <p class="lead">${edit ? "El stock se cambia con movimientos, no aquí." : "El stock inicial entra como una reposición."}</p>
       <label class="field"><span>nombre</span><input name="name" required value="${esc(p?.name || "")}" placeholder="Camiseta logo"></label>
       <div class="row2">
-        <label class="field"><span>variante</span><input name="variant" value="${esc(p?.variant || "")}" placeholder="talla M"></label>
         <label class="field"><span>precio venta</span><input name="price" type="number" step="0.01" min="0" required value="${p?.price ?? ""}" placeholder="20"></label>
-      </div>
-      <div class="row2">
         <label class="field"><span>coste unidad</span><input name="cost" type="number" step="0.01" min="0" value="${p?.cost ?? 0}" placeholder="7"></label>
-        ${edit ? "" : `<label class="field"><span>stock inicial</span><input name="stock" type="number" min="0" value="0"></label>`}
       </div>
       <label class="field"><span>información</span><textarea name="info" rows="2" placeholder="Algodón orgánico, serigrafía a dos tintas">${esc(p?.info || "")}</textarea></label>
+
+      <label class="chk"><input type="checkbox" id="sz-on" ${sized ? "checked" : ""}> tiene tallas o variantes</label>
+      <div id="sz-box" ${sized ? "" : "hidden"}>
+        <div id="sz-rows">${(sized ? rows : []).map(sizeRowHTML).join("")}</div>
+        <button type="button" class="btn-ghost sz-add">+ añadir talla</button>
+        <p class="sz-hint">El precio de cada talla es opcional: en blanco cobra el del producto.</p>
+      </div>
+      ${edit ? "" : `<div id="sz-single"><label class="field"><span>stock inicial</span><input name="stock" type="number" min="0" value="0"></label></div>`}
+
       <div class="modal-acts">
         <button type="button" class="btn-ghost" data-cancel>cancelar</button>
         <button type="submit" class="btn-primary">${edit ? "guardar" : "crear"}</button>
       </div>`, async fd => {
       const payload = {
         name: String(fd.get("name")).trim(),
-        variant: String(fd.get("variant") || "").trim(),
         price: Number(fd.get("price")) || 0,
         cost: Number(fd.get("cost")) || 0,
         info: String(fd.get("info") || "").trim()
       };
+
+      let pid = p?.id;
       if (edit) {
         const { error } = await supa.from("merch_products").update(payload).eq("id", p.id);
         if (error) throw error;
-        return;
+      } else {
+        const { data, error } = await supa.from("merch_products").insert(payload).select().single();
+        if (error) throw error;
+        pid = data.id;
       }
-      const stock = Math.max(0, Number(fd.get("stock")) || 0);
-      const { data, error } = await supa.from("merch_products")
-        .insert({ ...payload, stock }).select().single();
-      if (error) throw error;
-      if (stock > 0) {
-        await supa.from("merch_movements").insert({
-          product_id: data.id, kind: "restock", qty: stock,
-          unit_price: payload.cost, note: "stock inicial"
-        });
+
+      const wantsSizes = form.querySelector("#sz-on").checked;
+      const rowEls = wantsSizes ? [...form.querySelectorAll(".szrow")] : [];
+      // Sin tallas el producto sigue necesitando una fila donde guardar el
+      // stock: la que lleva la etiqueta vacía.
+      const wanted = wantsSizes
+        ? rowEls.map((row, i) => ({
+            id: row.dataset.vid || null,
+            label: row.querySelector("[name=sz_label]").value.trim(),
+            price: row.querySelector("[name=sz_price]").value.trim() === ""
+              ? null : Number(row.querySelector("[name=sz_price]").value),
+            stock: Math.max(0, Number(row.querySelector("[name=sz_stock]")?.value) || 0),
+            position: i
+          }))
+        : [{
+            id: (edit ? sizesOf(p).find(v => !v.label)?.id : null) || null,
+            label: "", price: null,
+            stock: edit ? 0 : Math.max(0, Number(fd.get("stock")) || 0),
+            position: 0
+          }];
+
+      if (wantsSizes && !wanted.length) throw new Error("Añade al menos una talla, o desmarca la casilla.");
+      const labels = wanted.map(w => w.label);
+      if (new Set(labels).size !== labels.length) throw new Error("Hay dos tallas con el mismo nombre.");
+
+      const keep = [];
+      for (const w of wanted) {
+        if (w.id) {
+          keep.push(w.id);
+          const { error } = await supa.from("merch_variants")
+            .update({ label: w.label, price: w.price, position: w.position, archived: false }).eq("id", w.id);
+          if (error) throw error;
+          continue;
+        }
+        // Si esa talla ya existió y se archivó, se revive: el índice único
+        // (producto, etiqueta) no deja meter otra igual, y su historial vale.
+        const old = variants.find(v => v.product_id === pid && v.label === w.label);
+        if (old) {
+          keep.push(old.id);
+          const { error } = await supa.from("merch_variants")
+            .update({ price: w.price, position: w.position, archived: false }).eq("id", old.id);
+          if (error) throw error;
+          continue;
+        }
+        const { data: nv, error } = await supa.from("merch_variants")
+          .insert({ product_id: pid, label: w.label, price: w.price, position: w.position, stock: w.stock })
+          .select().single();
+        if (error) throw error;
+        keep.push(nv.id);
+        if (w.stock > 0) {
+          await supa.from("merch_movements").insert({
+            variant_id: nv.id, kind: "restock", qty: w.stock,
+            unit_price: payload.cost, note: "stock inicial"
+          });
+        }
+      }
+
+      // Las que se quitan se archivan, no se borran: sus ventas ya están
+      // contadas y borrarlas se llevaría el historial por delante.
+      for (const v of (edit ? sizesOf(p) : [])) {
+        if (keep.includes(v.id)) continue;
+        const { error } = await supa.from("merch_variants").update({ archived: true }).eq("id", v.id);
+        if (error) throw error;
       }
     });
+
+    const chk = form.querySelector("#sz-on");
+    const box = form.querySelector("#sz-box");
+    const single = form.querySelector("#sz-single");
+    const rowsBox = form.querySelector("#sz-rows");
+
+    // Un input oculto y `required` bloquea el envío sin poder enfocarlo ni
+    // explicar nada; deshabilitado se queda fuera de la validación.
+    const syncSizeBox = () => {
+      box.hidden = !chk.checked;
+      box.querySelectorAll("input").forEach(i => { i.disabled = !chk.checked; });
+      if (single) single.hidden = chk.checked;
+    };
+    chk.addEventListener("change", () => {
+      // En los dos sentidos se archivan las filas de stock actuales.
+      if (edit && chk.checked !== sized && totals(p).stock > 0 &&
+          !confirm("Las filas de stock de ahora se archivan y el producto empieza a cero. Haz un recuento después.")) {
+        chk.checked = sized; return;
+      }
+      if (chk.checked && !rowsBox.children.length) rowsBox.insertAdjacentHTML("beforeend", sizeRowHTML(null));
+      syncSizeBox();
+    });
+    form.querySelector(".sz-add").addEventListener("click", () => {
+      rowsBox.insertAdjacentHTML("beforeend", sizeRowHTML(null));
+      rowsBox.lastElementChild.querySelector("input").focus();
+    });
+    rowsBox.addEventListener("click", e => {
+      if (e.target.closest(".szdel")) e.target.closest(".szrow").remove();
+    });
+    syncSizeBox();
   }
 
   /* Un solo modal para vender, reservar, reponer y regalar: cambia el copy
-     y qué le hace al stock, el formulario es el mismo. */
-  function movementModal(p, kind) {
-    const held = heldFor(p.id);
-    const free = p.stock - held;
-    const titles = {
-      sale: "Vender", reserve: "Reservar", restock: "Reponer stock", gift: "Regalar"
-    };
+     y qué le hace al stock, el formulario es el mismo. Si el producto tiene
+     tallas y no venimos de una en concreto, se elige aquí. */
+  function movementModal(p, kind, only) {
+    const all = sizesOf(p);
+    const list = only ? [only] : (kind === "restock" ? all : all.filter(v => freeOf(v) > 0));
+    if (!list.length) { alert("No queda nada libre de este producto."); return; }
+    const first = list[0];
+    const titles = { sale: "Vender", reserve: "Reservar", restock: "Reponer stock", gift: "Regalar" };
     const pricey = kind === "sale" || kind === "reserve";
-    openModal(`
+
+    const form = openModal(`
       <h2>${titles[kind]}</h2>
-      <p class="lead">${esc(p.name)}${p.variant ? " · " + esc(p.variant) : ""} — ${free} libres de ${p.stock} en caja</p>
+      <p class="lead">${esc(p.name)}<span id="mv-free"></span></p>
+      ${list.length > 1
+        ? `<label class="field"><span>talla</span><select name="variant_id">${
+            list.map(v => `<option value="${v.id}">${esc(v.label)} — ${freeOf(v)} libres</option>`).join("")
+          }</select></label>`
+        : `<input type="hidden" name="variant_id" value="${first.id}">`}
       <div class="row2">
-        <label class="field"><span>unidades</span><input name="qty" type="number" min="1" ${kind !== "restock" ? `max="${free}"` : ""} value="1" required></label>
+        <label class="field"><span>unidades</span><input name="qty" type="number" min="1" value="1" required></label>
         ${pricey
-          ? `<label class="field"><span>precio unidad</span><input name="unit_price" type="number" step="0.01" min="0" value="${p.price}"></label>`
+          ? `<label class="field"><span>precio unidad</span><input name="unit_price" type="number" step="0.01" min="0"></label>`
           : kind === "restock"
             ? `<label class="field"><span>coste unidad</span><input name="unit_price" type="number" step="0.01" min="0" value="${p.cost}"></label>`
             : `<div></div>`}
@@ -441,10 +698,15 @@ body.ready { visibility: visible; }
         <button type="button" class="btn-ghost" data-cancel>cancelar</button>
         <button type="submit" class="btn-primary">${titles[kind].toLowerCase()}</button>
       </div>`, async fd => {
+      const v = variantById(String(fd.get("variant_id")));
+      if (!v) throw new Error("Elige una talla.");
       const qty = Math.max(1, Number(fd.get("qty")) || 0);
-      if (kind !== "restock" && qty > free) throw new Error(`Solo quedan ${free} libres.`);
+      const free = freeOf(v);
+      if (kind !== "restock" && qty > free) {
+        throw new Error(`Solo quedan ${free} libres${v.label ? " de la talla " + v.label : ""}.`);
+      }
       const { error } = await supa.from("merch_movements").insert({
-        product_id: p.id,
+        variant_id: v.id,
         kind,
         qty,
         unit_price: Number(fd.get("unit_price")) || 0,
@@ -457,34 +719,56 @@ body.ready { visibility: visible; }
       // La reserva no toca el stock: las unidades siguen en la caja hasta
       // que se entregan. Lo demás sí lo mueve.
       const delta = kind === "restock" ? qty : kind === "reserve" ? 0 : -qty;
-      if (delta) await setStock(p.id, p.stock + delta);
+      if (delta) await setStock(v.id, v.stock + delta);
     });
+
+    // El tope de unidades y el precio dependen de la talla elegida.
+    const sel = form.querySelector("[name=variant_id]");
+    const qtyEl = form.querySelector("[name=qty]");
+    const priceEl = form.querySelector("[name=unit_price]");
+    const freeEl = form.querySelector("#mv-free");
+    const sync = () => {
+      const v = variantById(sel.value) || first;
+      const free = freeOf(v);
+      freeEl.textContent = (v.label ? " · " + v.label : "") + ` — ${free} libres de ${v.stock} en caja`;
+      if (kind === "restock") qtyEl.removeAttribute("max"); else qtyEl.max = free;
+      if (priceEl && pricey) priceEl.value = priceOf(v);
+    };
+    sync();
+    sel.addEventListener("change", sync);
   }
 
+  /* La caja se cuenta entera, talla por talla, no de una en una. */
   function countModal(p) {
+    const vs = sizesOf(p);
     openModal(`
       <h2>Recuento</h2>
-      <p class="lead">${esc(p.name)}${p.variant ? " · " + esc(p.variant) : ""} — la app dice ${p.stock}. ¿Cuántas hay de verdad?</p>
-      <label class="field"><span>unidades contadas</span><input name="qty" type="number" min="0" value="${p.stock}" required></label>
+      <p class="lead">${esc(p.name)} — cuenta la caja y escribe lo que hay de verdad.</p>
+      ${vs.map(v => `<label class="field">
+        <span>${v.label ? esc(v.label) : "unidades"} <i>(la app dice ${v.stock})</i></span>
+        <input name="q_${v.id}" type="number" min="0" value="${v.stock}" required></label>`).join("")}
       <label class="field"><span>nota</span><input name="note" placeholder="tras el bolo de marzo"></label>
       <div class="modal-acts">
         <button type="button" class="btn-ghost" data-cancel>cancelar</button>
         <button type="submit" class="btn-primary">cuadrar</button>
       </div>`, async fd => {
-      const counted = Math.max(0, Number(fd.get("qty")) || 0);
-      if (counted === p.stock) return;
-      const { error } = await supa.from("merch_movements").insert({
-        product_id: p.id, kind: "adjust", qty: counted, unit_price: 0,
-        note: String(fd.get("note") || "").trim() || `antes ${p.stock}`
-      });
-      if (error) throw error;
-      await setStock(p.id, counted);
+      const note = String(fd.get("note") || "").trim();
+      for (const v of vs) {
+        const counted = Math.max(0, Number(fd.get("q_" + v.id)) || 0);
+        if (counted === v.stock) continue;
+        const { error } = await supa.from("merch_movements").insert({
+          variant_id: v.id, kind: "adjust", qty: counted, unit_price: 0,
+          note: note || `antes ${v.stock}`
+        });
+        if (error) throw error;
+        await setStock(v.id, counted);
+      }
     });
   }
 
-  async function setStock(productId, stock) {
-    const { error } = await supa.from("merch_products")
-      .update({ stock: Math.max(0, stock) }).eq("id", productId);
+  async function setStock(variantId, stock) {
+    const { error } = await supa.from("merch_variants")
+      .update({ stock: Math.max(0, stock) }).eq("id", variantId);
     if (error) throw error;
   }
 
@@ -493,7 +777,7 @@ body.ready { visibility: visible; }
     const pop = document.createElement("div");
     pop.className = "pop";
     pop.innerHTML = `<div class="pop-menu">
-      <button data-more="edit">Editar producto</button>
+      <button data-more="edit">Editar producto y tallas</button>
       <button data-more="gift">Regalar unidades</button>
       <button data-more="count">Recuento de inventario</button>
       <hr>
@@ -524,7 +808,7 @@ body.ready { visibility: visible; }
         return;
       }
       if (what === "delete") {
-        if (!confirm(`Borrar «${p.name}» y todos sus movimientos. No hay vuelta atrás.`)) return;
+        if (!confirm(`Borrar «${p.name}», sus tallas y todos sus movimientos. No hay vuelta atrás.`)) return;
         const { error } = await supa.from("merch_products").delete().eq("id", p.id);
         if (error) alert(error.message); else load();
       }
@@ -537,36 +821,24 @@ body.ready { visibility: visible; }
   }
 
   /* ---------------- acciones ---------------- */
-  $("prods").addEventListener("click", async e => {
-    const btn = e.target.closest("button[data-act]");
-    if (!btn) return;
-    const p = productById(btn.dataset.id);
-    if (!p) return;
-    const act = btn.dataset.act;
-    if (act === "more") { openMoreMenu(btn, p); return; }
-    movementModal(p, act);
-  });
-
-  $("movs").addEventListener("click", async e => {
-    const btn = e.target.closest("button[data-mov]");
-    if (!btn) return;
+  async function movAction(btn) {
     const m = movements.find(x => x.id === btn.dataset.id);
     if (!m) return;
     const action = btn.dataset.mov;
 
     if (action === "deliver") {
-      const p = productById(m.product_id);
-      if (!p) return alert("El producto ya no existe.");
+      const v = variantById(m.variant_id);
+      if (!v) return alert("Esa talla ya no existe.");
       // Entregar una reserva = cerrarla y anotar la venta que la sustituye.
       const { error: e1 } = await supa.from("merch_movements")
         .update({ status: "done" }).eq("id", m.id);
       if (e1) return alert(e1.message);
       const { error: e2 } = await supa.from("merch_movements").insert({
-        product_id: m.product_id, kind: "sale", qty: m.qty, unit_price: m.unit_price,
+        variant_id: m.variant_id, kind: "sale", qty: m.qty, unit_price: m.unit_price,
         customer: m.customer, event: m.event, note: "reserva entregada"
       });
       if (e2) return alert(e2.message);
-      try { await setStock(p.id, p.stock - m.qty); } catch (err) { alert(err.message); }
+      try { await setStock(v.id, v.stock - m.qty); } catch (err) { alert(err.message); }
       return load();
     }
     if (action === "cancel") {
@@ -580,6 +852,41 @@ body.ready { visibility: visible; }
       const { error } = await supa.from("merch_movements").delete().eq("id", m.id);
       if (error) alert(error.message); else load();
     }
+  }
+
+  $("prods").addEventListener("click", async e => {
+    const mov = e.target.closest("button[data-mov]");
+    if (mov) return movAction(mov);
+
+    // Botón de una talla concreta del panel desplegado.
+    const vbtn = e.target.closest("button[data-vact]");
+    if (vbtn) {
+      const v = variantById(vbtn.dataset.id);
+      const p = v && productById(v.product_id);
+      if (p) movementModal(p, vbtn.dataset.vact, v);
+      return;
+    }
+
+    const btn = e.target.closest("button[data-act]");
+    if (btn) {
+      const p = productById(btn.dataset.id);
+      if (!p) return;
+      if (btn.dataset.act === "more") openMoreMenu(btn, p);
+      else movementModal(p, btn.dataset.act);
+      return;
+    }
+
+    // Cualquier otro sitio de la tarjeta abre o cierra su panel.
+    if (e.target.closest(".prod-acts")) return;
+    const card = e.target.closest(".prod[data-prod]");
+    if (!card) return;
+    openProduct = openProduct === card.dataset.prod ? null : card.dataset.prod;
+    renderProducts();
+  });
+
+  $("movs").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-mov]");
+    if (btn) movAction(btn);
   });
 
   $("new-product").addEventListener("click", () => productModal(null));
