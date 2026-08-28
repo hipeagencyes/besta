@@ -29,6 +29,37 @@ body.ready { visibility: visible; }
 .stat .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 3px; }
 .stat.accent .v { color: var(--accent); }
 .stat.warn .v { color: var(--warn); }
+.stat.good .v { color: var(--ok); }
+.stat.bad .v  { color: var(--bad); }
+
+/* ---------- recuperación del coste ---------- */
+.rec { margin-bottom: 26px; }
+.rec-bar {
+  height: 7px; border-radius: 999px; overflow: hidden;
+  background: rgba(255,255,255,.07); border: 1px solid var(--line);
+}
+.rec-bar i { display: block; height: 100%; background: var(--warn); border-radius: 999px; }
+.rec.done .rec-bar i { background: var(--ok); }
+.rec-txt { font-size: 12.5px; color: var(--muted); margin-top: 7px; }
+.rec-txt b { color: var(--fg); font-weight: 700; }
+.rec.done .rec-txt b { color: var(--ok); }
+
+/* ---------- dinero de un producto ---------- */
+.pnl-money {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  padding: 11px 13px; margin-bottom: 4px;
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 9px;
+}
+.pnl-money > div { min-width: 74px; }
+.pnl-money .k {
+  font-size: 9.5px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 3px;
+}
+.pnl-money .v { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pnl-money .v.good { color: var(--ok); }
+.pnl-money .v.bad { color: var(--bad); }
+.pnl-money .rec { margin: 4px 0 0; flex: 1 1 100%; }
+.pnl-note { font-size: 12px; color: var(--muted); margin: 9px 0 2px; }
 
 /* ---------- pestañas ---------- */
 .tabs { display: flex; gap: 5px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
@@ -117,11 +148,13 @@ body.ready { visibility: visible; }
   background: rgba(255,255,255,.07); color: var(--muted); padding: 2px 7px; border-radius: 5px; margin-left: 7px;
 }
 .prod-id .info { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
-.prod-nums { display: flex; gap: 18px; text-align: right; font-variant-numeric: tabular-nums; }
+.prod-nums { display: flex; gap: 18px; text-align: right; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
 .prod-nums .n { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .prod-nums .v { font-size: 17px; font-weight: 700; }
 .prod-nums .v.zero { color: var(--bad); }
 .prod-nums .v.held { color: var(--warn); }
+.prod-nums .v.good { color: var(--ok); }
+.prod-nums .v.bad { color: var(--bad); }
 .prod-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; cursor: default; }
 .prod-acts button { padding: 6px 11px; font-size: 12px; border-radius: 8px; width: auto; }
 
@@ -276,6 +309,7 @@ body.ready { visibility: visible; }
   <div id="error" class="err" hidden></div>
 
   <section class="stats" id="stats"></section>
+  <div id="recovery"></div>
 
   <nav class="tabs">
     <button class="tab on" data-tab="products">productos <span class="n" id="n-products"></span></button>
@@ -434,6 +468,44 @@ body.ready { visibility: visible; }
                          m.note, m.payment, m.by_name]
     .filter(Boolean).join(" ").toLowerCase();
 
+  /* --------------------------------------------------------
+     Dinero, en modelo de caja: sale al reponer (lo que costó la tirada,
+     tal y como se apuntó, no la tarifa de hoy) y entra al vender. Los
+     regalos y las mermas del recuento no restan aparte porque su coste
+     ya salió cuando se repuso.
+     -------------------------------------------------------- */
+  function money(rows) {
+    let spent = 0, earned = 0, sold = 0, bought = 0;
+    for (const m of rows) {
+      if (m.kind === "restock") { spent += m.qty * Number(m.unit_price); bought += m.qty; }
+      else if (m.kind === "sale") { earned += m.qty * Number(m.unit_price); sold += m.qty; }
+    }
+    return { spent, earned, sold, bought, profit: earned - spent, left: Math.max(0, spent - earned) };
+  }
+
+  const idsOf = p => variants.filter(v => v.product_id === p.id).map(v => v.id);
+  const moneyOf = p => {
+    const ids = idsOf(p);
+    return money(movements.filter(m => ids.includes(m.variant_id)));
+  };
+
+  // Lo que entraría si se vendiera a tarifa todo lo que queda en la caja.
+  const pendingValue = p => sizesOf(p).reduce((s, v) => s + v.stock * priceOf(v), 0);
+
+  /* Cuánto de lo invertido ha vuelto ya. Sin coste apuntado no hay nada
+     que recuperar y la barra sobra. */
+  function recoveryBar(m, extra = "") {
+    if (!m.spent) return "";
+    const pct = Math.min(100, Math.round((m.earned / m.spent) * 100));
+    const done = m.left === 0;
+    return `<div class="rec ${done ? "done" : ""}">
+      <div class="rec-bar"><i style="width:${pct}%"></i></div>
+      <div class="rec-txt">${done
+        ? `coste cubierto · <b>${eur(m.profit)}</b> de beneficio`
+        : `${pct}% del coste recuperado · faltan <b>${eur(m.left)}</b>`}${extra}</div>
+    </div>`;
+  }
+
   function variantName(v) {
     const p = v && productById(v.product_id);
     if (!p) return "producto borrado";
@@ -479,13 +551,21 @@ body.ready { visibility: visible; }
     const value = live.reduce((s, p) => s + sizesOf(p).reduce((a, v) => a + v.stock * priceOf(v), 0), 0);
     const held = movements.filter(m => m.kind === "reserve" && m.status === "open").reduce((s, m) => s + m.qty, 0);
     const revenue = movements.filter(m => m.kind === "sale").reduce((s, m) => s + m.qty * Number(m.unit_price), 0);
+    const bag = money(movements);
+
     // Cada tarjeta es un atajo a la lista que resume: ver «12 reservadas»
     // y no poder llegar a ellas de un toque era el mayor engorro.
     $("stats").innerHTML = `
+      <button class="stat" data-go="movements:restock"><div class="k">invertido</div><div class="v">${eur(bag.spent)}</div></button>
+      <button class="stat accent" data-go="movements:sale"><div class="k">vendido</div><div class="v">${eur(bag.earned)}</div></button>
+      <button class="stat ${bag.profit >= 0 ? "good" : "bad"}" data-go="movements:sale"><div class="k">beneficio</div><div class="v">${eur(bag.profit)}</div></button>
       <button class="stat" data-go="products"><div class="k">en stock</div><div class="v">${units}<small>uds</small></div></button>
-      <button class="stat" data-go="products"><div class="k">valor del stock</div><div class="v">${eur(value)}</div></button>
-      <button class="stat ${held ? "warn" : ""}" data-go="reservas"><div class="k">reservado</div><div class="v">${held}<small>uds</small></div></button>
-      <button class="stat accent" data-go="movements:sale"><div class="k">vendido</div><div class="v">${eur(revenue)}</div></button>`;
+      <button class="stat" data-go="products"><div class="k">valor en caja</div><div class="v">${eur(value)}</div></button>
+      <button class="stat ${held ? "warn" : ""}" data-go="reservas"><div class="k">reservado</div><div class="v">${held}<small>uds</small></div></button>`;
+
+    // Lo que queda por vender es lo que dice si la deuda se puede cubrir.
+    const rest = value ? ` · quedan ${eur(value)} en caja por vender` : "";
+    $("recovery").innerHTML = recoveryBar(bag, bag.left ? rest : "");
   }
 
   function renderProducts() {
@@ -506,6 +586,7 @@ body.ready { visibility: visible; }
     box.innerHTML = list.map(p => {
       const vs = sizesOf(p);
       const { stock, held, free } = totals(p);
+      const bag = moneyOf(p);
       const sized = hasSizes(p);
       const open = openProduct === p.id;
       // Con precios distintos por talla, un número solo mentiría.
@@ -524,6 +605,7 @@ body.ready { visibility: visible; }
             <div><div class="n">stock</div><div class="v ${stock <= 0 ? "zero" : ""}">${stock}</div></div>
             ${held ? `<div><div class="n">apartado</div><div class="v held">${held}</div></div>` : ""}
             <div><div class="n">libre</div><div class="v ${free <= 0 ? "zero" : ""}">${free}</div></div>
+            <div><div class="n">beneficio</div><div class="v ${bag.profit >= 0 ? "good" : "bad"}">${eur(bag.profit)}</div></div>
           </div>
           <div class="prod-acts">
             <button class="btn-ghost" data-act="sale"    data-id="${p.id}" ${free <= 0 ? "disabled" : ""}>vender</button>
@@ -542,6 +624,20 @@ body.ready { visibility: visible; }
      porque de un vistazo quieres ver varios productos abiertos a la vez. */
   function renderPanel(p) {
     const sized = hasSizes(p);
+    const bag = moneyOf(p);
+    const pending = pendingValue(p);
+
+    // Si se vendiera a tarifa todo lo que queda, aquí acabaría la cosa:
+    // es el número que contesta a «¿merece la pena la próxima tirada?».
+    const ceiling = bag.earned + pending - bag.spent;
+    const dinero = `<div class="pnl-money">
+      <div><div class="k">invertido</div><div class="v">${eur(bag.spent)}</div></div>
+      <div><div class="k">vendido</div><div class="v">${eur(bag.earned)}</div></div>
+      <div><div class="k">beneficio</div><div class="v ${bag.profit >= 0 ? "good" : "bad"}">${eur(bag.profit)}</div></div>
+      <div><div class="k">unidades</div><div class="v">${bag.sold}<small style="font-size:12px;color:var(--muted)"> de ${bag.bought}</small></div></div>
+      ${recoveryBar(bag)}
+    </div>
+    ${pending ? `<p class="pnl-note">Quedan ${eur(pending)} en caja a precio de tarifa: vendiéndolo todo, este producto acabaría en <b>${eur(ceiling)}</b>.</p>` : ""}`;
     const sizes = !sized ? "" : `<div class="sizes">${sizesOf(p).map(v => {
       const held = heldFor(v.id), free = freeOf(v);
       return `<div class="size ${free <= 0 ? "out" : ""}">
@@ -580,7 +676,7 @@ body.ready { visibility: visible; }
     const body = heldBlock + pastBlock ||
       `<div class="empty">Todavía no le ha pasado nada a este producto.</div>`;
 
-    return `<div class="prod-hist">${sizes}${body}</div>`;
+    return `<div class="prod-hist">${dinero}${sizes}${body}</div>`;
   }
 
   /* Una fila de movimiento. La misma en la pestaña de movimientos y en el
