@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+<meta name="theme-color" content="#050508" />
+<title>BESTA — finanzas</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicons/favicon-32x32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/suite/suite-shell.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<script src="/suite/suite.js"></script>
+<style>
+  body { visibility: hidden; }
+  body.ready { visibility: visible; }
+  .soon-box { max-width: 560px; margin: 12vh auto 0; text-align: center; padding: 0 20px; }
+  .soon-glyph {
+    display: grid; place-items: center; width: 62px; height: 62px; margin: 0 auto 22px;
+    border-radius: 17px; background: rgba(var(--accent-rgb), .13); color: var(--accent); font-size: 27px;
+  }
+  .soon-box h1 { margin: 0 0 10px; font-size: 32px; letter-spacing: -.02em; }
+  .soon-box .badge {
+    display: inline-block; margin-bottom: 22px; padding: 5px 11px; border-radius: 999px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    background: rgba(244,211,94,.13); color: var(--warn);
+  }
+  .soon-box p { color: var(--muted); margin: 0 0 26px; }
+  .soon-list { text-align: left; display: grid; gap: 10px; }
+  .soon-list li {
+    list-style: none; padding: 13px 16px; border-radius: 12px;
+    background: var(--bg-2); border: 1px solid var(--line); color: var(--muted); font-size: 14px;
+  }
+  .soon-list li b { color: var(--fg); font-weight: 600; display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<header class="space-head">
+  <div class="who">
+    <img src="/assets/images/besta_color.png" alt="BESTA">
+    <b>finanzas</b><i>suite</i>
+  </div>
+  <div class="tools">
+    <a class="btn-ghost sm" href="/suite/" style="text-decoration:none">suite</a>
+  </div>
+</header>
+
+<div class="soon-box">
+  <div class="soon-glyph">€</div>
+  <h1>finanzas</h1>
+  <div class="badge">próximamente</div>
+  <p>El sitio donde vivirán los números de la banda. Todavía no hay nada que tocar.</p>
+  <ul class="soon-list">
+    <li><b>Cachés por bolo</b>Lo que entra de cada concierto, con su factura y su estado de cobro.</li>
+    <li><b>Gastos</b>Furgo, gasolina, local, cuerdas, imprenta. Todo lo que sale.</li>
+    <li><b>Reparto</b>Cuánto toca a cada uno una vez descontado lo común.</li>
+    <li><b>Enlace con merch</b>Las ventas registradas en merch entran solas como ingreso.</li>
+  </ul>
+</div>
+
+<script>
+(async function () {
+  await BestaSuite.guard();
+  document.body.classList.add("ready");
+  BestaSuite.mountNav({ active: "finanzas" });
+})();
+</script>
+</body>
+</html>

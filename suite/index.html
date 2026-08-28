@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+<meta name="theme-color" content="#050508" />
+<title>BESTA — suite</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicons/favicon-32x32.png">
+<link rel="shortcut icon" href="/assets/favicons/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/suite/suite-shell.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<script src="/suite/suite.js"></script>
+</head>
+<body>
+
+<!-- ============ PUERTA ============ -->
+<div id="gate">
+  <div class="gate-card">
+    <img class="gate-logo" src="/assets/images/besta_color.png" alt="BESTA">
+    <p class="gate-kicker">suite interna</p>
+
+    <div id="gate-loading" class="gate-state">
+      <p class="gate-muted">comprobando sesión…</p>
+    </div>
+
+    <form id="gate-form" class="gate-state" hidden>
+      <input id="gate-email" type="email" autocomplete="username" placeholder="email" required>
+      <input id="gate-password" type="password" autocomplete="current-password" placeholder="contraseña" required>
+      <button id="gate-submit" type="submit" class="btn-primary">entrar</button>
+      <button id="gate-reset" type="button" class="btn-ghost">crear / recuperar contraseña</button>
+      <div id="gate-error" class="gate-error" aria-live="polite"></div>
+    </form>
+
+    <div id="gate-sent" class="gate-state" hidden>
+      <p class="gate-muted">te hemos mandado un email con el enlace. Ábrelo en este mismo dispositivo.</p>
+      <button id="gate-back" type="button" class="btn-ghost">volver</button>
+    </div>
+
+    <form id="gate-recovery" class="gate-state" hidden>
+      <p class="gate-muted">elige una contraseña nueva</p>
+      <input id="gate-new-password" type="password" autocomplete="new-password" placeholder="contraseña nueva" required>
+      <button id="gate-recovery-submit" type="submit" class="btn-primary">guardar contraseña</button>
+      <div id="gate-recovery-error" class="gate-error" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ HUB ============ -->
+<main id="hub" hidden>
+  <header class="hub-head">
+    <div class="hub-brand">
+      <img src="/assets/images/besta_color.png" alt="BESTA">
+      <span>suite</span>
+    </div>
+    <div class="hub-account">
+      <span id="hub-email" class="mono"></span>
+      <button id="hub-logout" type="button" class="btn-ghost sm">salir</button>
+    </div>
+  </header>
+
+  <section class="hub-body">
+    <h1 class="hub-title">¿a dónde vamos?</h1>
+    <p class="hub-sub">Las cuatro patas de la gestión de la banda.</p>
+    <div id="hub-grid" class="hub-grid"></div>
+    <p class="hub-foot"><a href="/">← volver a besta.es</a></p>
+  </section>
+</main>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const gate = $("gate"), hub = $("hub");
+  const states = {
+    loading: $("gate-loading"),
+    form: $("gate-form"),
+    sent: $("gate-sent"),
+    recovery: $("gate-recovery")
+  };
+  let supa = null;
+  let recovering = false;
+
+  function showGateState(name) {
+    Object.entries(states).forEach(([k, el]) => { el.hidden = k !== name; });
+  }
+
+  /* A dónde mandamos al usuario tras entrar. Solo aceptamos rutas internas
+     de la suite: un ?next= con host ajeno sería un redirect abierto. */
+  function nextTarget() {
+    const raw = new URLSearchParams(location.search).get("next");
+    if (!raw) return null;
+    if (!raw.startsWith("/suite/") || raw.startsWith("/suite//")) return null;
+    return raw;
+  }
+
+  function renderGrid() {
+    const grid = $("hub-grid");
+    grid.innerHTML = "";
+    BestaSuite.SPACES.forEach(space => {
+      const card = document.createElement(space.status === "soon" ? "div" : "a");
+      card.className = "space" + (space.status === "soon" ? " soon" : "");
+      if (space.status !== "soon") card.href = space.href;
+      card.innerHTML = `
+        <span class="space-glyph">${space.glyph}</span>
+        <h2>${space.name}</h2>
+        <p class="space-tag">${space.tagline}</p>
+        <p class="space-desc">${space.desc}</p>
+        ${space.status === "soon" ? '<span class="space-badge">próximamente</span>' : ''}`;
+      grid.appendChild(card);
+    });
+  }
+
+  function unlock(session) {
+    const target = nextTarget();
+    if (target) { location.replace(target); return; }
+    gate.hidden = true;
+    hub.hidden = false;
+    $("hub-email").textContent = session?.user?.email || "";
+    renderGrid();
+  }
+
+  function lock() {
+    hub.hidden = true;
+    gate.hidden = false;
+    showGateState("form");
+    $("gate-error").textContent = "";
+  }
+
+  function handleAuthState(event, session) {
+    if (event === "PASSWORD_RECOVERY") {
+      recovering = true;
+      hub.hidden = true; gate.hidden = false;
+      showGateState("recovery");
+      setTimeout(() => $("gate-new-password").focus(), 0);
+    } else if (recovering && event === "INITIAL_SESSION") {
+      showGateState("recovery");
+    } else if (session) {
+      unlock(session);
+    } else {
+      lock();
+    }
+  }
+
+  (async function boot() {
+    supa = await BestaSuite.client();
+    showGateState("loading");
+    supa.auth.onAuthStateChange(handleAuthState);
+    const { data: { session } } = await supa.auth.getSession();
+    handleAuthState("INITIAL_SESSION", session);
+  })();
+
+  $("gate-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const email = $("gate-email").value.trim();
+    const password = $("gate-password").value;
+    if (!email || !password) return;
+    const submit = $("gate-submit");
+    $("gate-error").textContent = "";
+    submit.disabled = true; submit.textContent = "entrando…";
+    try {
+      const { error } = await supa.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } catch (err) {
+      $("gate-error").textContent = err.message || "no se pudo entrar";
+    } finally {
+      submit.disabled = false; submit.textContent = "entrar";
+    }
+  });
+
+  $("gate-reset").addEventListener("click", async () => {
+    const email = $("gate-email").value.trim();
+    $("gate-error").textContent = "";
+    if (!email) {
+      $("gate-error").textContent = "pon tu email primero";
+      $("gate-email").focus();
+      return;
+    }
+    const btn = $("gate-reset");
+    btn.disabled = true; btn.textContent = "enviando…";
+    try {
+      const { error } = await supa.auth.resetPasswordForEmail(email, {
+        redirectTo: location.origin + "/suite/"
+      });
+      if (error) throw error;
+      showGateState("sent");
+    } catch (err) {
+      $("gate-error").textContent = err.message || "no se pudo enviar el email";
+    } finally {
+      btn.disabled = false; btn.textContent = "crear / recuperar contraseña";
+    }
+  });
+
+  $("gate-back").addEventListener("click", () => {
+    showGateState("form");
+    $("gate-email").focus();
+  });
+
+  $("gate-recovery").addEventListener("submit", async e => {
+    e.preventDefault();
+    const password = $("gate-new-password").value;
+    if (!password) return;
+    const submit = $("gate-recovery-submit");
+    $("gate-recovery-error").textContent = "";
+    submit.disabled = true; submit.textContent = "guardando…";
+    try {
+      const { error } = await supa.auth.updateUser({ password });
+      if (error) throw error;
+      recovering = false;
+      const { data: { session } } = await supa.auth.getSession();
+      unlock(session);
+    } catch (err) {
+      $("gate-recovery-error").textContent = err.message || "no se pudo guardar la contraseña";
+    } finally {
+      submit.disabled = false; submit.textContent = "guardar contraseña";
+    }
+  });
+
+  $("hub-logout").addEventListener("click", () => BestaSuite.logout());
+})();
+</script>
+</body>
+</html>

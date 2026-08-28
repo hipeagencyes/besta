@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+<meta name="theme-color" content="#050508" />
+<title>BESTA — merch</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicons/favicon-32x32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/suite/suite-shell.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<script src="/suite/suite.js"></script>
+<style>
+body { visibility: hidden; }
+body.ready { visibility: visible; }
+
+/* ---------- resumen ---------- */
+.stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 26px; }
+.stat { background: var(--bg-2); border: 1px solid var(--line); border-radius: 13px; padding: 14px 16px; }
+.stat .k { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.stat .v { font-size: 24px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+.stat.accent .v { color: var(--accent); }
+
+/* ---------- pestañas ---------- */
+.tabs { display: flex; gap: 5px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.tab {
+  background: none; border: 0; border-bottom: 2px solid transparent; padding: 9px 14px;
+  color: var(--muted); font-weight: 600; font-size: 14px; margin-bottom: -1px;
+}
+.tab.on { color: var(--fg); border-bottom-color: var(--accent); }
+.tab .n { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 5px; }
+
+.bar { display: flex; gap: 9px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.bar input[type=search] { flex: 1; min-width: 160px; }
+.bar select { width: auto; min-width: 130px; }
+
+/* ---------- productos ---------- */
+.prods { display: grid; gap: 11px; }
+.prod {
+  display: grid; gap: 12px; align-items: center; padding: 14px 16px;
+  grid-template-columns: 1fr auto auto; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 13px;
+}
+.prod.out { border-color: rgba(255,107,107,.32); }
+.prod.arch { opacity: .5; }
+.prod-id { min-width: 0; }
+.prod-id b { font-size: 16px; font-weight: 700; }
+.prod-id .var {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  background: rgba(255,255,255,.07); color: var(--muted); padding: 2px 7px; border-radius: 5px; margin-left: 7px;
+}
+.prod-id .info { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.prod-nums { display: flex; gap: 18px; text-align: right; font-variant-numeric: tabular-nums; }
+.prod-nums .n { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.prod-nums .v { font-size: 17px; font-weight: 700; }
+.prod-nums .v.zero { color: var(--bad); }
+.prod-nums .v.held { color: var(--warn); }
+.prod-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.prod-acts button { padding: 6px 11px; font-size: 12px; border-radius: 8px; width: auto; }
+@media (max-width: 720px) {
+  .prod { grid-template-columns: 1fr; }
+  .prod-nums { justify-content: flex-start; text-align: left; }
+  .prod-acts { justify-content: flex-start; }
+}
+
+/* ---------- movimientos ---------- */
+.movs { display: grid; gap: 8px; }
+.mov {
+  display: grid; gap: 12px; align-items: center; padding: 11px 15px;
+  grid-template-columns: 84px 1fr auto auto; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 11px; font-size: 14px;
+}
+.mov.open { border-color: rgba(244,211,94,.35); }
+.mov .kind {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  padding: 3px 0; border-radius: 5px; text-align: center;
+}
+.kind.sale    { background: rgba(95,214,165,.14); color: var(--ok); }
+.kind.restock { background: rgba(107,169,255,.14); color: #6ba9ff; }
+.kind.reserve { background: rgba(244,211,94,.14); color: var(--warn); }
+.kind.gift    { background: rgba(177,139,255,.14); color: #b18bff; }
+.kind.adjust  { background: rgba(255,255,255,.07); color: var(--muted); }
+.mov .what { min-width: 0; }
+.mov .what b { font-weight: 600; }
+.mov .what span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.mov .amount { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; white-space: nowrap; }
+.mov .amount small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+.mov .acts { display: flex; gap: 6px; }
+.mov .acts button { padding: 5px 10px; font-size: 11px; border-radius: 7px; width: auto; }
+@media (max-width: 720px) {
+  .mov { grid-template-columns: 84px 1fr; }
+  .mov .amount, .mov .acts { grid-column: 2; text-align: left; }
+}
+
+.empty { padding: 46px 20px; text-align: center; color: var(--muted); }
+.err {
+  padding: 14px 16px; border-radius: 11px; margin-bottom: 18px;
+  background: rgba(255,107,107,.1); border: 1px solid rgba(255,107,107,.3); color: #ffb3b3; font-size: 14px;
+}
+.err code { font-family: var(--mono); font-size: 12px; }
+
+/* ---------- menú «···» ---------- */
+.pop { position: fixed; inset: 0; z-index: 2400; }
+.pop-menu {
+  position: absolute; min-width: 190px; padding: 5px;
+  background: var(--bg-3); border: 1px solid var(--line-strong);
+  border-radius: 11px; box-shadow: 0 16px 40px rgba(0,0,0,.6);
+}
+.pop-menu button {
+  display: block; width: 100%; text-align: left; background: none; border: 0;
+  padding: 8px 11px; border-radius: 7px; font-size: 13px; color: var(--fg);
+}
+.pop-menu button:hover { background: rgba(255,255,255,.07); }
+.pop-menu button.danger { color: var(--bad); }
+.pop-menu hr { border: 0; border-top: 1px solid var(--line); margin: 5px 3px; }
+
+/* ---------- modal ---------- */
+.modal { position: fixed; inset: 0; z-index: 2500; display: grid; place-items: center; padding: 20px;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(3px); overflow: auto; }
+.modal-card {
+  width: min(430px, 100%); background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 16px; padding: 22px;
+}
+.modal-card h2 { margin: 0 0 4px; font-size: 20px; }
+.modal-card .lead { margin: 0 0 18px; font-size: 13px; color: var(--muted); }
+.row2 { display: grid; gap: 11px; grid-template-columns: 1fr 1fr; }
+.modal-acts { display: flex; gap: 9px; margin-top: 18px; }
+.modal-acts .btn-primary, .modal-acts .btn-ghost { width: auto; flex: 1; }
+</style>
+</head>
+<body>
+
+<header class="space-head">
+  <div class="who">
+    <img src="/assets/images/besta_color.png" alt="BESTA">
+    <b>merch</b><i>suite</i>
+  </div>
+  <div class="tools">
+    <button class="btn-ghost sm" id="new-product">+ producto</button>
+    <a class="btn-ghost sm" href="/suite/" style="text-decoration:none">suite</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="error" class="err" hidden></div>
+
+  <section class="stats" id="stats"></section>
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="products">productos <span class="n" id="n-products"></span></button>
+    <button class="tab" data-tab="movements">movimientos <span class="n" id="n-movements"></span></button>
+  </nav>
+
+  <div id="view-products">
+    <div class="bar">
+      <input type="search" id="q" placeholder="buscar producto…">
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;white-space:nowrap">
+        <input type="checkbox" id="show-archived" style="width:auto"> ver archivados
+      </label>
+    </div>
+    <div class="prods" id="prods"></div>
+  </div>
+
+  <div id="view-movements" hidden>
+    <div class="bar">
+      <select id="filter-kind">
+        <option value="">todos los tipos</option>
+        <option value="sale">ventas</option>
+        <option value="reserve">reservas</option>
+        <option value="restock">reposiciones</option>
+        <option value="gift">regalos</option>
+        <option value="adjust">recuentos</option>
+      </select>
+      <select id="filter-status">
+        <option value="">cualquier estado</option>
+        <option value="open">reservas abiertas</option>
+        <option value="done">cerrados</option>
+        <option value="cancelled">cancelados</option>
+      </select>
+    </div>
+    <div class="movs" id="movs"></div>
+  </div>
+</main>
+
+<div id="modal-root"></div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  let supa = null;
+  let products = [];
+  let movements = [];
+  let tab = "products";
+
+  const KIND_LABEL = {
+    sale: "venta", restock: "repone", reserve: "reserva", gift: "regalo", adjust: "recuento"
+  };
+
+  const eur = n => (Number(n) || 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function showError(msg) {
+    const box = $("error");
+    if (!msg) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = msg;
+  }
+
+  /* Unidades apartadas por reservas todavía abiertas. Están en la caja pero
+     ya tienen dueño, así que no se pueden vender dos veces. */
+  function heldFor(productId) {
+    return movements
+      .filter(m => m.product_id === productId && m.kind === "reserve" && m.status === "open")
+      .reduce((sum, m) => sum + m.qty, 0);
+  }
+
+  const productById = id => products.find(p => p.id === id);
+
+  /* ---------------- carga ---------------- */
+  async function load() {
+    showError("");
+    const [pr, mv] = await Promise.all([
+      supa.from("merch_products").select("*").order("name", { ascending: true }),
+      supa.from("merch_movements").select("*").order("created_at", { ascending: false }).limit(500)
+    ]);
+    const bad = pr.error || mv.error;
+    if (bad) {
+      if (bad.code === "42P01" || /does not exist/i.test(bad.message)) {
+        showError("Las tablas de merch todavía no existen. Ejecuta <code>suite/merch-setup.sql</code> en el SQL Editor de Supabase y recarga.");
+      } else {
+        showError("Error cargando: <code>" + esc(bad.message) + "</code>");
+      }
+      products = []; movements = [];
+    } else {
+      products = pr.data || [];
+      movements = mv.data || [];
+    }
+    render();
+  }
+
+  /* ---------------- pintado ---------------- */
+  function renderStats() {
+    const live = products.filter(p => !p.archived);
+    const units = live.reduce((s, p) => s + p.stock, 0);
+    const value = live.reduce((s, p) => s + p.stock * Number(p.price), 0);
+    const held = movements.filter(m => m.kind === "reserve" && m.status === "open").reduce((s, m) => s + m.qty, 0);
+    const revenue = movements.filter(m => m.kind === "sale").reduce((s, m) => s + m.qty * Number(m.unit_price), 0);
+    $("stats").innerHTML = `
+      <div class="stat"><div class="k">en stock</div><div class="v">${units}<small>uds</small></div></div>
+      <div class="stat"><div class="k">valor del stock</div><div class="v">${eur(value)}</div></div>
+      <div class="stat"><div class="k">reservado</div><div class="v">${held}<small>uds</small></div></div>
+      <div class="stat accent"><div class="k">vendido</div><div class="v">${eur(revenue)}</div></div>`;
+  }
+
+  function renderProducts() {
+    const q = $("q").value.trim().toLowerCase();
+    const showArchived = $("show-archived").checked;
+    const list = products.filter(p => {
+      if (!showArchived && p.archived) return false;
+      if (!q) return true;
+      return (p.name + " " + p.variant + " " + p.info).toLowerCase().includes(q);
+    });
+
+    $("n-products").textContent = products.filter(p => !p.archived).length || "";
+    const box = $("prods");
+    if (!list.length) {
+      box.innerHTML = `<div class="empty">${products.length ? "Nada coincide con la búsqueda." : "Todavía no hay productos. Empieza con « + producto »."}</div>`;
+      return;
+    }
+    box.innerHTML = list.map(p => {
+      const held = heldFor(p.id);
+      const free = p.stock - held;
+      return `<div class="prod ${free <= 0 ? "out" : ""} ${p.archived ? "arch" : ""}">
+        <div class="prod-id">
+          <b>${esc(p.name)}</b>${p.variant ? `<span class="var">${esc(p.variant)}</span>` : ""}
+          ${p.info ? `<span class="info">${esc(p.info)}</span>` : ""}
+        </div>
+        <div class="prod-nums">
+          <div><div class="n">precio</div><div class="v">${eur(p.price)}</div></div>
+          <div><div class="n">stock</div><div class="v ${p.stock <= 0 ? "zero" : ""}">${p.stock}</div></div>
+          ${held ? `<div><div class="n">apartado</div><div class="v held">${held}</div></div>` : ""}
+          <div><div class="n">libre</div><div class="v ${free <= 0 ? "zero" : ""}">${free}</div></div>
+        </div>
+        <div class="prod-acts">
+          <button class="btn-ghost" data-act="sale"    data-id="${p.id}" ${free <= 0 ? "disabled" : ""}>vender</button>
+          <button class="btn-ghost" data-act="reserve" data-id="${p.id}" ${free <= 0 ? "disabled" : ""}>reservar</button>
+          <button class="btn-ghost" data-act="restock" data-id="${p.id}">+ stock</button>
+          <button class="btn-ghost" data-act="more"    data-id="${p.id}">···</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderMovements() {
+    const k = $("filter-kind").value, st = $("filter-status").value;
+    const list = movements.filter(m => (!k || m.kind === k) && (!st || m.status === st));
+    const open = movements.filter(m => m.kind === "reserve" && m.status === "open").length;
+    $("n-movements").textContent = open ? open + " abiertas" : "";
+
+    const box = $("movs");
+    if (!list.length) { box.innerHTML = `<div class="empty">Sin movimientos que enseñar.</div>`; return; }
+    box.innerHTML = list.map(m => {
+      const p = productById(m.product_id);
+      const name = p ? p.name + (p.variant ? " · " + p.variant : "") : "producto borrado";
+      const isOpen = m.kind === "reserve" && m.status === "open";
+      const when = new Date(m.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" });
+      const meta = [when, m.customer, m.event, m.note, m.status === "cancelled" ? "cancelado" : ""]
+        .filter(Boolean).map(esc).join(" · ");
+      const money = (m.kind === "sale" || (m.kind === "reserve" && m.status !== "cancelled"))
+        ? eur(m.qty * Number(m.unit_price)) : "—";
+      return `<div class="mov ${isOpen ? "open" : ""}">
+        <div class="kind ${m.kind}">${KIND_LABEL[m.kind]}</div>
+        <div class="what"><b>${m.qty}× ${esc(name)}</b><span>${meta}</span></div>
+        <div class="amount">${money}${m.kind === "adjust" ? "<small>stock fijado</small>" : ""}</div>
+        <div class="acts">${isOpen
+          ? `<button class="btn-ghost" data-mov="deliver" data-id="${m.id}">entregar</button>
+             <button class="btn-ghost btn-danger" data-mov="cancel" data-id="${m.id}">anular</button>`
+          : `<button class="btn-ghost btn-danger" data-mov="delete" data-id="${m.id}">borrar</button>`}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function render() {
+    renderStats();
+    if (tab === "products") renderProducts(); else renderMovements();
+  }
+
+  /* ---------------- modales ---------------- */
+  function closeModal() { $("modal-root").innerHTML = ""; }
+
+  function openModal(html, onSubmit) {
+    $("modal-root").innerHTML = `<div class="modal"><form class="modal-card">${html}</form></div>`;
+    const modal = $("modal-root").querySelector(".modal");
+    const form = modal.querySelector("form");
+    modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+    modal.querySelector("[data-cancel]").addEventListener("click", closeModal);
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const btn = form.querySelector("[type=submit]");
+      btn.disabled = true;
+      try {
+        await onSubmit(new FormData(form));
+        closeModal();
+        await load();
+      } catch (err) {
+        alert(err.message || String(err));
+        btn.disabled = false;
+      }
+    });
+    form.querySelector("input, select, textarea")?.focus();
+  }
+
+  function productModal(p) {
+    const edit = !!p;
+    openModal(`
+      <h2>${edit ? "Editar producto" : "Producto nuevo"}</h2>
+      <p class="lead">${edit ? "El stock se cambia con movimientos, no aquí." : "El stock inicial entra como una reposición."}</p>
+      <label class="field"><span>nombre</span><input name="name" required value="${esc(p?.name || "")}" placeholder="Camiseta logo"></label>
+      <div class="row2">
+        <label class="field"><span>variante</span><input name="variant" value="${esc(p?.variant || "")}" placeholder="talla M"></label>
+        <label class="field"><span>precio venta</span><input name="price" type="number" step="0.01" min="0" required value="${p?.price ?? ""}" placeholder="20"></label>
+      </div>
+      <div class="row2">
+        <label class="field"><span>coste unidad</span><input name="cost" type="number" step="0.01" min="0" value="${p?.cost ?? 0}" placeholder="7"></label>
+        ${edit ? "" : `<label class="field"><span>stock inicial</span><input name="stock" type="number" min="0" value="0"></label>`}
+      </div>
+      <label class="field"><span>información</span><textarea name="info" rows="2" placeholder="Algodón orgánico, serigrafía a dos tintas">${esc(p?.info || "")}</textarea></label>
+      <div class="modal-acts">
+        <button type="button" class="btn-ghost" data-cancel>cancelar</button>
+        <button type="submit" class="btn-primary">${edit ? "guardar" : "crear"}</button>
+      </div>`, async fd => {
+      const payload = {
+        name: String(fd.get("name")).trim(),
+        variant: String(fd.get("variant") || "").trim(),
+        price: Number(fd.get("price")) || 0,
+        cost: Number(fd.get("cost")) || 0,
+        info: String(fd.get("info") || "").trim()
+      };
+      if (edit) {
+        const { error } = await supa.from("merch_products").update(payload).eq("id", p.id);
+        if (error) throw error;
+        return;
+      }
+      const stock = Math.max(0, Number(fd.get("stock")) || 0);
+      const { data, error } = await supa.from("merch_products")
+        .insert({ ...payload, stock }).select().single();
+      if (error) throw error;
+      if (stock > 0) {
+        await supa.from("merch_movements").insert({
+          product_id: data.id, kind: "restock", qty: stock,
+          unit_price: payload.cost, note: "stock inicial"
+        });
+      }
+    });
+  }
+
+  /* Un solo modal para vender, reservar, reponer y regalar: cambia el copy
+     y qué le hace al stock, el formulario es el mismo. */
+  function movementModal(p, kind) {
+    const held = heldFor(p.id);
+    const free = p.stock - held;
+    const titles = {
+      sale: "Vender", reserve: "Reservar", restock: "Reponer stock", gift: "Regalar"
+    };
+    const pricey = kind === "sale" || kind === "reserve";
+    openModal(`
+      <h2>${titles[kind]}</h2>
+      <p class="lead">${esc(p.name)}${p.variant ? " · " + esc(p.variant) : ""} — ${free} libres de ${p.stock} en caja</p>
+      <div class="row2">
+        <label class="field"><span>unidades</span><input name="qty" type="number" min="1" ${kind !== "restock" ? `max="${free}"` : ""} value="1" required></label>
+        ${pricey
+          ? `<label class="field"><span>precio unidad</span><input name="unit_price" type="number" step="0.01" min="0" value="${p.price}"></label>`
+          : kind === "restock"
+            ? `<label class="field"><span>coste unidad</span><input name="unit_price" type="number" step="0.01" min="0" value="${p.cost}"></label>`
+            : `<div></div>`}
+      </div>
+      ${kind === "sale" || kind === "reserve" || kind === "gift"
+        ? `<label class="field"><span>${kind === "reserve" ? "para quién" : "cliente (opcional)"}</span><input name="customer" ${kind === "reserve" ? "required" : ""} placeholder="Nombre o @instagram"></label>`
+        : ""}
+      <div class="row2">
+        <label class="field"><span>bolo / sitio</span><input name="event" placeholder="Sala X, 12 mar"></label>
+        <label class="field"><span>nota</span><input name="note" placeholder="pagó bizum"></label>
+      </div>
+      <div class="modal-acts">
+        <button type="button" class="btn-ghost" data-cancel>cancelar</button>
+        <button type="submit" class="btn-primary">${titles[kind].toLowerCase()}</button>
+      </div>`, async fd => {
+      const qty = Math.max(1, Number(fd.get("qty")) || 0);
+      if (kind !== "restock" && qty > free) throw new Error(`Solo quedan ${free} libres.`);
+      const { error } = await supa.from("merch_movements").insert({
+        product_id: p.id,
+        kind,
+        qty,
+        unit_price: Number(fd.get("unit_price")) || 0,
+        customer: String(fd.get("customer") || "").trim(),
+        event: String(fd.get("event") || "").trim(),
+        note: String(fd.get("note") || "").trim(),
+        status: kind === "reserve" ? "open" : "done"
+      });
+      if (error) throw error;
+      // La reserva no toca el stock: las unidades siguen en la caja hasta
+      // que se entregan. Lo demás sí lo mueve.
+      const delta = kind === "restock" ? qty : kind === "reserve" ? 0 : -qty;
+      if (delta) await setStock(p.id, p.stock + delta);
+    });
+  }
+
+  function countModal(p) {
+    openModal(`
+      <h2>Recuento</h2>
+      <p class="lead">${esc(p.name)}${p.variant ? " · " + esc(p.variant) : ""} — la app dice ${p.stock}. ¿Cuántas hay de verdad?</p>
+      <label class="field"><span>unidades contadas</span><input name="qty" type="number" min="0" value="${p.stock}" required></label>
+      <label class="field"><span>nota</span><input name="note" placeholder="tras el bolo de marzo"></label>
+      <div class="modal-acts">
+        <button type="button" class="btn-ghost" data-cancel>cancelar</button>
+        <button type="submit" class="btn-primary">cuadrar</button>
+      </div>`, async fd => {
+      const counted = Math.max(0, Number(fd.get("qty")) || 0);
+      if (counted === p.stock) return;
+      const { error } = await supa.from("merch_movements").insert({
+        product_id: p.id, kind: "adjust", qty: counted, unit_price: 0,
+        note: String(fd.get("note") || "").trim() || `antes ${p.stock}`
+      });
+      if (error) throw error;
+      await setStock(p.id, counted);
+    });
+  }
+
+  async function setStock(productId, stock) {
+    const { error } = await supa.from("merch_products")
+      .update({ stock: Math.max(0, stock) }).eq("id", productId);
+    if (error) throw error;
+  }
+
+  /* Menú de lo que se usa poco: editar, regalar, cuadrar, archivar, borrar. */
+  function openMoreMenu(anchor, p) {
+    const pop = document.createElement("div");
+    pop.className = "pop";
+    pop.innerHTML = `<div class="pop-menu">
+      <button data-more="edit">Editar producto</button>
+      <button data-more="gift">Regalar unidades</button>
+      <button data-more="count">Recuento de inventario</button>
+      <hr>
+      <button data-more="archive">${p.archived ? "Desarchivar" : "Archivar"}</button>
+      <button data-more="delete" class="danger">Borrar producto e historial</button>
+    </div>`;
+    document.body.appendChild(pop);
+
+    // Anclado al botón, subiéndolo si no cabe por debajo.
+    const menu = pop.firstElementChild;
+    const r = anchor.getBoundingClientRect();
+    const h = menu.offsetHeight, w = menu.offsetWidth;
+    menu.style.top = (r.bottom + 6 + h > innerHeight ? r.top - h - 6 : r.bottom + 6) + "px";
+    menu.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + "px";
+
+    const close = () => pop.remove();
+    pop.addEventListener("click", async e => {
+      const b = e.target.closest("button[data-more]");
+      if (!b) { close(); return; }
+      close();
+      const what = b.dataset.more;
+      if (what === "edit") return productModal(p);
+      if (what === "gift") return movementModal(p, "gift");
+      if (what === "count") return countModal(p);
+      if (what === "archive") {
+        const { error } = await supa.from("merch_products").update({ archived: !p.archived }).eq("id", p.id);
+        if (error) alert(error.message); else load();
+        return;
+      }
+      if (what === "delete") {
+        if (!confirm(`Borrar «${p.name}» y todos sus movimientos. No hay vuelta atrás.`)) return;
+        const { error } = await supa.from("merch_products").delete().eq("id", p.id);
+        if (error) alert(error.message); else load();
+      }
+    });
+    document.addEventListener("keydown", function onEsc(e) {
+      if (e.key !== "Escape") return;
+      document.removeEventListener("keydown", onEsc);
+      close();
+    });
+  }
+
+  /* ---------------- acciones ---------------- */
+  $("prods").addEventListener("click", async e => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const p = productById(btn.dataset.id);
+    if (!p) return;
+    const act = btn.dataset.act;
+    if (act === "more") { openMoreMenu(btn, p); return; }
+    movementModal(p, act);
+  });
+
+  $("movs").addEventListener("click", async e => {
+    const btn = e.target.closest("button[data-mov]");
+    if (!btn) return;
+    const m = movements.find(x => x.id === btn.dataset.id);
+    if (!m) return;
+    const action = btn.dataset.mov;
+
+    if (action === "deliver") {
+      const p = productById(m.product_id);
+      if (!p) return alert("El producto ya no existe.");
+      // Entregar una reserva = cerrarla y anotar la venta que la sustituye.
+      const { error: e1 } = await supa.from("merch_movements")
+        .update({ status: "done" }).eq("id", m.id);
+      if (e1) return alert(e1.message);
+      const { error: e2 } = await supa.from("merch_movements").insert({
+        product_id: m.product_id, kind: "sale", qty: m.qty, unit_price: m.unit_price,
+        customer: m.customer, event: m.event, note: "reserva entregada"
+      });
+      if (e2) return alert(e2.message);
+      try { await setStock(p.id, p.stock - m.qty); } catch (err) { alert(err.message); }
+      return load();
+    }
+    if (action === "cancel") {
+      if (!confirm("Anular esta reserva. Las unidades vuelven a quedar libres.")) return;
+      const { error } = await supa.from("merch_movements").update({ status: "cancelled" }).eq("id", m.id);
+      if (error) alert(error.message); else load();
+      return;
+    }
+    if (action === "delete") {
+      if (!confirm("Borrar este apunte. Ojo: el stock NO se recalcula solo, haz un recuento después si hace falta.")) return;
+      const { error } = await supa.from("merch_movements").delete().eq("id", m.id);
+      if (error) alert(error.message); else load();
+    }
+  });
+
+  $("new-product").addEventListener("click", () => productModal(null));
+  $("q").addEventListener("input", renderProducts);
+  $("show-archived").addEventListener("change", renderProducts);
+  $("filter-kind").addEventListener("change", renderMovements);
+  $("filter-status").addEventListener("change", renderMovements);
+
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+    tab = t.dataset.tab;
+    document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+    $("view-products").hidden = tab !== "products";
+    $("view-movements").hidden = tab !== "movements";
+    render();
+  }));
+
+  /* ---------------- arranque ---------------- */
+  (async function () {
+    await BestaSuite.guard();
+    document.body.classList.add("ready");
+    BestaSuite.mountNav({ active: "merch" });
+    supa = await BestaSuite.client();
+    await load();
+  })();
+})();
+</script>
+</body>
+</html>
