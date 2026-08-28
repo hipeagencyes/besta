@@ -23,6 +23,25 @@ body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);
   font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,select{font-family:inherit;font-size:inherit;color:inherit}
 
+#desktopNotice{
+  position:fixed; inset:0; z-index:5000; display:none; align-items:center; justify-content:center;
+  padding:24px; background:rgba(10,9,8,.86); backdrop-filter:blur(10px);
+}
+#desktopNotice.visible{display:flex}
+.desktopNotice-card{
+  width:min(500px,100%); background:var(--panel); border:1px solid var(--line);
+  border-radius:18px; box-shadow:0 24px 60px rgba(0,0,0,.45); padding:28px 24px;
+}
+.desktopNotice-kicker{font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 10px}
+.desktopNotice-card h2{margin:0 0 10px; font-size:28px; letter-spacing:-.04em}
+.desktopNotice-card p{margin:0 0 18px; color:var(--muted); line-height:1.6; font-size:14px}
+.desktopNotice-actions{display:flex; gap:10px; flex-wrap:wrap}
+.desktopNotice-card .btn{flex:1; min-width:140px}
+body.mobile-guard header, body.mobile-guard main{filter:blur(4px); opacity:.22; pointer-events:none}
+body.desktop-compat{min-width:1180px; overflow:auto}
+body.desktop-compat header, body.desktop-compat main{min-width:1180px}
+
 /* ---------- chrome ---------- */
 header{height:52px;display:flex;align-items:center;gap:18px;padding:0 18px;
   border-bottom:1px solid var(--line);background:var(--panel)}
@@ -134,6 +153,17 @@ body:not(.scene) .mode-scene{display:none}
 </style>
 </head>
 <body>
+<div id="desktopNotice" role="dialog" aria-modal="true" aria-live="polite">
+  <div class="desktopNotice-card">
+    <div class="desktopNotice-kicker">visuales</div>
+    <h2>Modo escritorio</h2>
+    <p>Este apartado no está preparado para móvil ni tablet pequeño. Se abre en vista escritorio para no romper el diseño del muro CRT.</p>
+    <div class="desktopNotice-actions">
+      <button class="btn pri" id="desktopContinue" type="button">abrir en modo escritorio</button>
+      <button class="btn" id="desktopClose" type="button">cerrar</button>
+    </div>
+  </div>
+</div>
 
 <header>
   <div class="brand">besta<span id="brandSub">estudio de muro crt</span></div>
@@ -432,11 +462,33 @@ body:not(.scene) .mode-scene{display:none}
 <input type="file" id="fileCfg" accept="application/json,.json" hidden>
 
 <script>
-/* Puerta de la suite: sin sesión, al hub. */
+function isMobileViewport() {
+  const ua = navigator.userAgent || "";
+  const narrow = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  return narrow || /(android|iphone|ipad|ipod|mobile)/i.test(ua);
+}
+
+function desktopGuard(forceOpen = false) {
+  const notice = document.getElementById("desktopNotice");
+  const mobile = isMobileViewport();
+  const shouldLock = mobile && !forceOpen;
+
+  document.body.classList.toggle("mobile-guard", shouldLock);
+  document.body.classList.toggle("desktop-compat", forceOpen || !mobile);
+  if (notice) {
+    notice.classList.toggle("visible", shouldLock);
+    notice.setAttribute("aria-hidden", shouldLock ? "false" : "true");
+  }
+}
+
 (async function(){
   await BestaSuite.guard();
   document.body.classList.add("bs-ready");
   BestaSuite.mountNav({ active: "visuales" });
+  desktopGuard(false);
+  document.getElementById("desktopContinue")?.addEventListener("click", () => desktopGuard(true));
+  document.getElementById("desktopClose")?.addEventListener("click", () => desktopGuard(true));
+  window.addEventListener("resize", () => desktopGuard(false));
 })();
 </script>
 
