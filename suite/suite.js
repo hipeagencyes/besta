@@ -43,9 +43,9 @@
       name: "finanzas",
       href: "/suite/finanzas.html",
       tagline: "cachés, gastos y reparto",
-      desc: "Ingresos por bolo, gastos de la banda y cuánto toca a cada uno. En construcción.",
+      desc: "Ingresos por bolo, gastos de la banda y cuánto toca a cada uno con un resumen tipo Tricount.",
       glyph: "€",
-      status: "soon"
+      status: "live"
     }
   ];
 
