@@ -20,9 +20,9 @@ jobs:
       # Ajustes → API → Project ID. No es secreto: ya esta en suite/suite.js.
       SUPABASE_PROJECT_REF: vjydiddybwutbcfigtie
       # Cuenta → Access Tokens (el token personal de la CLI).
+      # Con el token basta: la CLI se crea un rol de acceso temporal en la
+      # base ("Initialising login role"), no hace falta la clave de postgres.
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      # Ajustes → Database → la contrasena de postgres.
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
