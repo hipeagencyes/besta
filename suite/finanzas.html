@@ -684,6 +684,12 @@
       };
     } catch (error) {
       console.warn("Supabase finance fallback", error);
+      // Seguir con los datos locales está bien; callárselo no: lo que se
+      // apunte ahora no llega a la base de datos de la banda.
+      if (BestaSuite.isDbDown(error)) {
+        BestaSuite.banner("Sin conexión con la base de datos: esto es una copia local y " +
+          "lo que apuntes ahora no se guardará para el resto. " + BestaSuite.DB_DOWN_FIX);
+      }
       return getLocalFallbackState();
     }
   }

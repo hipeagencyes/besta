@@ -71,6 +71,104 @@
   let clientPromise = null;
 
   /* --------------------------------------------------------
+     La base de datos no contesta.
+     El plan gratuito de Supabase duerme el proyecto tras unos
+     días sin uso y le quita hasta el DNS: desde fuera parece
+     que el servidor no existe. Pasó el 29/09/2026 y la suite
+     se quedó en "comprobando sesión…" sin decir por qué.
+     -------------------------------------------------------- */
+  const DB_DOWN_FIX =
+    "Si el proyecto de Supabase está en pausa (el plan gratuito la aplica tras unos días sin uso), " +
+    "entra en <a href=\"https://supabase.com/dashboard\" target=\"_blank\" rel=\"noopener\">supabase.com/dashboard</a> " +
+    "y pulsa <b>Restore project</b>. Los datos siguen ahí; tarda un par de minutos.";
+  const DB_DOWN_HTML = "<b>No hay conexión con la base de datos.</b><br>" + DB_DOWN_FIX;
+
+  /* Un fallo de red no es un error de la app: ni la sesión caducada ni una
+     tabla que falta se parecen a esto. */
+  function isDbDown(err) {
+    if (!err) return false;
+    const msg = (err.message || err.error_description || String(err)).toLowerCase();
+    return /failed to fetch|load failed|networkerror|network error|fetch failed|err_name_not_resolved|timeout|typeerror/.test(msg);
+  }
+
+  /* ¿Contesta el proyecto? Sin sesión guardada, getSession() dice "no hay
+     sesión" sin tocar la red, así que la puerta pintaba el formulario y el
+     fallo solo aparecía al pulsar "entrar". Esto lo pregunta de verdad. */
+  async function reachable() {
+    try {
+      // no-cors: la respuesta viene opaca y da igual, aquí solo se pregunta
+      // si hay alguien al otro lado. Con CORS normal, un dominio que no
+      // devuelve cabeceras se confundiría con un servidor caído.
+      await withTimeout(fetch(SUPABASE_URL + "/auth/v1/health", {
+        method: "GET", mode: "no-cors", cache: "no-store"
+      }), 8000);
+      return true;
+    } catch (_) {
+      return false;   // DNS caído o sin respuesta: esto sí es estar muerto
+    }
+  }
+
+  /* ¿Hay una sesión guardada en este aparato? supabase-js la deja en
+     localStorage bajo sb-<proyecto>-auth-token. Si la hay, sin conexión se
+     puede seguir con lo que ya está descargado. */
+  function storedSession() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!/^sb-.*-auth-token$/.test(k)) continue;
+        let raw = localStorage.getItem(k);
+        if (!raw) continue;
+        if (raw.startsWith("base64-")) raw = atob(raw.slice(7));
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.access_token || parsed.user)) return parsed;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))
+    ]);
+  }
+
+  /* Pantalla de "esto no va a arrancar", con su botón de reintentar.
+     Trae su propio CSS porque la usan páginas que no se parecen en nada. */
+  function fatal(html) {
+    if (document.querySelector(".bs-fatal")) return;
+    const style = document.createElement("style");
+    style.textContent = `
+      .bs-fatal {
+        position: fixed; inset: 0; z-index: 4000; display: grid; place-items: center;
+        padding: 24px; background: #050508; color: #f5f7ff;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+      }
+      .bs-fatal-card {
+        max-width: 430px; width: 100%; text-align: center;
+        background: #0d0b11; border: 1px solid rgba(255,255,255,.14);
+        border-radius: 16px; padding: 28px 24px;
+      }
+      .bs-fatal-card p { margin: 0 0 18px; font-size: 14px; line-height: 1.55; color: rgba(245,247,255,.8); }
+      .bs-fatal-card b { color: #f5f7ff; }
+      .bs-fatal-card a { color: #db7f4e; }
+      .bs-fatal-card button {
+        padding: 10px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18);
+        background: transparent; color: #f5f7ff; font: 600 13px/1 inherit; cursor: pointer;
+      }
+      .bs-fatal-card button:hover { border-color: #db7f4e; color: #db7f4e; }`;
+    document.head.appendChild(style);
+
+    const box = document.createElement("div");
+    box.className = "bs-fatal";
+    box.innerHTML = `<div class="bs-fatal-card"><p>${html}</p>
+      <button type="button">reintentar</button></div>`;
+    box.querySelector("button").addEventListener("click", () => location.reload());
+    document.body.appendChild(box);
+    document.body.style.visibility = "visible";
+  }
+
+  /* --------------------------------------------------------
      Cliente de Supabase — uno solo por pestaña.
      Varias instancias sobre el mismo localStorage se pelean
      al refrescar el token, así que todo el mundo pide este.
@@ -105,8 +203,33 @@
      -------------------------------------------------------- */
   async function guard() {
     const supa = await client();
-    const { data: { session } } = await supa.auth.getSession();
+    let session = null;
+    try {
+      const res = await withTimeout(supa.auth.getSession(), 12000);
+      session = (res && res.data && res.data.session) || null;
+    } catch (err) {
+      // Con sesión guardada se sigue: ensayos tiene modo sin conexión y el
+      // atril no puede morir en el escenario porque no se refresque un token.
+      const stored = storedSession();
+      if (stored) {
+        banner("Sin conexión con la base de datos: ves lo último guardado en " +
+               "este aparato y los cambios no se envían. " + DB_DOWN_FIX);
+        return stored;
+      }
+      // Sin sesión no hay nada que hacer: mandar al hub sería el mismo muro.
+      fatal(DB_DOWN_HTML);
+      return new Promise(() => {});
+    }
     if (!session) {
+      // Puede no haber sesión porque el token caducó y no hay con quién
+      // renovarlo. Mandar al hub sin servidor es mandar a otra pared: si el
+      // aparato tiene sesión guardada, se sigue con lo que ya está bajado.
+      const stored = storedSession();
+      if (stored && !(await reachable())) {
+        banner("Sin conexión con la base de datos: ves lo último guardado en " +
+               "este aparato y los cambios no se envían. " + DB_DOWN_FIX);
+        return stored;
+      }
       const next = location.pathname + location.search;
       location.replace(HUB + "?next=" + encodeURIComponent(next));
       // Promesa que nunca resuelve: la página no debe seguir montándose.
@@ -122,6 +245,19 @@
     const supa = await client();
     await supa.auth.signOut();
     location.href = HUB;
+  }
+
+  /* Aviso de una línea arriba del todo, para las páginas que sí pueden
+     seguir funcionando con datos locales pero deben avisar de que lo están. */
+  function banner(html) {
+    if (document.querySelector(".bs-banner")) return;
+    const el = document.createElement("div");
+    el.className = "bs-banner";
+    el.style.cssText = "position:sticky;top:0;z-index:3500;padding:10px 16px;" +
+      "background:#3a2318;border-bottom:1px solid rgba(244,211,94,.35);color:#ffe9c9;" +
+      "font:500 13px/1.5 'Space Grotesk',system-ui,sans-serif;text-align:center";
+    el.innerHTML = html;
+    document.body.insertBefore(el, document.body.firstChild);
   }
 
   /* --------------------------------------------------------
@@ -242,7 +378,7 @@
   }
 
   window.BestaSuite = {
-    SUPABASE_URL, SUPABASE_ANON_KEY, SPACES, HUB,
-    client, guard, logout, mountNav
+    SUPABASE_URL, SUPABASE_ANON_KEY, SPACES, HUB, DB_DOWN_HTML, DB_DOWN_FIX,
+    client, guard, logout, mountNav, fatal, banner, isDbDown, withTimeout, reachable, storedSession
   };
 })();

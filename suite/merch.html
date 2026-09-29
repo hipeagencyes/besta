@@ -524,7 +524,9 @@ body.ready { visibility: visible; }
     if (bad) {
       // PostgREST no ve la tabla de dos maneras: 42P01 viene de Postgres y
       // PGRST205 de su caché de esquema. Las dos significan lo mismo aquí.
-      if (bad.code === "42P01" || bad.code === "PGRST205" || /does not exist|schema cache/i.test(bad.message)) {
+      if (BestaSuite.isDbDown(bad)) {
+        showError(BestaSuite.DB_DOWN_HTML);
+      } else if (bad.code === "42P01" || bad.code === "PGRST205" || /does not exist|schema cache/i.test(bad.message)) {
         showError("Faltan migraciones de merch por aplicar. Lanza <code>supabase db push</code> y recarga.");
       } else if (/jwt|token/i.test(bad.message)) {
         // Token rechazado por desfase de reloj o sesión caducada: el que hay

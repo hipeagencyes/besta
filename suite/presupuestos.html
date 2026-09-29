@@ -318,7 +318,9 @@ table.p-lines td small { display: block; color: #6b6772; font-size: 8.2pt; }
     const { data, error } = await supa.from("booking_quotes")
       .select("*").eq("archived", false).order("created_at", { ascending: false });
     if (error) {
-      if (error.code === "42P01" || error.code === "PGRST205" || /does not exist|schema cache/i.test(error.message)) {
+      if (BestaSuite.isDbDown(error)) {
+        showError(BestaSuite.DB_DOWN_HTML);
+      } else if (error.code === "42P01" || error.code === "PGRST205" || /does not exist|schema cache/i.test(error.message)) {
         showError("Falta la migración de presupuestos por aplicar. Lanza <code>supabase db push</code> y recarga.");
       } else if (/jwt|token/i.test(error.message)) {
         showError("La sesión guardada ya no vale (<code>" + esc(error.message) + "</code>). " +

@@ -1,0 +1,39 @@
+name: Mantener Supabase despierto
+
+# El plan gratuito duerme el proyecto tras unos días sin actividad, y al
+# dormirse le quita el DNS: la suite deja de cargar y el navegador solo dice
+# "no se ha encontrado el servidor". Una llamada diaria a la API cuenta como
+# actividad. Si el proyecto ya está dormido, este job falla a propósito:
+# así llega un email en vez de descubrirlo cuando hace falta el rider.
+on:
+  schedule:
+    - cron: "17 6 * * *"      # 08:17 en España (06:17 UTC)
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-vivo
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    env:
+      # Los mismos de suite/suite.js: la clave anon es pública por diseño.
+      SUPABASE_URL: https://vjydiddybwutbcfigtie.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqeWRpZGR5Ynd1dGJjZmlndGllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjgxMDYsImV4cCI6MjA5MjcwNDEwNn0.0SHKjvATs4dyOPo1zKaq3CyG1mbgU5qb4I1vkNw5-V0
+    steps:
+      - name: Llamar a la API del proyecto
+        run: |
+          set -u
+          code=$(curl -s -o /tmp/out.txt -w "%{http_code}" --max-time 25 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/" || echo "000")
+
+          if [ "$code" = "000" ]; then
+            echo "::error::El proyecto no responde (ni DNS). Seguramente está en pausa:"
+            echo "::error::entra en https://supabase.com/dashboard y pulsa Restore project."
+            exit 1
+          fi
+
+          # Cualquier respuesta HTTP vale: lo que cuenta es que hubo llamada.
+          echo "Proyecto despierto (HTTP $code)."

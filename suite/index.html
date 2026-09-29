@@ -146,11 +146,23 @@
   }
 
   (async function boot() {
-    supa = await BestaSuite.client();
-    showGateState("loading");
-    supa.auth.onAuthStateChange(handleAuthState);
-    const { data: { session } } = await supa.auth.getSession();
-    handleAuthState("INITIAL_SESSION", session);
+    try {
+      supa = await BestaSuite.client();
+      showGateState("loading");
+      supa.auth.onAuthStateChange(handleAuthState);
+      const res = await BestaSuite.withTimeout(supa.auth.getSession(), 12000);
+      const session = (res && res.data && res.data.session) || null;
+      handleAuthState("INITIAL_SESSION", session);
+      // Sin sesión, la puerta pinta el formulario sin haber hablado con nadie:
+      // más vale decir que no hay servidor que dejar fallar el "entrar".
+      if (!session && !(await BestaSuite.reachable())) BestaSuite.fatal(BestaSuite.DB_DOWN_HTML);
+    } catch (err) {
+      // Ni la librería ni el proyecto contestan: mejor decirlo que dejar
+      // el "comprobando sesión…" girando para siempre.
+      BestaSuite.fatal(BestaSuite.isDbDown(err)
+        ? BestaSuite.DB_DOWN_HTML
+        : "<b>No se pudo arrancar la suite.</b><br>" + String(err && err.message || err));
+    }
   })();
 
   $("gate-form").addEventListener("submit", async e => {
@@ -165,7 +177,8 @@
       const { error } = await supa.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (err) {
-      $("gate-error").textContent = err.message || "no se pudo entrar";
+      if (BestaSuite.isDbDown(err)) $("gate-error").innerHTML = BestaSuite.DB_DOWN_HTML;
+      else $("gate-error").textContent = err.message || "no se pudo entrar";
     } finally {
       submit.disabled = false; submit.textContent = "entrar";
     }

@@ -634,7 +634,9 @@ table.p-chan tr:last-child td { border-bottom: 0; }
       .order("position", { ascending: true }).order("created_at", { ascending: true });
 
     if (error) {
-      if (error.code === "42P01" || error.code === "PGRST205" || /does not exist|schema cache/i.test(error.message)) {
+      if (BestaSuite.isDbDown(error)) {
+        showError(BestaSuite.DB_DOWN_HTML);
+      } else if (error.code === "42P01" || error.code === "PGRST205" || /does not exist|schema cache/i.test(error.message)) {
         showError("Falta la migración del rider por aplicar. Lanza <code>supabase db push</code> y recarga.");
       } else if (/jwt|token/i.test(error.message)) {
         showError("La sesión guardada ya no vale (<code>" + esc(error.message) + "</code>). " +

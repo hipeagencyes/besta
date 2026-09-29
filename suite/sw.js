@@ -4,7 +4,7 @@
    Los datos (canciones y listas) no viven aquí, los guarda
    la propia página en localStorage al preparar el directo.
    ========================================================= */
-const VERSION = "besta-suite-v1";
+const VERSION = "besta-suite-v2";
 const SHELL = "shell-" + VERSION;
 const RUNTIME = "runtime-" + VERSION;
 
@@ -90,20 +90,23 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Scripts, imágenes y tipografías: lo cacheado manda, y si no está se
-  // busca y se guarda para la próxima.
+  // Scripts, imágenes y tipografías: se sirve lo cacheado al instante (el
+  // atril tiene que abrir sin red) pero por detrás se pide la versión nueva
+  // y se guarda para la próxima vez. Con "solo caché" un arreglo en
+  // suite.js no llegaba nunca a un aparato que ya tuviera la suite abierta.
   if (["script", "image", "style", "font", "manifest"].includes(req.destination) || isFont(url)) {
     event.respondWith((async () => {
       const hit = await caches.match(req);
-      if (hit) return hit;
-      try {
-        const fresh = await fetch(req);
-        const cache = await caches.open(RUNTIME);
-        cache.put(req, fresh.clone());
+      const inShell = SHELL_URLS.includes(url.pathname) || SHELL_URLS.includes(req.url);
+      const update = fetch(req).then(async fresh => {
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(inShell ? SHELL : RUNTIME);
+          cache.put(req, fresh.clone());
+        }
         return fresh;
-      } catch (_) {
-        return hit || Response.error();
-      }
+      }).catch(() => null);
+      if (hit) { event.waitUntil(update); return hit; }
+      return (await update) || Response.error();
     })());
   }
 });
