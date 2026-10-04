@@ -391,9 +391,6 @@ body.offline-mode .bs-switch { bottom: 48px; }
 }
 .sidebar-search-wrap { position: relative; }
 .folder-filters {
-  position: sticky;
-  top: 100px;
-  z-index: 1;
   display: flex;
   gap: 6px;
   width: 100%;
@@ -402,18 +399,32 @@ body.offline-mode .bs-switch { bottom: 48px; }
   overflow-y: hidden;
   flex-wrap: nowrap;
   white-space: nowrap;
-  padding: 10px 14px;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.28) transparent;
+  padding: 10px 14px 8px;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
 }
-.folder-filters::-webkit-scrollbar { height: 8px; }
-.folder-filters::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.22);
+.folder-filters::-webkit-scrollbar { display: none; }
+.folder-filter-wrap {
+  position: sticky;
+  top: 100px;
+  z-index: 1;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.folder-filter-scroll {
+  display: none;
+  height: 3px;
+  margin: 0 14px 5px;
+  overflow: hidden;
   border-radius: 999px;
+  background: var(--line-strong);
+}
+.folder-filter-wrap.is-scrollable .folder-filter-scroll { display: block; }
+.folder-filter-scroll-thumb {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
 }
 .folder-filter {
   flex: 0 0 auto;
@@ -452,6 +463,7 @@ body.offline-mode .bs-switch { bottom: 48px; }
 /* + Lista · setlist · Seleccionar: los tres en una fila */
 .sidebar-actions { grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .sidebar-actions .sidebar-mini-btn { padding: 8px 6px; letter-spacing: 0.05em; }
+.sidebar-actions.has-active-list #delete-active-list-btn { grid-column: 1 / -1; }
 .selection-actions {
   display: none;
   grid-template-columns: 1fr;
@@ -531,6 +543,11 @@ body.offline-mode .bs-switch { bottom: 48px; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.song-item .artist.own,
+.song-header .artist.own,
+.live-song-title .artist.own,
+.sl-row-artist.own,
+.live-slide .a.own { color: var(--accent); font-weight: 700; }
 .song-item .title {
   font-size: 15px;
   color: var(--fg);
@@ -3192,6 +3209,7 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
 }
 .sl-item-title { font-size: calc(13pt * var(--sl-fit)); font-weight: 600; min-width: 0; }
 .sl-item-artist { font-size: calc(9pt * var(--sl-fit)); font-weight: 400; color: #6b6675; }
+.sl-item-artist.own { color: #db7f4e; font-weight: 700; }
 .sl-item-meta {
   font-family: 'JetBrains Mono', monospace; font-size: calc(9pt * var(--sl-fit));
   color: #6b6675; white-space: nowrap;
@@ -3250,6 +3268,7 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
 .sl-sheet.dark .sl-item-artist,
 .sl-sheet.dark .sl-item-meta,
 .sl-sheet.dark .sl-head-meta { color: rgba(245, 247, 255, 0.55); }
+.sl-sheet.dark .sl-item-artist.own { color: var(--accent); }
 .sl-sheet.dark .sl-stat-num { color: #f5f7ff; }
 .sl-sheet.dark .sl-stat-label, .sl-sheet.dark .sl-eyebrow { color: rgba(245, 247, 255, 0.4); }
 .sl-sheet.dark .sl-rule::after { background: rgba(255, 255, 255, 0.12); }
@@ -3513,11 +3532,15 @@ textarea.sl-inline { min-height: 32px; resize: vertical; font-size: 12px; line-h
           <input id="song-search" type="search" placeholder="buscar canción o artista…" aria-label="Buscar">
         </div>
       </div>
-      <div class="folder-filters" id="folder-filters" aria-label="Carpetas de canciones"></div>
+      <div class="folder-filter-wrap" id="folder-filter-wrap">
+        <div class="folder-filters" id="folder-filters" aria-label="Carpetas de canciones. Desliza horizontalmente para ver todas."></div>
+        <div class="folder-filter-scroll" id="folder-filter-scroll" aria-hidden="true"><div class="folder-filter-scroll-thumb" id="folder-filter-scroll-thumb"></div></div>
+      </div>
       <div class="sidebar-actions">
         <button class="sidebar-mini-btn" id="new-list-btn" type="button">+ Lista</button>
         <button class="sidebar-mini-btn" id="setlist-btn" type="button" title="setlist imprimible de la lista activa">setlist</button>
         <button class="sidebar-mini-btn" id="selection-mode-btn" type="button">Seleccionar</button>
+        <button class="sidebar-mini-btn" id="delete-active-list-btn" type="button" hidden>Eliminar lista</button>
       </div>
       <div class="selection-actions" id="selection-actions">
         <div class="selection-status" id="selection-status">0 seleccionadas</div>
@@ -4848,6 +4871,7 @@ async function initApp() {
   });
 
   document.getElementById("new-list-btn")?.addEventListener("click", () => openListModal());
+  document.getElementById("delete-active-list-btn")?.addEventListener("click", deleteActiveList);
   document.getElementById("selection-mode-btn")?.addEventListener("click", toggleSelectionMode);
   wireSetlistOverlay();
   document.getElementById("add-selection-btn")?.addEventListener("click", openAddToListModal);
@@ -5343,6 +5367,14 @@ function normalizeSongFolders(value) {
     folders.push(folder);
   });
   return folders;
+}
+
+function songArtistLabel(song) {
+  return String(song?.artist || "").trim() || "BESTA";
+}
+
+function songHasArtist(song) {
+  return Boolean(String(song?.artist || "").trim());
 }
 
 function normalizeListsMeta(raw) {
@@ -6755,7 +6787,7 @@ function renderComments() {
   const songId = activeSongId;
   if (!songId) { list.innerHTML = ""; return; }
   const song = songs.find(s => s.id === songId);
-  if (subtitle) subtitle.textContent = song ? `${song.artist || ""} — ${song.title || ""}`.replace(/^ — /, "") : "";
+  if (subtitle) subtitle.textContent = song ? `${songArtistLabel(song)} — ${song.title || ""}` : "";
 
   if (commentsState.tableMissing) {
     list.innerHTML = `<div class="comments-empty">
@@ -6989,7 +7021,7 @@ function buildLiveSongSlides(song, extra = {}) {
   const id = song.id;
   const slides = [{
     songId: id, kind: "intro",
-    title: song.title || "Sin título", artist: song.artist || "",
+    title: song.title || "Sin título", artist: songArtistLabel(song), ownArtist: !songHasArtist(song),
     setNum: extra.setNum || getSetlistNumber(song),
     notes: extra.notes || [],
     blockLabel: extra.blockLabel || ""
@@ -7008,7 +7040,7 @@ function buildLiveSongSlides(song, extra = {}) {
     const hasInlineChords = /\[[^\]]+\]/.test(raw);
     const chordsLine = String(res.chords || "").trim();
     const base = {
-      songId: id, title: song.title || "", artist: song.artist || "",
+      songId: id, title: song.title || "", artist: songArtistLabel(song), ownArtist: !songHasArtist(song),
       sectionName: name, lyricsRaw: raw, hasInlineChords, chordsLine
     };
     if (lyrics) {
@@ -7156,7 +7188,7 @@ function renderLiveSlide() {
       <div class="live-song-lead">
         <div class="num">${slide.setNum ? "Setlist #" + escapeHtml(String(slide.setNum)) : "Canción"}</div>
         <div class="t">${escapeHtml(slide.title)}</div>
-        ${slide.artist ? `<div class="a">${escapeHtml(slide.artist)}</div>` : ""}
+        ${slide.artist ? `<div class="a${slide.ownArtist ? " own" : ""}">${escapeHtml(slide.artist)}</div>` : ""}
       </div>
       ${notesHtml}`;
   } else if (slide.kind === "cue") {
@@ -7185,7 +7217,7 @@ function renderLiveSlide() {
       : "";
   }
 
-  if (titleEl) titleEl.innerHTML = `${escapeHtml(slide.title)}${slide.artist ? ` <span class="artist">· ${escapeHtml(slide.artist)}</span>` : ""}`;
+  if (titleEl) titleEl.innerHTML = `${escapeHtml(slide.title)}${slide.artist ? ` <span class="artist${slide.ownArtist ? " own" : ""}">· ${escapeHtml(slide.artist)}</span>` : ""}`;
   if (progEl) progEl.textContent = `${liveIndex + 1} / ${liveSlides.length}`;
 }
 
@@ -7477,6 +7509,12 @@ function renderFolderFilters() {
   const wrap = document.getElementById("folder-filters");
   if (!wrap) return;
   const folders = getAvailableFolders();
+  const hasActiveList = activeFolderFilter !== ALL_FOLDERS &&
+    activeFolderFilter !== NO_FOLDER &&
+    folders.some(folder => normalizeText(folder) === normalizeText(activeFolderFilter));
+  const deleteListButton = document.getElementById("delete-active-list-btn");
+  deleteListButton.hidden = !hasActiveList;
+  deleteListButton.parentElement?.classList.toggle("has-active-list", hasActiveList);
   const withoutFolderCount = songs.filter(song => !normalizeSongFolders(song.folders).length).length;
   const items = [
     { value: ALL_FOLDERS, label: "Todas", count: songs.length },
@@ -7527,6 +7565,29 @@ function renderFolderFilters() {
     }
     wrap.appendChild(btn);
   });
+  updateFolderFilterScrollIndicator(wrap);
+  wrap.onscroll = () => updateFolderFilterScrollIndicator(wrap);
+  if (wrap.dataset.scrollIndicatorResize !== "bound") {
+    wrap.dataset.scrollIndicatorResize = "bound";
+    window.addEventListener("resize", () => updateFolderFilterScrollIndicator(wrap), { passive: true });
+  }
+}
+
+function updateFolderFilterScrollIndicator(wrap) {
+  const scrollRange = wrap.scrollWidth - wrap.clientWidth;
+  const container = document.getElementById("folder-filter-wrap");
+  const track = document.getElementById("folder-filter-scroll");
+  const thumb = document.getElementById("folder-filter-scroll-thumb");
+  const isScrollable = scrollRange > 1;
+  container.classList.toggle("is-scrollable", isScrollable);
+  const trackWidth = isScrollable ? track.clientWidth : 0;
+  const thumbWidth = scrollRange > 0
+    ? Math.max(24, trackWidth * wrap.clientWidth / wrap.scrollWidth)
+    : trackWidth;
+  const thumbRange = Math.max(0, trackWidth - thumbWidth);
+  const thumbLeft = scrollRange > 0 ? thumbRange * wrap.scrollLeft / scrollRange : 0;
+  thumb.style.width = `${thumbWidth}px`;
+  thumb.style.transform = `translateX(${thumbLeft}px)`;
 }
 
 function updateSelectionUi() {
@@ -7621,7 +7682,14 @@ async function removeFolderFromAllSongs(name) {
 
 // Elimina una lista: borra su metadata y desetiqueta las canciones. Las canciones se conservan.
 function deleteListFromModal() {
-  const name = listModalOriginalName;
+  confirmDeleteList(listModalOriginalName);
+}
+
+function deleteActiveList() {
+  confirmDeleteList(activeFolderFilter);
+}
+
+function confirmDeleteList(name) {
   if (!name) return;
   const count = songs.filter(s => normalizeSongFolders(s.folders).some(f => normalizeText(f) === normalizeText(name))).length;
   closeListModal();
@@ -7648,6 +7716,7 @@ function deleteListFromModal() {
     }
   });
 }
+window.deleteActiveList = deleteActiveList;
 
 function closeAddToListModal() {
   document.getElementById("add-to-list-backdrop")?.classList.remove("open");
@@ -7740,6 +7809,7 @@ function renderActiveListInfo() {
         <div class="list-info-actions">
           <button class="btn btn-secondary" type="button" onclick="openListModal('${escapeAttr(activeFolderFilter)}')">Añadir fecha/notas</button>
           <button class="btn btn-secondary" type="button" onclick="openSetlistOverlay('${escapeAttr(activeFolderFilter)}')">setlist / PDF</button>
+          <button class="btn btn-danger" type="button" onclick="deleteActiveList()">Eliminar lista</button>
         </div>
       </div>
     `;
@@ -7752,6 +7822,7 @@ function renderActiveListInfo() {
       <div class="list-info-actions">
         <button class="btn btn-secondary" type="button" onclick="openListModal('${escapeAttr(meta.name)}')">Editar lista</button>
         <button class="btn btn-secondary" type="button" onclick="openSetlistOverlay('${escapeAttr(meta.name)}')">setlist / PDF</button>
+        <button class="btn btn-danger" type="button" onclick="deleteActiveList()">Eliminar lista</button>
       </div>
     </div>
   `;
@@ -8009,7 +8080,7 @@ function renderSetlistEditor() {
         <div class="sl-row-head">
           <span class="sl-row-num">${num}</span>
           <span class="sl-row-title">${escapeHtml(song?.title || "(canción no encontrada)")}</span>
-          ${song?.artist ? `<span class="sl-row-artist">${escapeHtml(song.artist)}</span>` : ""}
+          <span class="sl-row-artist${songHasArtist(song) ? "" : " own"}">${escapeHtml(songArtistLabel(song))}</span>
           ${bits ? `<span class="sl-row-meta">${escapeHtml(bits)}</span>` : ""}
           ${missing ? `<span class="sl-row-missing" title="Rellénalo en la ficha de la canción (Editar) y aparecerá en la hoja">sin ${escapeHtml(missing)}</span>` : ""}
         </div>`;
@@ -8059,7 +8130,7 @@ function renderSetlistAddSelect() {
   if (!select || !setlistDraft) return;
   const used = new Set(setlistDraft.items.filter(it => it.type === "song").map(it => it.songId));
   const inList = new Set(getListOrder(setlistDraft.listName));
-  const option = song => `<option value="${escapeAttr(song.id)}">${escapeHtml(song.title || "Sin título")}${song.artist ? ` — ${escapeHtml(song.artist)}` : ""}</option>`;
+  const option = song => `<option value="${escapeAttr(song.id)}">${escapeHtml(song.title || "Sin título")} — ${escapeHtml(songArtistLabel(song))}</option>`;
   const mine = songs.filter(s => inList.has(s.id) && !used.has(s.id));
   const others = songs
     .filter(s => !inList.has(s.id) && !used.has(s.id))
@@ -8118,7 +8189,7 @@ function renderSetlistSheet() {
       <li class="sl-item song">
         <span class="sl-item-num">${num}</span>
         <span class="sl-item-title">${escapeHtml(song.title || "Sin título")}${
-          opt.artist && song.artist ? ` <span class="sl-item-artist">${escapeHtml(song.artist)}</span>` : ""
+          opt.artist ? ` <span class="sl-item-artist${songHasArtist(song) ? "" : " own"}">${escapeHtml(songArtistLabel(song))}</span>` : ""
         }</span>
         <span class="sl-item-meta">${escapeHtml(meta)}</span>
         ${noteHtml}
@@ -8569,7 +8640,7 @@ function renderSongList() {
     if (song.pending_delete) li.classList.add("pending-delete");
     li.innerHTML = `
       ${selectionMode ? `<input class="song-select" type="checkbox" ${selectedSongIds.has(song.id) ? "checked" : ""} aria-label="Seleccionar canción">` : `<span class="song-drag" aria-hidden="true" title="Arrastra para reordenar">⋮⋮</span>`}
-      <span class="artist">${escapeHtml(song.artist || "—")}</span>
+      <span class="artist${songHasArtist(song) ? "" : " own"}">${escapeHtml(songArtistLabel(song))}</span>
       <span class="title">${escapeHtml(song.title || "—")}</span>
       <span class="meta">
         ${setlistNumber ? `<span class="badge setlist">#${escapeHtml(String(setlistNumber))}</span>` : ""}
@@ -8654,7 +8725,7 @@ function renderSong(song) {
   content.innerHTML = `
     <header class="song-header">
       <div>
-        <div class="artist">${escapeHtml(song.artist || "")}</div>
+        <div class="artist${songHasArtist(song) ? "" : " own"}">${escapeHtml(songArtistLabel(song))}</div>
         <h1>${escapeHtml(song.title || "Sin título")}</h1>
       </div>
       <div class="song-meta">
@@ -8963,7 +9034,7 @@ function renderEditFormHtml(draft) {
       <div class="edit-grid">
         <div class="edit-field span2">
           <label>Artista</label>
-          <input class="edit-input" data-field="artist" value="${escapeAttr(draft.artist || '')}" placeholder="ej. Dani Fernández">
+          <input class="edit-input" data-field="artist" value="${escapeAttr(draft.artist || '')}" placeholder="Vacío = BESTA; ej. Dani Fernández">
         </div>
         <div class="edit-field span2">
           <label>Título</label>
