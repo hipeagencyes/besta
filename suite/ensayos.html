@@ -396,10 +396,24 @@ body.offline-mode .bs-switch { bottom: 48px; }
   z-index: 1;
   display: flex;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   padding: 10px 14px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.28) transparent;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.folder-filters::-webkit-scrollbar { height: 8px; }
+.folder-filters::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.22);
+  border-radius: 999px;
 }
 .folder-filter {
   flex: 0 0 auto;
