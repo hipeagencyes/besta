@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="theme-color" content="#050508">
+<title>BESTA — composición</title>
+<link rel="icon" href="/assets/favicons/favicon.ico">
+<link rel="stylesheet" href="/suite/suite-shell.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<script src="/suite/suite.js"></script>
+<style>
+:root { color-scheme: dark; --bg:#050508; --panel:#0d0b11; --panel2:#14121a; --fg:#f5f7ff; --muted:rgba(245,247,255,.56); --line:rgba(255,255,255,.1); --accent:#db7f4e; --danger:#ff8b8b; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 'Space Grotesk',system-ui,sans-serif; }
+button,input,textarea,select { font:inherit; }
+button { color:inherit; cursor:pointer; }
+body:not(.ready) { visibility:hidden; }
+.shell { max-width:1240px; min-height:100vh; margin:0 auto; padding:28px clamp(16px,4vw,42px) 90px; }
+.top { display:flex; align-items:center; gap:18px; margin-bottom:28px; }
+.eyebrow { color:var(--accent); font:600 10px 'JetBrains Mono',monospace; letter-spacing:.16em; text-transform:uppercase; }
+h1 { margin:3px 0 0; font-size:clamp(26px,4vw,38px); letter-spacing:-.04em; }
+.top p { margin:4px 0 0; color:var(--muted); }
+.spacer { flex:1; }
+.btn { border:1px solid var(--line); background:var(--panel2); border-radius:9px; padding:9px 13px; font-weight:600; }
+.btn:hover { border-color:var(--accent); }
+.btn.primary { color:#1a1009; background:var(--accent); border-color:var(--accent); }
+.btn.danger { color:var(--danger); }
+.layout { display:grid; grid-template-columns:minmax(220px,290px) minmax(0,1fr); gap:18px; align-items:start; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+.side { padding:14px; position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; }
+.side-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.side-head h2 { margin:0; font-size:13px; letter-spacing:.12em; text-transform:uppercase; }
+.count { color:var(--muted); font:11px 'JetBrains Mono',monospace; }
+.search { width:100%; padding:9px 11px; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:8px; outline:0; }
+.search:focus,.field:focus { border-color:var(--accent); }
+.notebooks { display:grid; gap:6px; margin-top:12px; }
+.notebook { width:100%; padding:11px; text-align:left; border:1px solid transparent; border-radius:9px; background:transparent; }
+.notebook:hover { background:rgba(255,255,255,.04); }
+.notebook.active { border-color:rgba(219,127,78,.55); background:rgba(219,127,78,.1); }
+.notebook strong { display:block; overflow-wrap:anywhere; }
+.notebook small { color:var(--muted); }
+.status-dot { display:inline-block; width:7px; height:7px; margin-right:6px; border-radius:50%; background:var(--accent); }
+.status-writing { background:#6ba9ff; } .status-ready { background:#5fd6a5; }
+.editor { padding:clamp(16px,3vw,28px); min-width:0; }
+.editor-empty { padding:80px 18px; text-align:center; color:var(--muted); }
+.editor-head { display:grid; grid-template-columns:minmax(0,1fr) 190px auto; align-items:center; gap:10px; padding-bottom:18px; border-bottom:1px solid var(--line); }
+.title { width:100%; min-width:0; padding:10px 0; color:var(--fg); background:none; border:0; border-bottom:1px solid transparent; font-size:clamp(22px,3.5vw,32px); font-weight:700; outline:0; }
+.title:focus { border-color:var(--accent); }
+.field,.status-select { color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:9px 10px; outline:0; }
+.save-state { grid-column:1/-1; min-height:18px; color:var(--muted); font-size:12px; }
+.save-state.error { color:var(--danger); }
+.section { margin-top:16px; padding:15px; border:1px solid var(--line); border-radius:11px; background:rgba(255,255,255,.015); }
+.section-top { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; margin-bottom:9px; }
+.section-title { font-size:16px; font-weight:700; }
+.section-buttons { display:flex; gap:5px; }
+.icon-btn { width:32px; height:32px; border:1px solid var(--line); border-radius:7px; background:var(--panel2); }
+.icon-btn:hover { border-color:var(--accent); }
+.section-fields { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.section-fields textarea { min-height:112px; resize:vertical; }
+.label { display:grid; gap:5px; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.13em; }
+.label textarea { color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; font:13px/1.55 'JetBrains Mono',monospace; text-transform:none; letter-spacing:normal; outline:0; }
+.audio-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:11px; padding-top:10px; border-top:1px solid var(--line); }
+.audio-name { flex:1; min-width:150px; }
+.audio-row audio { width:min(100%,360px); height:36px; }
+.upload-label { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:1px solid var(--line); border-radius:7px; cursor:pointer; }
+.upload-label input { display:none; }
+.note-label { display:grid; gap:6px; margin-top:16px; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.13em; }
+.note-label textarea { min-height:78px; resize:vertical; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; }
+.editor-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:14px; }
+.section-add { border-style:dashed; }
+.comments { margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+.comments h2 { margin:0 0 12px; font-size:16px; }
+.comment-list { display:grid; gap:8px; max-height:320px; overflow:auto; }
+.comment { padding:10px 12px; border:1px solid var(--line); border-radius:8px; }
+.comment-head { display:flex; gap:8px; color:var(--muted); font-size:11px; }
+.comment-head strong { color:var(--fg); }
+.comment-body { white-space:pre-wrap; overflow-wrap:anywhere; margin-top:5px; }
+.comment-compose { display:grid; grid-template-columns:170px minmax(0,1fr) auto; gap:8px; margin-top:10px; }
+.comment-compose textarea { min-height:42px; resize:vertical; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:9px; }
+.empty { color:var(--muted); text-align:center; padding:26px 12px; }
+.error-box { margin:14px 0; padding:12px 14px; border:1px solid rgba(255,139,139,.35); border-radius:9px; color:var(--danger); white-space:pre-wrap; }
+@media(max-width:760px) {
+  .shell { padding-top:18px; }
+  .layout { grid-template-columns:1fr; }
+  .side { position:static; max-height:none; }
+  .notebooks { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .editor-head { grid-template-columns:1fr auto; }
+  .title { grid-column:1/-1; }
+  .section-fields { grid-template-columns:1fr; }
+  .comment-compose { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div><div class="eyebrow">BESTA · laboratorio</div><h1>Composición</h1><p>Ideas, acordes y demos para escribir en equipo.</p></div>
+    <div class="spacer"></div>
+    <button class="btn primary" id="new-notebook" type="button">+ Nueva idea</button>
+  </header>
+  <div id="error" class="error-box" hidden></div>
+  <div class="layout">
+    <aside class="panel side">
+      <div class="side-head"><h2>Cuadernos</h2><span class="count" id="notebook-count">0</span></div>
+      <input class="search" id="search" type="search" placeholder="Buscar ideas…">
+      <div class="notebooks" id="notebooks"></div>
+    </aside>
+    <section class="panel editor" id="editor"><div class="editor-empty">Cargando cuadernos…</div></section>
+  </div>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const MAX_AUDIO_BYTES = 40 * 1024 * 1024;
+  let supa, session, notebooks = [], activeId = null, comments = [];
+  let dirty = false, saving = false, remoteChanged = false, revision = 0, saveTimer = null, channel = null;
+  let saveWaiters = [];
+
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const newId = () => crypto.randomUUID();
+  const current = () => notebooks.find(n => n.id === activeId);
+  const fail = err => {
+    $("error").hidden = false;
+    const message=err?.message || String(err);
+    const missingTable = ["42P01","PGRST205"].includes(err?.code) ||
+      (/composition_notebooks|composition_comments/.test(message) && /schema cache|does not exist|could not find/i.test(message));
+    $("error").textContent=missingTable
+      ? `${message}\n\nFalta aplicar la migración 20261004190000_composition.sql en el proyecto Supabase y recargar la página.`
+      : message;
+  };
+  const clearError = () => { $("error").hidden = true; $("error").textContent = ""; };
+  const saveState = (text, error = false) => {
+    const el = document.querySelector(".save-state");
+    if (el) { el.textContent = text; el.classList.toggle("error", error); }
+  };
+
+  async function start() {
+    try {
+      session = await BestaSuite.guard();
+      supa = await BestaSuite.client();
+      document.body.classList.add("ready");
+      BestaSuite.mountNav({ active:"composicion" });
+      $("new-notebook").addEventListener("click", createNotebook);
+      $("search").addEventListener("input", renderNotebookList);
+      await loadNotebooks();
+      subscribe();
+    } catch (err) {
+      document.body.classList.add("ready");
+      fail(err);
+    }
+  }
+
+  async function loadNotebooks(selectId) {
+    const { data, error } = await supa.from("composition_notebooks")
+      .select("id,title,status,data,created_at,updated_at,updated_by")
+      .order("updated_at", { ascending:false });
+    if (error) throw error;
+    notebooks = data || [];
+    renderNotebookList();
+    if (selectId && notebooks.some(n => n.id === selectId)) await openNotebook(selectId);
+    else if (activeId && notebooks.some(n => n.id === activeId)) renderEditor();
+    else if (notebooks.length) await openNotebook(notebooks[0].id);
+    else renderEmpty();
+  }
+
+  function renderNotebookList() {
+    const q = $("search").value.trim().toLocaleLowerCase("es");
+    const filtered = notebooks
+      .filter(n => n.title.toLocaleLowerCase("es").includes(q))
+      .sort((a,b)=>new Date(b.updated_at).getTime()-new Date(a.updated_at).getTime());
+    $("notebook-count").textContent = String(notebooks.length);
+    $("notebooks").innerHTML = filtered.length ? filtered.map(n => `
+      <button class="notebook${n.id === activeId ? " active" : ""}" type="button" data-notebook-id="${escapeHtml(n.id)}">
+        <strong>${escapeHtml(n.title)}</strong>
+        <small><span class="status-dot status-${escapeHtml(n.status)}"></span>${statusLabel(n.status)} · ${new Date(n.updated_at).toLocaleDateString("es-ES")}</small>
+      </button>`).join("") : `<div class="empty">No hay ideas con ese nombre.</div>`;
+    $("notebooks").querySelectorAll("[data-notebook-id]").forEach(btn =>
+      btn.addEventListener("click", () => openNotebook(btn.dataset.notebookId)));
+  }
+
+  function statusLabel(status) {
+    return ({ idea:"Idea", writing:"En desarrollo", ready:"Lista para ensayar" })[status] || "Idea";
+  }
+
+  function renderEmpty() {
+    activeId = null;
+    $("editor").innerHTML = `<div class="editor-empty">Aún no hay ideas.<br>Crea un cuaderno para empezar a componer.</div>`;
+    renderNotebookList();
+  }
+
+  async function createNotebook() {
+    clearError();
+    const row = {
+      title:"Idea nueva", status:"idea",
+      data:{ notes:"", sections:[{ id:newId(), title:"Estrofa", lyrics:"", chords:"", audio:[] }] }
+    };
+    const { data, error } = await supa.from("composition_notebooks").insert(row).select().single();
+    if (error) { fail(error); return; }
+    notebooks.unshift(data);
+    await openNotebook(data.id);
+    $("title").focus();
+    $("title").select();
+  }
+
+  async function openNotebook(id) {
+    if (dirty) {
+      const ok = await saveNow();
+      if (!ok) return;
+    }
+    activeId = id;
+    dirty = false;
+    remoteChanged = false;
+    revision = 0;
+    const { data, error } = await supa.from("composition_comments").select("*")
+      .eq("notebook_id", id).order("created_at", { ascending:true });
+    if (error) { fail(error); comments = []; }
+    else comments = data || [];
+    renderEditor();
+    renderNotebookList();
+  }
+
+  function renderEditor() {
+    const n = current();
+    if (!n) return renderEmpty();
+    const data = n.data || { notes:"", sections:[] };
+    const sections = Array.isArray(data.sections) ? data.sections : [];
+    $("editor").innerHTML = `
+      <div class="editor-head">
+        <input class="title" id="title" value="${escapeHtml(n.title)}" aria-label="Título del cuaderno" maxlength="120">
+        <select class="status-select" id="status" aria-label="Estado">
+          <option value="idea" ${n.status==="idea"?"selected":""}>Idea</option>
+          <option value="writing" ${n.status==="writing"?"selected":""}>En desarrollo</option>
+          <option value="ready" ${n.status==="ready"?"selected":""}>Lista para ensayar</option>
+        </select>
+        <button class="btn danger" id="delete-notebook" type="button">Borrar</button>
+        <div class="save-state" aria-live="polite">${dirty ? "Cambios pendientes…" : `Guardado · ${new Date(n.updated_at).toLocaleString("es-ES")}`}</div>
+        <button class="btn" id="reload-remote" type="button" hidden>Cargar versión del equipo</button>
+      </div>
+      <div id="sections">${sections.map((s,i) => renderSection(s,i,sections.length)).join("")}</div>
+      <button class="btn section-add" id="add-section" type="button">+ Añadir sección</button>
+      <label class="note-label">Notas generales<textarea id="general-notes" placeholder="Referencias, ideas, sensaciones…">${escapeHtml(data.notes || "")}</textarea></label>
+      <div class="editor-actions">
+        <button class="btn primary" id="promote" type="button">Pasar a ensayos</button>
+        <span class="count">Crea una canción nueva con su letra, acordes y demos.</span>
+      </div>
+      <section class="comments">
+        <h2>Comentarios de la banda</h2>
+        <div class="comment-list" id="comment-list"></div>
+        <form class="comment-compose" id="comment-form">
+          <select class="field" id="comment-section" aria-label="Sección del comentario"><option value="">Idea general</option>${sections.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.title || "Sección")}</option>`).join("")}</select>
+          <textarea id="comment-body" maxlength="4000" placeholder="Deja una sugerencia, una referencia o una pregunta…" required></textarea>
+          <button class="btn primary" type="submit">Comentar</button>
+        </form>
+      </section>`;
+    bindEditor(sections);
+    renderComments();
+    refreshAudioUrls();
+  }
+
+  function renderSection(s, i, total) {
+    return `<article class="section" data-section-id="${escapeHtml(s.id)}">
+      <div class="section-top">
+        <input class="field section-title" data-section-title value="${escapeHtml(s.title)}" maxlength="80" aria-label="Nombre de sección">
+        <div class="section-buttons">
+          <button class="icon-btn" type="button" data-move="-1" aria-label="Subir sección" ${i===0?"disabled":""}>↑</button>
+          <button class="icon-btn" type="button" data-move="1" aria-label="Bajar sección" ${i===total-1?"disabled":""}>↓</button>
+          <button class="icon-btn" type="button" data-remove aria-label="Quitar sección">×</button>
+        </div>
+      </div>
+      <div class="section-fields">
+        <label class="label">Letra / idea<textarea data-lyrics placeholder="Escribe aquí la letra o una idea…">${escapeHtml(s.lyrics || "")}</textarea></label>
+        <label class="label">Acordes<textarea data-chords placeholder="Am · F · C · G">${escapeHtml(s.chords || "")}</textarea></label>
+      </div>
+      <div class="audio-list">${(s.audio || []).map(a=>`<div class="audio-row" data-audio-path="${escapeHtml(a.path)}">
+        <span class="audio-name">${escapeHtml(a.name)}</span><audio controls preload="none"></audio>
+        <button class="icon-btn" type="button" data-remove-audio aria-label="Quitar audio">×</button></div>`).join("")}</div>
+      <label class="upload-label">↑ Añadir demo<input type="file" data-upload accept="audio/*"></label>
+    </article>`;
+  }
+
+  function bindEditor(sections) {
+    $("title").addEventListener("input", e => { current().title=e.target.value.trim() || "Idea nueva"; markDirty(); renderNotebookList(); });
+    $("status").addEventListener("change", e => { current().status=e.target.value; markDirty(); renderNotebookList(); });
+    $("general-notes").addEventListener("input", e => { current().data.notes=e.target.value; markDirty(); });
+    $("sections").addEventListener("input", e => {
+      const el=e.target.closest("[data-section-id]");
+      if (!el) return;
+      const section=sections.find(s=>s.id===el.dataset.sectionId);
+      if (!section) return;
+      if (e.target.matches("[data-section-title]")) section.title=e.target.value;
+      if (e.target.matches("[data-lyrics]")) section.lyrics=e.target.value;
+      if (e.target.matches("[data-chords]")) section.chords=e.target.value;
+      if (e.target.matches("[data-section-title]")) {
+        const option=$("comment-section").querySelector(`option[value="${CSS.escape(section.id)}"]`);
+        if (option) option.textContent=section.title || "Sección";
+      }
+      markDirty();
+    });
+    $("sections").addEventListener("click", async e => {
+      const el=e.target.closest("[data-section-id]");
+      if (!el) return;
+      const section=sections.find(s=>s.id===el.dataset.sectionId);
+      if (e.target.closest("[data-remove]")) {
+        if (sections.length===1) { fail(new Error("El cuaderno debe conservar al menos una sección.")); return; }
+        const ok=confirm(`¿Quitar la sección «${section.title}»?`);
+        if (!ok) return;
+        const audioPaths=(section.audio || []).map(a=>a.path);
+        current().data.sections=sections.filter(s=>s.id!==section.id);
+        renderEditor(); markDirty();
+        if (await saveNow() && audioPaths.length) {
+          const error=await removeAudioObjects(audioPaths);
+          if (error) fail(new Error(`La sección se guardó, pero no se pudo limpiar su audio: ${error.message || error}`));
+        }
+      }
+      const move=e.target.closest("[data-move]");
+      if (move) {
+        const i=sections.indexOf(section), j=i+Number(move.dataset.move);
+        if (j<0 || j>=sections.length) return;
+        [sections[i],sections[j]]=[sections[j],sections[i]];
+        current().data.sections=sections; renderEditor(); markDirty();
+      }
+      if (e.target.closest("[data-remove-audio]")) {
+        const row=e.target.closest("[data-audio-path]");
+        await removeAudio(section,row.dataset.audioPath);
+      }
+    });
+    $("sections").addEventListener("change", e => {
+      if (e.target.matches("[data-upload]")) uploadAudio(e.target);
+    });
+    $("add-section").addEventListener("click", () => {
+      sections.push({ id:newId(), title:"Nueva sección", lyrics:"", chords:"", audio:[] });
+      current().data.sections=sections; renderEditor(); markDirty();
+      $("sections").lastElementChild?.scrollIntoView({behavior:"smooth",block:"center"});
+    });
+    $("delete-notebook").addEventListener("click", deleteNotebook);
+    $("reload-remote").addEventListener("click", loadRemoteVersion);
+    $("promote").addEventListener("click", promote);
+    $("comment-form").addEventListener("submit", postComment);
+  }
+
+  function markDirty() {
+    dirty=true; revision++; saveState("Cambios pendientes…"); scheduleSave();
+  }
+
+  async function loadRemoteVersion() {
+    if (!current() || !confirm("Se descartarán tus cambios locales y se cargará la última versión guardada por el equipo. ¿Continuar?")) return;
+    const id=activeId;
+    const { data,error }=await supa.from("composition_notebooks")
+      .select("id,title,status,data,created_at,updated_at,updated_by").eq("id",id).single();
+    if (error) { fail(error); return; }
+    const i=notebooks.findIndex(n=>n.id===id);
+    if (i>=0) notebooks[i]=data;
+    dirty=false; remoteChanged=false; revision++;
+    await openNotebook(id);
+  }
+
+  function showConflict(message) {
+    saveState(message,true);
+    const button=$("reload-remote");
+    if (button) button.hidden=false;
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(() => { saveNow(); },700);
+  }
+
+  async function saveNow() {
+    if (saving) return new Promise(resolve=>saveWaiters.push(resolve));
+    if (!dirty || !current()) return !remoteChanged;
+    if (remoteChanged) { showConflict("Otra persona guardó cambios. Puedes cargar la versión del equipo; tus cambios locales no se han sobrescrito."); return false; }
+    saving=true; saveState("Guardando…");
+    const n=current();
+    const expectedUpdatedAt=n.updated_at;
+    const savedRevision=revision;
+    let data,error;
+    try {
+      ({ data,error }=await supa.from("composition_notebooks")
+        .update({ title:n.title, status:n.status, data:JSON.parse(JSON.stringify(n.data)) })
+        .eq("id",n.id).eq("updated_at",expectedUpdatedAt)
+        .select("id,title,status,data,updated_at,updated_by").maybeSingle());
+    } catch (err) {
+      saving=false; saveState(`No se guardó: ${err.message || err}`,true); fail(err); notifySaveWaiters(false); return false;
+    }
+    if (error) { saving=false; saveState(`No se guardó: ${error.message}`,true); fail(error); notifySaveWaiters(false); return false; }
+    if (!data) {
+      remoteChanged=true;
+      showConflict("Alguien guardó otra versión. Tus cambios no se han sobrescrito.");
+      saving=false;
+      notifySaveWaiters(false);
+      return false;
+    }
+    n.updated_at=data.updated_at; n.updated_by=data.updated_by;
+    if (revision===savedRevision) {
+      dirty=false;
+      Object.assign(n,{ title:data.title,status:data.status,data:data.data });
+    } else {
+      dirty=true;
+      scheduleSave();
+    }
+    saving=false;
+    remoteChanged=false;
+    const reloadButton=$("reload-remote");
+    if (reloadButton) reloadButton.hidden=true;
+    saveState(`Guardado · ${new Date(data.updated_at).toLocaleTimeString("es-ES")}`);
+    renderNotebookList();
+    notifySaveWaiters(true);
+    return true;
+  }
+
+  function notifySaveWaiters(result) {
+    const waiters=saveWaiters;
+    saveWaiters=[];
+    waiters.forEach(resolve=>resolve(result));
+  }
+
+  async function refreshAudioUrls() {
+    const n=current();
+    if (!n) return;
+    for (const section of (n.data?.sections || [])) {
+      for (const audio of section.audio || []) {
+        const row=document.querySelector(`[data-audio-path="${CSS.escape(audio.path)}"]`);
+        const player=row?.querySelector("audio");
+        if (!player) continue;
+        const { data }=supa.storage.from("audio").getPublicUrl(audio.path);
+        if (!data?.publicUrl) { fail(new Error(`No se pudo crear el enlace de audio: ${audio.name}`)); continue; }
+        player.src=data.publicUrl;
+      }
+    }
+  }
+
+  async function uploadAudio(input) {
+    const file=input.files?.[0]; input.value="";
+    if (!file) return;
+    if (file.size>MAX_AUDIO_BYTES) { fail(new Error("El audio supera el límite de 40 MB.")); return; }
+    const audioTypeByExtension={mp3:"audio/mpeg",m4a:"audio/mp4",aac:"audio/aac",wav:"audio/wav",ogg:"audio/ogg",opus:"audio/ogg",webm:"audio/webm",flac:"audio/flac"};
+    const extension=file.name.split(".").pop().toLowerCase();
+    const contentType=file.type || audioTypeByExtension[extension];
+    if (!contentType?.startsWith("audio/")) { fail(new Error("Selecciona un archivo de audio compatible.")); return; }
+    const section=current().data.sections.find(s=>s.id===input.closest("[data-section-id]").dataset.sectionId);
+    const safe=file.name.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\w.-]+/g,"-").toLowerCase();
+    const path=`composition/${current().id}/${section.id}/${crypto.randomUUID()}-${safe}`;
+    saveState(`Subiendo ${file.name}…`);
+    let error;
+    try {
+      ({ error }=await supa.storage.from("audio").upload(path,file,{upsert:false,contentType}));
+    } catch (err) {
+      saveState(`No se pudo subir el audio: ${err.message || err}`,true); fail(err); return;
+    }
+    if (error) { saveState(`No se pudo subir el audio: ${error.message}`,true); fail(error); return; }
+    section.audio=section.audio || [];
+    section.audio.push({path,name:file.name,type:contentType,size:file.size});
+    renderEditor(); markDirty();
+  }
+
+  async function removeAudio(section,path) {
+    section.audio=section.audio.filter(a=>a.path!==path);
+    renderEditor(); markDirty();
+    if (!(await saveNow())) return;
+    const error=await removeAudioObjects([path]);
+    if (error) fail(new Error(`El audio se quitó del cuaderno, pero no se pudo limpiar el archivo: ${error.message || error}`));
+  }
+
+  async function removeAudioObjects(paths) {
+    if (!paths.length) return null;
+    try {
+      const { error }=await supa.storage.from("audio").remove(paths);
+      return error || null;
+    } catch (err) {
+      return err;
+    }
+  }
+
+  async function deleteNotebook() {
+    const n=current();
+    if (!n || !confirm(`¿Borrar el cuaderno «${n.title}» y sus comentarios?`)) return;
+    const { error }=await supa.from("composition_notebooks").delete().eq("id",n.id);
+    if (error) { fail(error); return; }
+    const audioPaths=(n.data?.sections || []).flatMap(s=>(s.audio || []).map(a=>a.path));
+    if (audioPaths.length) {
+      const storageError=await removeAudioObjects(audioPaths);
+      if (storageError) fail(new Error(`El cuaderno se borró, pero no se pudieron limpiar todos sus audios: ${storageError.message || storageError}`));
+    }
+    notebooks=notebooks.filter(row=>row.id!==n.id);
+    activeId=null;
+    if (notebooks.length) await openNotebook(notebooks[0].id); else renderEmpty();
+  }
+
+  async function postComment(e) {
+    e.preventDefault();
+    const body=$("comment-body").value.trim();
+    if (!body) return;
+    const submit=e.submitter; submit.disabled=true;
+    const { data,error }=await supa.from("composition_comments").insert({
+      notebook_id:activeId, section_id:$("comment-section").value || null,
+      body, created_by:session.user.id,
+      author_name:session.user.user_metadata?.full_name || session.user.email || "Miembro"
+    }).select().single();
+    submit.disabled=false;
+    if (error) { fail(error); return; }
+    $("comment-body").value="";
+    if (!comments.some(c=>c.id===data.id)) comments.push(data);
+    renderComments();
+  }
+
+  async function deleteComment(id) {
+    const { error }=await supa.from("composition_comments").delete().eq("id",id).eq("created_by",session.user.id);
+    if (error) fail(error);
+    else { comments=comments.filter(c=>c.id!==id); renderComments(); }
+  }
+
+  function renderComments() {
+    const list=$("comment-list");
+    if (!list) return;
+    list.innerHTML=comments.length ? comments.map(c=>{
+      const section=current()?.data?.sections?.find(s=>s.id===c.section_id);
+      const mine=c.created_by===session.user.id;
+      return `<article class="comment"><div class="comment-head"><strong>${escapeHtml(c.author_name || "Miembro")}</strong><span>${escapeHtml(section?.title || "Idea general")}</span><span>${new Date(c.created_at).toLocaleString("es-ES")}</span>${mine?`<button class="btn danger" type="button" data-comment-delete="${escapeHtml(c.id)}">Borrar</button>`:""}</div><div class="comment-body">${escapeHtml(c.body)}</div></article>`;
+    }).join("") : `<div class="empty">Aún no hay comentarios. Deja la primera idea al equipo.</div>`;
+    list.querySelectorAll("[data-comment-delete]").forEach(btn=>btn.addEventListener("click",()=>deleteComment(btn.dataset.commentDelete)));
+  }
+
+  async function promote() {
+    if (!(await saveNow())) return;
+    const n=current();
+    if (!n) return;
+    const sections=(n.data.sections || []).map((s,i)=>({
+      name:s.title || `Sección ${i+1}`,
+      type:sectionType(s.title),
+      lyrics:s.lyrics || "",
+      chords:s.chords || "",
+      notes:{all:"",drums:"",piano:"",guitar_rhythm:"",guitar_lead:"",bass:"",voice:""}
+    }));
+    const songId=`composition-${n.id}`;
+    const { data:latest,error:readError }=await supa.from("songs").select("position").order("position",{ascending:false}).limit(1);
+    if (readError) { fail(readError); return; }
+    const nextPosition=(latest?.[0]?.position || 0)+1;
+    const audio=(n.data.sections || []).flatMap(s=>(s.audio || []).map(a=>({ ...a, name:`${s.title}: ${a.name}` })));
+    const { error }=await supa.from("songs").insert({
+      id:songId, position:nextPosition,
+      data:{ title:n.title, artist:"", sections, audio, notes:n.data.notes || "", folders:[] }
+    });
+    if (error) {
+      if (error.code==="23505") { fail(new Error("Este cuaderno ya se pasó al repertorio.")); return; }
+      fail(error); return;
+    }
+    saveState("Añadida al repertorio de ensayos.");
+    alert("La idea ya está en ensayos. Las demos siguen en el cuaderno y también aparecen en la canción.");
+  }
+
+  function sectionType(name) {
+    const n=String(name || "").toLocaleLowerCase("es");
+    if (/intro/.test(n)) return "intro";
+    if (/vers|estrofa/.test(n)) return "verse";
+    if (/pre.?estribillo/.test(n)) return "pre_chorus";
+    if (/estribillo|coro/.test(n)) return "chorus";
+    if (/puente/.test(n)) return "bridge";
+    if (/solo/.test(n)) return "solo";
+    if (/outro|final/.test(n)) return "outro";
+    return "custom";
+  }
+
+  function subscribe() {
+    channel=supa.channel("composition-workspace")
+      .on("postgres_changes",{event:"*",schema:"public",table:"composition_notebooks"},payload=>{
+        const row=payload.new;
+        if (payload.eventType==="DELETE") {
+          notebooks=notebooks.filter(n=>n.id!==payload.old.id);
+          if (activeId===payload.old.id) renderEmpty();
+          renderNotebookList(); return;
+        }
+        if (!row?.id) return;
+        const i=notebooks.findIndex(n=>n.id===row.id);
+        if (row.id===activeId && row.updated_by!==session.user.id && dirty) {
+          remoteChanged=true;
+          showConflict("Otra persona guardó cambios. Tus cambios siguen aquí y no se sobrescribirán.");
+        } else if (row.id!==activeId || !dirty) {
+          if (i<0) notebooks.unshift(row);
+          else notebooks[i]=row;
+          if (row.id===activeId && row.updated_by!==session.user.id) renderEditor();
+        }
+        renderNotebookList();
+      })
+      .on("postgres_changes",{event:"*",schema:"public",table:"composition_comments"},payload=>{
+        if ((payload.new?.notebook_id || payload.old?.notebook_id)!==activeId) return;
+        if (payload.eventType==="INSERT" && !comments.some(c=>c.id===payload.new.id)) comments.push(payload.new);
+        if (payload.eventType==="DELETE") comments=comments.filter(c=>c.id!==payload.old.id);
+        renderComments();
+      })
+      .subscribe((status,error)=>{
+        if (status==="CHANNEL_ERROR" || status==="TIMED_OUT") fail(new Error(`La colaboración en directo no está disponible (${status}). ${error?.message || ""}`));
+      });
+  }
+
+  window.addEventListener("beforeunload",e=>{
+    if (!dirty) return;
+    e.preventDefault(); e.returnValue="";
+  });
+  start();
+})();
+</script>
+</body>
+</html>

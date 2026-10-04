@@ -21,6 +21,15 @@
       status: "live"
     },
     {
+      id: "composicion",
+      name: "composición",
+      href: "/suite/composicion.html",
+      tagline: "ideas, acordes y demos",
+      desc: "Cuadernos compartidos para componer canciones en equipo.",
+      glyph: "✎",
+      status: "live"
+    },
+    {
       id: "visuales",
       name: "visuales",
       href: "/suite/visuales.html",
